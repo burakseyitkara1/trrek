@@ -26,6 +26,8 @@ case "freeze":
     runFreeze(options)
 case "mem":
     runMem()
+case "pipeline":
+    runPipeline(options)
 case "help", "-h", "--help":
     printUsage()
 default:

@@ -13,3 +13,4 @@ All notable changes to this project are documented in this file.
 - Engine: palm, typing, hold-key and pause gates
 - Engine: internal lock, clock contract, non-finite guard and step cap, bottom-quarter rule keeps corners, reset cancels
 - CI: read-only token permissions
+- Platform: gesture pipeline, command dispatcher and testable ports

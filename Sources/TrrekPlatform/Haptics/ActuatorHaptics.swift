@@ -1,9 +1,17 @@
 import CoreFoundation
+import Dispatch
+import os
+import TrrekEngine
 
 /// Drives the trackpad haptic actuator. The actuator stays open for the object's lifetime.
-public final class ActuatorHaptics {
+/// Actuation is serialized by a lock, so the object may be used from any thread.
+public final class ActuatorHaptics: @unchecked Sendable {
+    /// Delay before the second pulse of a strong start or tap.
+    private static let secondPulseDelay: DispatchTimeInterval = .milliseconds(60)
+
     private let symbols: ActuatorSymbols
     private let actuator: CFTypeRef
+    private let lock = OSAllocatedUnfairLock()
 
     public init?(multitouchID: UInt64) {
         guard let symbols = PrivateSymbols.actuator else { return nil }
@@ -27,6 +35,26 @@ public final class ActuatorHaptics {
     /// Plays a waveform. Returns `true` when the actuator accepted it.
     @discardableResult
     public func actuate(waveform: Int32) -> Bool {
-        symbols.actuate(actuator, waveform, 0, 0.0, 0.0) == 0
+        lock.withLock {
+            symbols.actuate(actuator, waveform, 0, 0.0, 0.0) == 0
+        }
+    }
+}
+
+extension ActuatorHaptics: HapticPerforming {
+    /// Plays the waveform for `strength`; a strong start or tap adds a second pulse 60 ms later.
+    public func perform(_ event: HapticEvent, strength: HapticStrength) {
+        let waveform: Int32
+        switch strength {
+        case .off: return
+        case .light: waveform = 4
+        case .medium: waveform = 5
+        case .strong: waveform = 6
+        }
+        actuate(waveform: waveform)
+        guard strength == .strong, event == .start || event == .tap else { return }
+        DispatchQueue.global().asyncAfter(deadline: .now() + Self.secondPulseDelay) { [self] in
+            actuate(waveform: waveform)
+        }
     }
 }

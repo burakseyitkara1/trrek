@@ -1,0 +1,309 @@
+import CMultitouch
+import Dispatch
+import Foundation
+import os
+import TrrekEngine
+
+public enum PipelineError: Error {
+    case noDevices
+}
+
+/// Feeds raw multitouch frames into a `GestureEngine`.
+///
+/// Thread model:
+/// - Frames arrive on the framework's callback thread. Each is converted on the stack and handed to the engine
+///   under one `os_unfair_lock`; the engine's commands reach its sink synchronously inside that lock.
+/// - Every other engine call (`noteKeyDown`, `setHoldKeySatisfied`, `setPaused`, `update(config:)`, `reset()`)
+///   must go through `withEngine`, which takes the same lock. The lock is not recursive: neither the sink nor a
+///   `withEngine` body may call back into the pipeline.
+/// - `start()`, `stop()` and `restart()` are called from one thread (the main thread in the app).
+///
+/// Clocks: frame timestamps come from each device's own clock, which matches no system clock and may differ
+/// between devices. The pipeline remembers, per device, the last frame timestamp and the system uptime at
+/// which it arrived; `engineTime(fromUptime:)` and the watchdog translate uptime into the frame clock of the
+/// device that is driving the engine.
+///
+/// While a slide is active (`sliding` or `lost`) a one-shot watchdog fires `lostTimeout` after the active
+/// device's last frame and calls `engine.tick(now:)`, and a user-initiated activity keeps the process out of
+/// App Nap. Idle, the pipeline schedules nothing.
+public final class GesturePipeline: @unchecked Sendable {
+    struct DeviceEntry {
+        let ref: MTDeviceRef
+        let id: UInt64
+        let geometry: DeviceGeometry
+        /// The last frame's own timestamp and the uptime at which it arrived; `nil` until the first frame.
+        var lastFrame: (timestamp: TimeInterval, uptime: TimeInterval)?
+
+        /// `uptime` translated into this device's frame clock, once a frame has been seen.
+        func frameTime(atUptime uptime: TimeInterval) -> TimeInterval? {
+            lastFrame.map { $0.timestamp + (uptime - $0.uptime) }
+        }
+    }
+
+    /// Fixed-capacity device table, searched linearly on every frame; never allocates.
+    struct DeviceTable {
+        static let capacity = 4
+
+        private var entries = InlineArray<4, DeviceEntry?>(repeating: nil)
+        private(set) var count = 0
+
+        mutating func append(_ entry: DeviceEntry) -> Bool {
+            guard count < Self.capacity else { return false }
+            entries[count] = entry
+            count += 1
+            return true
+        }
+
+        func index(of ref: MTDeviceRef) -> Int? {
+            for index in 0 ..< count where entries[index]?.ref == ref {
+                return index
+            }
+            return nil
+        }
+
+        subscript(_ index: Int) -> DeviceEntry? {
+            get { index < count ? entries[index] : nil }
+            set {
+                guard index < count else { return }
+                entries[index] = newValue
+            }
+        }
+    }
+
+    /// Shortest delay used when the watchdog re-arms itself for the rest of a timeout.
+    private static let minimumRearm: TimeInterval = 0.005
+
+    private let engine: GestureEngine
+    private let lostTimeout: TimeInterval
+    private let lock: UnsafeMutablePointer<os_unfair_lock>
+    private let watchdog: DispatchSourceTimer
+
+    // The properties below, up to `stream`, are guarded by `lock`.
+
+    private var table = DeviceTable()
+    /// Table index of the device whose frame made the slide active; `nil` while no slide is active.
+    private var activeIndex: Int?
+    /// Table index of the device that delivered the most recent frame.
+    private var latestIndex: Int?
+    private var watchdogArmed = false
+    private var activity: NSObjectProtocol?
+
+    // Touched only by the thread that calls `start()`/`stop()`.
+    private var stream: RawFrameStream?
+    public private(set) var isRunning = false
+
+    public init(engine: GestureEngine, lostTimeout: TimeInterval) {
+        self.engine = engine
+        self.lostTimeout = lostTimeout
+        lock = UnsafeMutablePointer<os_unfair_lock>.allocate(capacity: 1)
+        lock.initialize(to: os_unfair_lock())
+        watchdog = DispatchSource.makeTimerSource(
+            queue: DispatchQueue(label: "com.burakseyitkara.trrek.watchdog", qos: .userInitiated)
+        )
+        watchdog.setEventHandler { [weak self] in
+            self?.watchdogFired()
+        }
+        watchdog.schedule(deadline: .distantFuture)
+        watchdog.activate()
+    }
+
+    deinit {
+        // Releases a frozen cursor, the activity assertion and the watchdog deadline.
+        stop()
+        watchdog.cancel()
+        lock.deinitialize(count: 1)
+        lock.deallocate()
+    }
+
+    /// Number of devices currently feeding the engine.
+    public var deviceCount: Int {
+        locked { table.count }
+    }
+
+    /// Enumerates the multitouch devices and starts streaming. Throws `PipelineError.noDevices` when there is
+    /// no usable device, or the stream's error when no device could be started. Restarts when already running.
+    public func start() throws {
+        // Stop first: enumeration releases the previous device list, which the old stream still refers to.
+        stop()
+        let selected = install(devices: MultitouchDevices.enumerate())
+        guard !selected.isEmpty else { throw PipelineError.noDevices }
+
+        let stream = RawFrameStream(devices: selected)
+        stream.onFrame = { [weak self] device, touches, timestamp in
+            self?.handleFrame(device, touches, timestamp, uptime: Self.uptime())
+        }
+        do {
+            try stream.start()
+        } catch {
+            locked { table = DeviceTable() }
+            throw error
+        }
+        self.stream = stream
+        isRunning = true
+    }
+
+    /// Stops streaming and returns the engine to idle (an active slide only releases the cursor).
+    public func stop() {
+        stream?.stop()
+        stream = nil
+        locked {
+            // A frame still in flight finds an empty table and is dropped.
+            table = DeviceTable()
+            latestIndex = nil
+            engine.reset()
+            settle(frameIndex: nil)
+        }
+        isRunning = false
+    }
+
+    /// Stops and starts again, for example after wake or a device change. Failures are logged.
+    public func restart() {
+        do {
+            try start()
+        } catch {
+            platformLogger.error("pipeline restart failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Runs `body` with exclusive access to the engine, under the same lock that guards frame processing.
+    public func withEngine<T>(_ body: (GestureEngine) -> T) -> T {
+        locked {
+            let result = body(engine)
+            settle(frameIndex: nil)
+            return result
+        }
+    }
+
+    /// Converts a system-uptime timestamp into the engine's clock, which is the frame clock of the device that
+    /// drives the active gesture (the device of the most recent frame when idle).
+    ///
+    /// `uptime` is in seconds since boot, not counting sleep: `ProcessInfo.processInfo.systemUptime`, or a
+    /// `CGEvent` timestamp divided by 1e9. Returns `nil` until a frame has been seen since the last `start()`.
+    /// Use it for every time handed to the engine from outside, such as `noteKeyDown(at:)`.
+    public func engineTime(fromUptime uptime: TimeInterval) -> TimeInterval? {
+        locked {
+            guard let index = activeIndex ?? latestIndex else { return nil }
+            return table[index]?.frameTime(atUptime: uptime)
+        }
+    }
+
+    // MARK: - Devices and frames (internal for tests)
+
+    /// Builds the device table from `devices` and returns the devices that made it in: those with a surface
+    /// size, at most `DeviceTable.capacity`.
+    func install(devices: [MultitouchDeviceInfo]) -> [MultitouchDeviceInfo] {
+        var newTable = DeviceTable()
+        var selected: [MultitouchDeviceInfo] = []
+        for device in devices {
+            let geometry = DeviceGeometry(
+                widthMM: device.widthMM,
+                heightMM: device.heightMM,
+                isBuiltIn: device.isBuiltIn
+            )
+            guard geometry.isValid else {
+                platformLogger.error("skipping multitouch device without a surface size")
+                continue
+            }
+            let id = UInt64(UInt(bitPattern: device.ref))
+            guard newTable.append(DeviceEntry(ref: device.ref, id: id, geometry: geometry)) else {
+                platformLogger.error("more than \(DeviceTable.capacity, privacy: .public) devices; ignoring the rest")
+                break
+            }
+            selected.append(device)
+        }
+        locked {
+            table = newTable
+            activeIndex = nil
+            latestIndex = nil
+        }
+        return selected
+    }
+
+    /// Handles one frame; `uptime` is when it arrived. Runs on the frame thread and never allocates.
+    func handleFrame(
+        _ device: MTDeviceRef,
+        _ touches: UnsafeBufferPointer<MTTouch>,
+        _ timestamp: Double,
+        uptime: TimeInterval
+    ) {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        guard let index = table.index(of: device), var entry = table[index] else { return }
+        entry.lastFrame = (timestamp, uptime)
+        table[index] = entry
+        latestIndex = index
+        engine.process(FrameConverter.frame(
+            touches: touches,
+            timestamp: timestamp,
+            deviceID: entry.id,
+            geometry: entry.geometry
+        ))
+        settle(frameIndex: index)
+    }
+
+    /// Seconds since boot, not counting sleep (the clock of `ProcessInfo.systemUptime`). A plain clock read,
+    /// safe on the frame thread.
+    static func uptime() -> TimeInterval {
+        Double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1_000_000_000
+    }
+
+    // MARK: - Watchdog and activity (call with `lock` held)
+
+    private func watchdogFired() {
+        locked {
+            watchdogArmed = false
+            let index = activeIndex ?? latestIndex
+            if isActive(engine.stateKind), let now = index.flatMap({ table[$0]?.frameTime(atUptime: Self.uptime()) }) {
+                engine.tick(now: now)
+            }
+            settle(frameIndex: nil)
+        }
+    }
+
+    /// Brings the active device, the activity assertion and the watchdog in line with the engine state.
+    /// `frameIndex` is the device of the frame just processed, or `nil` outside frame handling.
+    ///
+    /// The watchdog is armed once when a slide becomes active and re-arms itself for the remainder of the
+    /// timeout when the active device kept sending frames, so it fires `lostTimeout` after that device's last
+    /// frame without being rescheduled on every frame (rescheduling a dispatch timer allocates). Frames from
+    /// other devices never move the deadline.
+    private func settle(frameIndex: Int?) {
+        let kind = engine.stateKind
+        let active = isActive(kind)
+        if active {
+            // A slide only becomes active while processing a frame of the device it runs on.
+            if activeIndex == nil {
+                activeIndex = frameIndex
+            }
+        } else {
+            activeIndex = nil
+        }
+        if kind == .sliding, activity == nil {
+            activity = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "trrek slide")
+        } else if !active, let token = activity {
+            ProcessInfo.processInfo.endActivity(token)
+            activity = nil
+        }
+        if active, !watchdogArmed {
+            var delay = lostTimeout
+            if let index = activeIndex, let last = table[index]?.lastFrame {
+                delay = max(lostTimeout - (Self.uptime() - last.uptime), Self.minimumRearm)
+            }
+            watchdog.schedule(deadline: .now() + delay)
+            watchdogArmed = true
+        } else if !active, watchdogArmed {
+            watchdog.schedule(deadline: .distantFuture)
+            watchdogArmed = false
+        }
+    }
+
+    private func isActive(_ kind: StateKind) -> Bool {
+        kind == .sliding || kind == .lost
+    }
+
+    private func locked<T>(_ body: () -> T) -> T {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return body()
+    }
+}

@@ -17,7 +17,8 @@ private let frameCallback: MTFrameCallback = { device, touches, count, timestamp
 public final class RawFrameStream {
     nonisolated(unsafe) weak static var current: RawFrameStream?
 
-    public var onFrame: ((MTDeviceRef, UnsafeBufferPointer<MTTouch>, Double) -> Void)?
+    /// Receives the device, its contacts (valid only during the call) and the frame timestamp in seconds.
+    public var onFrame: (@Sendable (MTDeviceRef, UnsafeBufferPointer<MTTouch>, Double) -> Void)?
 
     private let devices: [MultitouchDeviceInfo]
     private var startedDevices: [MTDeviceRef] = []
@@ -53,6 +54,8 @@ public final class RawFrameStream {
         }
     }
 
+    /// Stops every started device. A frame that is already in flight on the framework's thread may still
+    /// invoke `onFrame` once after this returns, so the handler must stay valid until then.
     public func stop() {
         guard let symbols = PrivateSymbols.multitouch else { return }
         for device in startedDevices {

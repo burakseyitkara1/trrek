@@ -13,20 +13,22 @@ public struct MultitouchDeviceInfo {
 }
 
 public enum MultitouchDevices {
-    /// Device lists returned by the framework own their device references, so every list is
-    /// kept alive for the life of the process. Enumeration happens only at startup and on
-    /// device changes, which keeps this small.
-    private nonisolated(unsafe) static var retainedLists: [CFArray] = []
+    /// Device lists returned by the framework own their device references. Only the latest list is kept
+    /// alive; the previous one is released when a new enumeration replaces it.
+    private nonisolated(unsafe) static var latestList: CFArray?
     private static let listLock = NSLock()
 
     /// Lists all multitouch devices. Returns an empty array when the framework is unavailable.
+    ///
+    /// Each call releases the list behind the previous call's `ref`s, so callers must stop every stream built
+    /// from earlier results before enumerating again and must not use those earlier results afterwards.
     public static func enumerate() -> [MultitouchDeviceInfo] {
         guard let symbols = PrivateSymbols.multitouch,
               let list = symbols.createList()?.takeRetainedValue()
         else { return [] }
 
         listLock.lock()
-        retainedLists.append(list)
+        latestList = list
         listLock.unlock()
 
         var registry = registryEntries()

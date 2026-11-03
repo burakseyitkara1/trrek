@@ -2,6 +2,7 @@ import CMultitouch
 import CoreGraphics
 import Darwin
 import Foundation
+import TrrekEngine
 import TrrekPlatform
 
 // MARK: - Output
@@ -24,6 +25,7 @@ func printUsage() {
       switcher                hold Command, press Tab twice, release (needs Accessibility)
       freeze <seconds>        swallow pointer movement and scroll for a while (needs Accessibility)
       mem                     print this process's memory footprint in MB
+      pipeline [seconds]      print every engine command from live frames; sends nothing (default 20 s)
     """)
 }
 
@@ -250,6 +252,7 @@ func runSwitcher() {
 
 // MARK: - freeze
 
+@MainActor
 func runFreeze(_ options: [String]) {
     guard let value = options.first, let seconds = Double(value), seconds > 0 else {
         usageError("freeze needs a duration in seconds")
@@ -265,6 +268,89 @@ func runFreeze(_ options: [String]) {
     pumpRunLoop(until: Date().addingTimeInterval(seconds))
     guardTap.setFreeze(false)
     output("cursor released")
+}
+
+// MARK: - pipeline
+
+/// Prints engine commands instead of carrying them out.
+private final class LoggingSink: CommandSink, @unchecked Sendable {
+    func handle(_ command: GestureCommand, device: UInt64) {
+        output(String(format: "%.3f ", ProcessInfo.processInfo.systemUptime) + "\(command) device=\(device)")
+    }
+}
+
+/// Records the first frame's timestamp next to the system clocks read when it arrived.
+private final class ClockSample: @unchecked Sendable {
+    struct Reading {
+        let frame: Double
+        let uptime: Double
+        let continuous: Double
+    }
+
+    private let lock = NSLock()
+    private var sample: Reading?
+
+    func record(_ frame: Double) {
+        let uptime = ProcessInfo.processInfo.systemUptime
+        // A monotonic clock that keeps counting while the system sleeps.
+        let continuous = Double(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1e9
+        lock.lock()
+        defer { lock.unlock() }
+        if sample == nil {
+            sample = Reading(frame: frame, uptime: uptime, continuous: continuous)
+        }
+    }
+
+    var value: Reading? {
+        lock.lock()
+        defer { lock.unlock() }
+        return sample
+    }
+}
+
+/// Compares the frame clock with the system uptime, waiting up to `seconds` for a first frame.
+private func compareClocks(waiting seconds: Double) {
+    let sample = ClockSample()
+    let stream = RawFrameStream(devices: MultitouchDevices.enumerate())
+    stream.onFrame = { _, _, timestamp in sample.record(timestamp) }
+    startStream(stream)
+    output("touch the trackpad once to compare clocks (\(seconds) s)...")
+    pumpRunLoop(until: Date().addingTimeInterval(seconds)) { sample.value != nil }
+    stream.stop()
+    guard let value = sample.value else {
+        output(String(format: "clock: no frame; uptime now %.4f", ProcessInfo.processInfo.systemUptime))
+        return
+    }
+    output(String(
+        format: "clock: frame timestamp %.4f, system uptime %.4f (difference %.4f s), "
+            + "uptime including sleep %.4f (difference %.4f s)",
+        value.frame, value.uptime, value.uptime - value.frame, value.continuous, value.continuous - value.frame
+    ))
+}
+
+func runPipeline(_ options: [String]) {
+    var seconds = 20.0
+    if let value = options.first {
+        guard let parsed = Double(value), parsed > 0 else { usageError("invalid seconds: \(value)") }
+        seconds = parsed
+    }
+    compareClocks(waiting: min(3, seconds))
+
+    let config = EngineConfig()
+    let sink = LoggingSink()
+    let engine = GestureEngine(config: config, sink: sink)
+    let pipeline = GesturePipeline(engine: engine, lostTimeout: config.thresholds.lostTimeout)
+    do {
+        try pipeline.start()
+    } catch {
+        output("cannot start pipeline: \(error)")
+        exit(1)
+    }
+    output("pipeline running on \(pipeline.deviceCount) device(s) for \(seconds) s; commands are printed, not sent")
+    pumpRunLoop(until: Date().addingTimeInterval(seconds))
+    pipeline.stop()
+    withExtendedLifetime(sink) {}
+    output("pipeline stopped")
 }
 
 // MARK: - mem

@@ -1,22 +1,29 @@
 import CoreGraphics
 import Foundation
+import Synchronization
 
-/// Session event tap that can freeze the cursor by swallowing pointer movement and scroll
-/// events. Starts disabled; it only sees events while frozen. Events stamped by trrek pass.
-public final class EventTapGuard {
+/// HID-level event tap that can freeze the cursor by swallowing pointer movement and scroll events before
+/// they reach the window server. Starts disabled; it only sees events while frozen. Events stamped by trrek
+/// pass through.
+///
+/// The tap's run-loop source lives on the main run loop, so the object is created on the main actor and the
+/// tap callback runs on the main thread. `tap` and `isAvailable` are only written during `init`.
+/// `setFreeze` may be called from any thread.
+public final class EventTapGuard: CursorFreezing, @unchecked Sendable {
     public private(set) var isAvailable = false
 
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    private var frozen = false
+    private let frozen = Atomic<Bool>(false)
 
+    @MainActor
     public init() {
         let types: [CGEventType] = [
             .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged, .scrollWheel
         ]
         let mask = types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
         guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
+            tap: .cghidEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: mask,
@@ -45,20 +52,22 @@ public final class EventTapGuard {
     }
 
     /// While frozen, pointer movement and scroll events from the user are swallowed.
+    /// Safe from any thread: enabling or disabling a tap is thread-safe.
     public func setFreeze(_ on: Bool) {
-        frozen = on
+        frozen.store(on, ordering: .releasing)
         guard let tap else { return }
         CGEvent.tapEnable(tap: tap, enable: on)
     }
 
     fileprivate func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
+        let isFrozen = frozen.load(ordering: .acquiring)
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if frozen, let tap {
+            if isFrozen, let tap {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
             return Unmanaged.passUnretained(event)
         }
-        if EventStamp.isOurs(event) || !frozen {
+        if EventStamp.isOurs(event) || !isFrozen {
             return Unmanaged.passUnretained(event)
         }
         return nil

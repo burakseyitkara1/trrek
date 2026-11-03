@@ -27,12 +27,17 @@ let package = Package(
         ),
         .executableTarget(
             name: "TrrekProbe",
-            dependencies: ["TrrekEngine", "TrrekPlatform"],
+            dependencies: ["TrrekEngine", "TrrekPlatform", "CMultitouch"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(
             name: "TrrekEngineTests",
             dependencies: ["TrrekEngine"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "TrrekPlatformTests",
+            dependencies: ["TrrekPlatform", "TrrekEngine", "CMultitouch"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         )
     ]
