@@ -191,7 +191,7 @@ Geçişler (kare başına; kapılar Bölüm 5.6'daki sırayla önce uygulanır):
 3. **sliding**
    - dokunma sayısı ≥ 2 → bitir(cancel) → `spent`.
    - her karede `accumulatedMM += Δ(kenar ekseni)`; `|accumulatedMM| ≥ stepMM(action)` olduğu sürece bir adım komutu + `haptic(.step)` emit, `accumulatedMM` azalt. Adım komutları: `stepVolume(±1, fine)`, `stepBrightness(±1, fine)`, `stepKeyboardBacklight(±1, fine)`, `appSwitchStep(±1)`, `scrubStep(±1)`, `mediaNext`/`mediaPrevious`. `fine = config.precision`.
-   - dokunma id'si kareden kayboldu (kalkma ya da anlık düşme; ikisi ayırt edilemez) → `lost`.
+   - dokunma id'si kareden kayboldu (kalkma ya da anlık düşme; ikisi ayırt edilemez) → `lost`. Spike ile doğrulandı: cihaz kalkışta state 5→6→7 ve ardından sıfır dokunmalı bir kare gönderir; platform yalnızca state 3/4'ü geçirdiği için parmak state 5'te kaybolur.
    - kare gelmedi (watchdog `tick(now)` ile `now − lastFrameTime ≥ lostTimeout`) → bitir(commit) → `idle`.
 4. **lost**
    - aynı id geri geldi, `lostTimeout` içinde → `sliding`.
@@ -264,7 +264,7 @@ public final class GestureEngine {
 
 - Framework: `/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport`.
 - Semboller: `MTDeviceCreateList`, `MTDeviceIsBuiltIn`, `MTDeviceGetSensorSurfaceDimensions`, `MTRegisterContactFrameCallback`, `MTUnregisterContactFrameCallback`, `MTDeviceStart`, `MTDeviceStop`, `MTDeviceRelease`.
-- Başlatma: liste alınır, her cihaz için yüzey boyutu okunur (birim spike'ta doğrulanır; beklenen 1/100 mm), callback kaydedilir, `MTDeviceStart(dev, 0)`.
+- Başlatma: liste alınır, her cihaz için yüzey boyutu okunur (birim 1/100 mm; spike'ta doğrulandı: dahili trackpad 12194×7408 → 121.94×74.08 mm), callback kaydedilir, `MTDeviceStart(dev, 0)`.
 - Callback imzası: `(MTDeviceRef, UnsafePointer<MTTouch>, Int32 count, Double timestamp, Int32 frame)`. `MTTouch` 96 baytlık C yapısıdır: `frame:Int32, timestamp:Double, identifier:Int32, state:Int32, fingerID:Int32, handID:Int32, normalizedPosition{x,y}:Float, normalizedVelocity{x,y}:Float, total:Float, pressure:Float, angle:Float, majorAxis:Float, minorAxis:Float, absolutePosition{x,y}:Float, absoluteVelocity{x,y}:Float, reserved:Int32×2, density:Float`. State değerleri: 3 = temas başladı, 4 = temas sürüyor; diğerleri temas değil. Düzen `TrrekProbe layout-check` ile doğrulanır.
 - İlk karede makullük denetimi: `normalizedPosition` 0...1 içinde ve `majorAxis` 0...100 mm içinde değilse kaynak durdurulur ve `layoutMismatch` hatası yayınlanır.
 - Kare dönüşümü: yalnızca state ∈ {3, 4} dokunmalar `TouchBuffer`'a yazılır; `majorAxisMM = majorAxis`. `deviceID` olarak `MTDeviceRef` işaretçisinin tamsayı değeri kullanılır.
@@ -288,7 +288,7 @@ public final class GestureEngine {
 ### 6.5 EventTapGuard
 
 - **Tap A** (hep açık): `CGEvent.tapCreate(.cgSessionEventTap, .headInsertEventTap, .listenOnly, [keyDown, flagsChanged])`. keyDown → `engine.noteKeyDown`. flagsChanged → Hold-to-Slide değerlendirmesi (6.10).
-- **Tap B** (yalnızca slide sırasında): `.defaultTap`, `[mouseMoved, leftMouseDragged, rightMouseDragged, otherMouseDragged, scrollWheel]`. Açıkken scrollWheel her zaman yutulur; mouseMoved/dragged yalnızca `freezeCursor` açıksa yutulur. `freezeCursor(true)` komutu `CGEvent.tapEnable(tap, true)` çağırır, `freezeCursor(false)` kapatır. Tap kapalıyken sıfır maliyet.
+- **Tap B** (yalnızca slide sırasında): `.cghidEventTap` konumunda (olay WindowServer'a ulaşmadan yutulur, imleç yerinde kalır), `.defaultTap`, `[mouseMoved, leftMouseDragged, rightMouseDragged, otherMouseDragged, scrollWheel]`. Açıkken scrollWheel her zaman yutulur; mouseMoved/dragged yalnızca `freezeCursor` açıksa yutulur. `freezeCursor(true)` komutu `CGEvent.tapEnable(tap, true)` çağırır, `freezeCursor(false)` kapatır. Tap kapalıyken sıfır maliyet.
 - `tapDisabledByTimeout`/`tapDisabledByUserInput` gelirse tap yeniden etkinleştirilir.
 - Accessibility yoksa tap'ler kurulmaz; `isAvailable = false`.
 
@@ -301,9 +301,9 @@ public final class GestureEngine {
 
 ### 6.7 KeyboardBacklight
 
-Aşama 0 spike kararı:
-- **Yol A (tercih):** ILLUMINATION_UP/DOWN medya tuşu olayları; macOS kendi HUD'unu gösteriyorsa bu yol kullanılır, köprü `nativeHUD = true` döner.
-- **Yol B:** CoreBrightness `KeyboardBrightnessClient` sınıfı (`copyKeyboardBacklightIDs`, `brightnessForKeyboard:`, `setBrightness:fadeSpeed:commit:forKeyboard:`), adım 1/16, `fine` ise 1/64; seviye overlay'de gösterilir; 0 ve 1'de `haptic(.limit)`.
+Aşama 0 spike sonucu: medya tuşu yolu Accessibility izni olmadan doğrulanamadı; **Yol B birincil**, Yol A izin alındıktan sonra deneme olarak kalır.
+- **Yol A (ileride):** ILLUMINATION_UP/DOWN medya tuşu olayları; macOS kendi HUD'unu gösteriyorsa bu yola geçilebilir, köprü `nativeHUD = true` döner.
+- **Yol B (birincil):** CoreBrightness `KeyboardBrightnessClient` sınıfı (`copyKeyboardBacklightIDs`, `brightnessForKeyboard:`, `setBrightness:fadeSpeed:commit:forKeyboard:`), adım 1/16, `fine` ise 1/64; seviye overlay'de gösterilir; 0 ve 1'de `haptic(.limit)`.
 - Köprü `isAvailable == false` ise ayarlarda Keyboard Backlight seçeneği gri olur ve bottom edge varsayılanı Media'ya düşer.
 
 ### 6.8 ExternalBrightness ve DisplayLocator (Aşama 2)
@@ -526,7 +526,7 @@ Push-to-main tetikleyicisi yoktur (squash merge içeriği PR başıyla aynıdır
 
 ## 11. Aşamalar
 
-**Aşama 0 — Spike (TrrekProbe):** Şu kararlar netleşmeden Aşama 1'in platform işleri başlamaz (Engine işleri bağımsızdır):
+**Aşama 0 — Spike (TrrekProbe):** Sonuçlar: [spike-results](2026-11-03-spike-results.md). Şu kararlar netleşmeden Aşama 1'in platform işleri başlamaz (Engine işleri bağımsızdır):
 1. `MTTouch` düzeni ve yüzey boyutu birimi.
 2. Kalkma anında sıfır dokunmalı kare geliyor mu (watchdog yine de kalır).
 3. Haptik dalga formu kimlikleri ve Light/Medium/Strong hissi.
