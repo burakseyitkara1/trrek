@@ -14,3 +14,4 @@ All notable changes to this project are documented in this file.
 - Engine: internal lock, clock contract, non-finite guard and step cap, bottom-quarter rule keeps corners, reset cancels
 - CI: read-only token permissions
 - Platform: gesture pipeline, command dispatcher and testable ports
+- Platform: input monitor, hold-key tracker, keyboard backlight bridge and system observers

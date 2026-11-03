@@ -28,6 +28,10 @@ case "mem":
     runMem()
 case "pipeline":
     runPipeline(options)
+case "backlight":
+    runBacklight(options)
+case "keys":
+    runKeys(options)
 case "help", "-h", "--help":
     printUsage()
 default:

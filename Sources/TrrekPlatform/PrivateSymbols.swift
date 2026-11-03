@@ -27,6 +27,18 @@ public struct ActuatorSymbols: Sendable {
     public let close: @convention(c) (CFTypeRef) -> Int32
 }
 
+/// Names of the keyboard backlight client in the system brightness framework. The framework is loaded when
+/// this group is first read; the bridge looks the class and selectors up through the Objective-C runtime.
+public struct CoreBrightnessSymbols: Sendable {
+    public let clientClassName: String
+    /// `- (NSArray *)copy…`: the backlight IDs of the attached keyboards (returned retained).
+    public let copyKeyboardIDsSelector: String
+    /// `- (float)…:(unsigned long long)keyboardID`: the current level in 0...1.
+    public let brightnessSelector: String
+    /// `- (BOOL)…:(float)level …:(int)fadeSpeed …:(BOOL)commit …:(unsigned long long)keyboardID`.
+    public let setBrightnessSelector: String
+}
+
 /// The only place where private framework symbols are resolved. A group whose symbols
 /// cannot all be found is `nil`; callers then disable the feature instead of crashing.
 public enum PrivateSymbols {
@@ -100,6 +112,23 @@ public enum PrivateSymbols {
             return nil
         }
         return ActuatorSymbols(createFromDeviceID: create, open: open, actuate: actuate, close: close)
+    }()
+
+    private static let coreBrightnessPath =
+        "/System/Library/PrivateFrameworks/CoreBrightness.framework/CoreBrightness"
+
+    public static let coreBrightness: CoreBrightnessSymbols? = {
+        guard dlopen(coreBrightnessPath, RTLD_NOW) != nil else {
+            let reason = dlerror().map { String(cString: $0) } ?? "unknown error"
+            platformLogger.error("brightness framework unavailable: \(reason, privacy: .public)")
+            return nil
+        }
+        return CoreBrightnessSymbols(
+            clientClassName: "KeyboardBrightnessClient",
+            copyKeyboardIDsSelector: "copyKeyboardBacklightIDs",
+            brightnessSelector: "brightnessForKeyboard:",
+            setBrightnessSelector: "setBrightness:fadeSpeed:commit:forKeyboard:"
+        )
     }()
 
     private static func resolve<T>(_ name: String, as type: T.Type) -> T? {

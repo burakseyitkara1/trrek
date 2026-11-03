@@ -26,17 +26,19 @@ func printUsage() {
       freeze <seconds>        swallow pointer movement and scroll for a while (needs Accessibility)
       mem                     print this process's memory footprint in MB
       pipeline [seconds]      print every engine command from live frames; sends nothing (default 20 s)
+      backlight get|up|down   read or step the keyboard backlight level (0...1)
+      keys [seconds]          print user key-down and modifier events (default 10 s; needs Accessibility)
     """)
 }
 
-private func usageError(_ message: String) -> Never {
+func usageError(_ message: String) -> Never {
     output(message)
     printUsage()
     exit(64)
 }
 
 /// Pumps the main run loop until `deadline` or until `done` returns true.
-private func pumpRunLoop(until deadline: Date, done: () -> Bool = { false }) {
+func pumpRunLoop(until deadline: Date, done: () -> Bool = { false }) {
     while Date() < deadline, !done() {
         _ = CFRunLoopRunInMode(.defaultMode, 0.05, false)
     }
@@ -228,7 +230,7 @@ func runKey(_ options: [String]) {
 
 // MARK: - switcher
 
-private func requireTrust() {
+func requireTrust() {
     guard Permissions.isTrusted else {
         output("accessibility permission is required: grant it to the terminal running this tool in "
             + "System Settings > Privacy & Security > Accessibility")
