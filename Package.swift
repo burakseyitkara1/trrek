@@ -9,9 +9,10 @@ let package = Package(
             name: "TrrekEngine",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
+        .target(name: "CMultitouch"),
         .target(
             name: "TrrekPlatform",
-            dependencies: ["TrrekEngine"],
+            dependencies: ["TrrekEngine", "CMultitouch"],
             swiftSettings: [.swiftLanguageMode(.v6)],
             linkerSettings: [
                 .linkedFramework("AppKit"),
