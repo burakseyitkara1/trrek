@@ -332,7 +332,9 @@ private func freezeCount(_ sink: RecordingSink) -> Int {
     #expect(e.stateKind == .idle)
     #expect(sink.count(.freezeCursor(false)) == 1)
     #expect(sink.contains(.appSwitchCommit) == false)
-    #expect(sink.contains(.appSwitchCancel) == false)
+    #expect(sink.count(.appSwitchCancel) == 1)
+    #expect(sink.commands.last == .freezeCursor(false))
     e.reset()
     #expect(sink.count(.freezeCursor(false)) == 1)
+    #expect(sink.count(.appSwitchCancel) == 1)
 }

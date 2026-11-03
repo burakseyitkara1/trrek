@@ -42,6 +42,12 @@ extension GestureEngine {
         emit(.haptic(.tap))
     }
 
+    /// Sets the state to `spent`. Fingers in `spent` break a double-tap pair, so the pending tap is dropped.
+    func enterSpent(firstDownTime: TimeInterval, start: TouchBuffer) {
+        lastTap = nil
+        state = .spent(firstDownTime: firstDownTime, start: start)
+    }
+
     /// Enters `spent` from a single tracked finger that will not become a gesture.
     func spend(firstDownTime: TimeInterval, origin: Touch, _ frame: Frame) {
         var start = TouchBuffer()
@@ -50,8 +56,10 @@ extension GestureEngine {
     }
 
     /// Waits for every finger to lift. Fingers that land are added to `start` as they are on landing; a
-    /// landing that brings the count to three, quickly and without movement, arms a middle click.
+    /// landing that brings the count to three, quickly and without movement, arms a middle click. Entering
+    /// `spent` or `threeFinger` drops the pending tap of a double-tap pair.
     func handleSpent(firstDownTime: TimeInterval, start: TouchBuffer, _ frame: Frame) {
+        lastTap = nil
         let touches = frame.touches
         guard touches.count >= 1 else {
             state = .idle
@@ -91,7 +99,11 @@ extension GestureEngine {
             // Keep the landing positions; this frame never re-arms the click.
             var landings = start
             Self.addLandings(touches, to: &landings)
-            state = touches.count < 1 ? .idle : .spent(firstDownTime: tDown, start: landings)
+            if touches.count < 1 {
+                state = .idle
+            } else {
+                enterSpent(firstDownTime: tDown, start: landings)
+            }
             return
         }
         // Some of the three are still down: wait for the rest to lift.

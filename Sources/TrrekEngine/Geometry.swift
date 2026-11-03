@@ -1,5 +1,10 @@
 public enum Geometry {
+    /// With `bottomQuarterOnly`, vertical-edge slides start only below this normalized height.
+    static let bottomQuarter: Float = 0.25
+
     /// Classifies a touch (normalized, origin bottom-left) into an edge strip, a corner or nothing.
+    /// With `bottomQuarterOnly`, a vertical strip at or above the bottom quarter is not an edge zone but still
+    /// forms corners with a horizontal strip; the engine then lets such a corner slide only horizontally.
     public static func zone(of touch: Touch, in geometry: DeviceGeometry, config: EngineConfig) -> Zone {
         guard geometry.isValid else { return .none }
         let width = config.thresholds.edgeWidthMM
@@ -19,12 +24,10 @@ public enum Geometry {
             horizontal = .top
         }
 
-        if config.bottomQuarterOnly, vertical != nil, touch.y >= 0.25 {
-            return .none
-        }
+        let verticalEdgeAllowed = !(config.bottomQuarterOnly && touch.y >= bottomQuarter)
         switch (vertical, horizontal) {
         case let (.some(vert), .some(hz)): return .corner(corner(vertical: vert, horizontal: hz))
-        case let (.some(vert), nil): return .edge(vert)
+        case let (.some(vert), nil): return verticalEdgeAllowed ? .edge(vert) : .none
         case let (nil, .some(hz)): return .edge(hz)
         case (nil, nil): return .none
         }

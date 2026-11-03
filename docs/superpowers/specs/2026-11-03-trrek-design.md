@@ -50,14 +50,16 @@ Tarih: 2026-11-03 · Durum: onaylandı (otonom yürütme)
 Trrek (AppKit + SwiftUI)  →  TrrekPlatform (private API köprüleri)  →  TrrekEngine (saf Swift)
 ```
 
-- **TrrekEngine** sistem çağrısı yapmaz. `Frame` alır, `GestureCommand` üretir. Yalnızca Foundation'a bağlıdır.
+- **TrrekEngine** sistem çağrısı yapmaz. `Frame` alır, `GestureCommand` üretir. Yalnızca Foundation'a ve kendi kilidi için `os` modülüne bağlıdır.
 - **TrrekPlatform** Engine'in protokollerini gerçek API'lerle uygular: multitouch kaynağı, haptik, tuş ve fare olayı gönderimi, event tap, klavye ışığı, DDC, Now Playing, sistem bildirimleri.
 - **Trrek** ikisini bağlar: ayarlar, menü, ayar penceresi, overlay, karşılama, izinler, yaşam döngüsü.
 
 **Thread modeli**
-- Multitouch kareleri framework'ün kendi arka plan thread'inde gelir. Platform katmanı kareyi stack üzerinde `Frame`'e çevirir ve Engine'i `os_unfair_lock` altında senkron çağırır.
+- Multitouch kareleri framework'ün kendi arka plan thread'inde gelir. Platform katmanı kareyi stack üzerinde `Frame`'e çevirir ve Engine'i senkron çağırır.
+- Engine'in her public metodu (`process`, `tick`, `update`, host sinyalleri, `reset`, `stateKind`) Engine'in kendi `OSAllocatedUnfairLock`'u altında çalışır; farklı thread'lerden gelen çağrılar bu kilitle sıraya girer. Host'un ayrıca kendi kilidini tutması sorun değildir. Sink kilit tutulurken çağrılır ve Engine'e geri çağrı yapmamalıdır.
+- Saat sözleşmesi: Engine'deki tüm zamanlar sistem uptime saniyesidir (`ProcessInfo.processInfo.systemUptime`, `Frame.timestamp` ile aynı saat). CGEvent zaman damgaları 1e9'a bölünerek verilir.
 - Engine komutları senkron bir sink'e verir. Sink; CGEvent gönderimi, haptik ve tap aç/kapa işlemlerini aynı thread'de yapar (hepsi thread-safe). Menü ve overlay güncellemeleri `DispatchQueue.main.async` ile ana thread'e gider.
-- Event tap callback'leri ana run loop'ta çalışır ve yalnızca bayrak günceller (`noteKeyDown`, `setHoldKeySatisfied`).
+- Event tap callback'leri ana run loop'ta çalışır ve host sinyallerini (`noteKeyDown`, `setHoldKeySatisfied`) çağırır; bu çağrılar Engine'in kendi kilidiyle karelerle sıraya girer.
 - Periyodik zamanlayıcı yoktur. İki tek seferlik zamanlayıcı vardır: slide watchdog (slide sürerken, her karede yeniden kurulur) ve overlay gizleme (overlay görünürken).
 - Slide sürerken `ProcessInfo.beginActivity(.userInitiated)` tutulur; bitince bırakılır. Boşta App Nap'e izin verilir.
 - SwiftUI pencereleri (Settings, Welcome) yalnızca açıkken bellekte bulunur; kapanınca hosting controller ve pencere serbest bırakılır.
@@ -159,7 +161,7 @@ Swap Sides, uygulama katmanında `left`/`right` eylemlerini değiştirerek uygul
 - mm dönüşümü: `dxMM = Δx · widthMM`, `dyMM = Δy · heightMM`.
 - Kenar şeritleri: `left: x·W < w`, `right: (1−x)·W < w`, `bottom: y·H < w`, `top: (1−y)·H < w` (w = edgeWidthMM).
 - Köşe: iki şeridin kesişimi; her zaman `corner` bölgesidir. Köşede başlayan parmak hareket eksenine göre komşu kenara bağlanır (5.4); köşe eylemi Off ise çift dokunma hiçbir şey yapmaz.
-- `bottomQuarterOnly` açıkken sol/sağ şeritleri yalnızca `y < 0.25` iken aday kabul eder.
+- `bottomQuarterOnly` açıkken sol/sağ şeritleri yalnızca `y < 0.25` iken kenar bölgesi üretir. Seçenek yalnızca dikey kenar slide'larını kısıtlar, köşe algılamayı değil: `y ≥ 0.25`'te dikey şerit yatay şeritle yine köşe oluşturur. Böyle bir köşe adayı dikey kenara bağlanırsa (`y0 ≥ 0.25`) slide başlamaz, aday `spent`'e gider; yatay kenara bağlanma etkilenmez.
 - Eylemi `off` olan kenarlar bölge sayılmaz.
 - Kenar ekseni ve yön: left/right → y ekseni, yukarı = +1. top/bottom → x ekseni, sağa = +1.
 
@@ -191,6 +193,7 @@ Geçişler (kare başına; kapılar Bölüm 5.6'daki sırayla önce uygulanır):
 3. **sliding**
    - dokunma sayısı ≥ 2 → bitir(cancel) → `spent`.
    - her karede `accumulatedMM += Δ(kenar ekseni)`; `|accumulatedMM| ≥ stepMM(action)` olduğu sürece bir adım komutu + `haptic(.step)` emit, `accumulatedMM` azalt. Adım komutları: `stepVolume(±1, fine)`, `stepBrightness(±1, fine)`, `stepKeyboardBacklight(±1, fine)`, `appSwitchStep(±1)`, `scrubStep(±1)`, `mediaNext`/`mediaPrevious`. `fine = config.precision`.
+   - `accumulatedMM` sonlu değilse (sonsuz ya da NaN koordinat) slide bitir(cancel) ile biter → `spent`; adım üretilmez. Bir karede en fazla 64 adım (`maxStepsPerFrame`) üretilir; sınıra ulaşılırsa kalan mesafe atılır (`accumulatedMM = 0`), böylece bozuk koordinat sonraki karelerde adım üretmeye devam etmez.
    - dokunma id'si kareden kayboldu (kalkma ya da anlık düşme; ikisi ayırt edilemez) → `lost`. Spike ile doğrulandı: cihaz kalkışta state 5→6→7 ve ardından sıfır dokunmalı bir kare gönderir; platform yalnızca state 3/4'ü geçirdiği için parmak state 5'te kaybolur.
    - kare gelmedi (watchdog `tick(now)` ile `now − lastFrameTime ≥ lostTimeout`) → bitir(commit) → `idle`.
 4. **lost**
@@ -244,15 +247,17 @@ public protocol CommandSink: AnyObject { func handle(_ command: GestureCommand, 
 ```swift
 public final class GestureEngine {
   init(config: EngineConfig, sink: CommandSink)
-  func update(config: EngineConfig)        // anında geçerli; sliding sürüyorsa bitir(commit)
-  func process(_ frame: Frame)              // çağıran kilitler
+  func update(config: EngineConfig)        // anında geçerli; sliding/lost → bitir(commit), candidate → spent
+  func process(_ frame: Frame)              // Engine kendi kilidini alır
   func tick(now: TimeInterval)             // watchdog
   func noteKeyDown(at: TimeInterval)
   func setHoldKeySatisfied(_: Bool)
   func setPaused(_: Bool)
-  func reset()                              // idle'a dön, freezeCursor(false)
+  func reset()                              // sliding/lost → bitir(cancel); idle'a dön
 }
 ```
+
+`reset()` iptal anlamı taşır: `switchApps` → `appSwitchCancel`, `scrubVideo` → `scrubCancel`, ardından imleç dondurulmuşsa `freezeCursor(false)`, sonra `idle`; bekleyen çift dokunma kaydı silinir. `update(config:)` ise commit anlamını korur; o sırada `candidate` olan parmak `spent`'e düşer ve kalkana kadar jest üretmez. Çift dokunma kaydı Engine `spent` ya da `threeFinger` durumuna her girişte silinir.
 
 ## 6. TrrekPlatform
 

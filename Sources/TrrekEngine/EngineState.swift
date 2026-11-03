@@ -10,6 +10,11 @@ struct CandidateData {
     var t0: TimeInterval
     /// Largest per-axis distance from (x0, y0) seen so far, in mm; decides whether a lift is a tap.
     var maxMoveMM: Float = 0
+
+    /// The finger where it landed.
+    var origin: Touch {
+        Touch(id: touchID, x: x0, y: y0, majorAxisMM: 0)
+    }
 }
 
 /// An active slide along one edge.

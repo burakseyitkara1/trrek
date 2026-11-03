@@ -33,7 +33,8 @@ private func touch(_ xMM: Float, _ yMM: Float) -> Touch {
     cfg.bottomQuarterOnly = true
     #expect(Geometry.zone(of: touch(115, 40), in: pad, config: cfg) == .none)
     #expect(Geometry.zone(of: touch(115, 15), in: pad, config: cfg) == .edge(.right))
-    #expect(Geometry.zone(of: touch(115, 75), in: pad, config: cfg) == .none)
+    // Corners are kept: the option only restricts vertical-edge slides.
+    #expect(Geometry.zone(of: touch(115, 75), in: pad, config: cfg) == .corner(.topRight))
     #expect(Geometry.zone(of: touch(115, 5), in: pad, config: cfg) == .corner(.bottomRight))
     // Horizontal edges are unaffected.
     #expect(Geometry.zone(of: touch(60, 78), in: pad, config: cfg) == .edge(.top))

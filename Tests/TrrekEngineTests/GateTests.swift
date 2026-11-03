@@ -157,6 +157,34 @@ private func frameWithPalm(_ fb: FrameBuilder, t: TimeInterval, finger: (Float, 
     #expect(sink.commands.isEmpty)
 }
 
+@Test func releasingHoldKeyCommitsSwitchApps() {
+    let (e, sink, fb) = makeEngine(holdKeyConfig())
+    e.setHoldKeySatisfied(true)
+    e.drive(fb, id: 1, from: (30, 78), to: (54, 78), startT: 0)
+    #expect(sink.count(.appSwitchStep(1)) == 2)
+    e.setHoldKeySatisfied(false)
+    #expect(e.stateKind == .idle)
+    #expect(sink.count(.appSwitchCommit) == 1)
+    #expect(sink.count(.appSwitchCancel) == 0)
+    #expect(sink.count(.freezeCursor(false)) == 1)
+}
+
+@Test func holdKeyReleaseDuringLostCommits() {
+    let (e, sink, fb) = makeEngine(holdKeyConfig())
+    e.setHoldKeySatisfied(true)
+    let t = e.drive(fb, id: 1, from: (30, 78), to: (54, 78), startT: 0)
+    e.process(fb.frame(t: t + 0.008, []))
+    #expect(e.stateKind == .lost)
+    e.setHoldKeySatisfied(false)
+    #expect(e.stateKind == .idle)
+    #expect(sink.count(.appSwitchCommit) == 1)
+    #expect(sink.count(.appSwitchCancel) == 0)
+    #expect(sink.count(.freezeCursor(false)) == 1)
+    // The watchdog finds nothing left to end.
+    e.tick(now: t + 1)
+    #expect(sink.count(.appSwitchCommit) == 1)
+}
+
 // MARK: - Pause
 
 @Test func pausedIgnoresFrames() {
@@ -218,6 +246,20 @@ private func frameWithPalm(_ fb: FrameBuilder, t: TimeInterval, finger: (Float, 
     e3.setPaused(true)
     #expect(e3.stateKind == .idle)
     #expect(sink3.commands.isEmpty)
+}
+
+@Test func pauseDuringLostCommits() {
+    let (e, sink, fb) = makeEngine()
+    let t = e.drive(fb, id: 1, from: (30, 78), to: (54, 78), startT: 0)
+    e.process(fb.frame(t: t + 0.008, []))
+    #expect(e.stateKind == .lost)
+    e.setPaused(true)
+    #expect(e.stateKind == .idle)
+    #expect(sink.count(.appSwitchCommit) == 1)
+    #expect(sink.count(.appSwitchCancel) == 0)
+    #expect(sink.count(.freezeCursor(false)) == 1)
+    e.tick(now: t + 1)
+    #expect(sink.count(.appSwitchCommit) == 1)
 }
 
 // MARK: - Configuration

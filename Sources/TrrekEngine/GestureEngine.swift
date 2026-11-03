@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 public enum StateKind: Sendable, Equatable {
     case idle, candidate, sliding, lost, spent, threeFinger
@@ -6,9 +7,16 @@ public enum StateKind: Sendable, Equatable {
 
 /// Turns multitouch frames into gesture commands.
 ///
-/// Not thread-safe by design: the caller must serialize every call (`process`, `tick`, `update`, the host
-/// signals and `reset`), for example by calling them all from one queue. There are no locks inside, hence
-/// `@unchecked Sendable`. The engine never allocates on the heap while handling a frame.
+/// Thread-safe: every public method (`process`, `tick`, `update`, the host signals, `reset` and `stateKind`)
+/// runs under the engine's own unfair lock, so calls from the frame thread and from the main thread are
+/// serialized. That lock is what makes the `@unchecked Sendable` conformance sound. A host may also wrap the
+/// calls in a lock of its own; the engine never takes that one.
+///
+/// `CommandSink.handle` is invoked synchronously while the lock is held. The sink must not call back into
+/// the engine (the lock is not recursive, so doing so deadlocks).
+///
+/// All times are seconds of system uptime (`ProcessInfo.processInfo.systemUptime`), the clock of
+/// `Frame.timestamp`. The engine never allocates on the heap while handling a frame.
 ///
 /// The sink is held weakly so that the engine never keeps its owner alive; commands emitted after the sink
 /// has gone away are dropped.
@@ -22,6 +30,14 @@ public final class GestureEngine: @unchecked Sendable {
     /// step distance always yields that many steps.
     private static let stepToleranceMM: Float = 0.001
 
+    /// The most step commands one frame can emit. A real finger moves a few steps per frame at most; the cap
+    /// only bounds the work for a corrupt coordinate (say 1e9) whose remainder would otherwise never shrink.
+    /// When the cap is hit, the rest of the accumulator is dropped, so a garbage coordinate cannot keep
+    /// emitting steps on the frames that follow.
+    static let maxStepsPerFrame = 64
+
+    /// Serializes every public entry point. Allocated once with the engine, never per frame.
+    private let lock = OSAllocatedUnfairLock()
     private weak var sink: CommandSink?
     // Internal rather than private so the tap and three-finger handlers in `GestureEngine+Taps.swift` reach them.
     var config: EngineConfig
@@ -30,7 +46,7 @@ public final class GestureEngine: @unchecked Sendable {
     /// The previous single tap on a corner or a media edge, waiting for its second tap.
     var lastTap: TapRecord?
 
-    // Host signals, set through `GestureEngine+Gates.swift` and read by the gates there.
+    // Host signals, set through the public API and read by the gates in `GestureEngine+Gates.swift`.
     var lastKeyDown: TimeInterval = -.infinity
     var holdKeySatisfied = false
     var paused = false
@@ -40,82 +56,6 @@ public final class GestureEngine: @unchecked Sendable {
         self.sink = sink
     }
 
-    public var stateKind: StateKind {
-        switch state {
-        case .idle: .idle
-        case .candidate: .candidate
-        case .sliding: .sliding
-        case .lost: .lost
-        case .spent: .spent
-        case .threeFinger: .threeFinger
-        }
-    }
-
-    /// Applies a new configuration immediately; an active slide is committed first.
-    public func update(config: EngineConfig) {
-        switch state {
-        case let .sliding(data), let .lost(data, _):
-            finish(data, .commit)
-            state = .idle
-        case let .threeFinger(_, start, tDown) where !config.middleClickEnabled:
-            state = .spent(firstDownTime: tDown, start: start)
-        default:
-            break
-        }
-        lastTap = nil
-        self.config = config
-    }
-
-    /// Handles one frame. The gates of spec 5.6 apply in order: palms are dropped from the frame, the typing
-    /// and hold-key gates keep new gestures from starting (see `admitsNewGesture(at:)`), and a paused engine
-    /// ignores the frame altogether.
-    public func process(_ rawFrame: Frame) {
-        let frame = Self.withoutPalms(rawFrame, maxMajorAxisMM: config.thresholds.palmMajorAxisMM)
-        guard !paused else { return }
-        if case .idle = state {
-            handleIdle(frame)
-            return
-        }
-        guard frame.deviceID == activeDeviceID else { return }
-        switch state {
-        case .idle: handleIdle(frame)
-        case let .candidate(data): handleCandidate(data, frame)
-        case let .sliding(data): handleSliding(data, frame)
-        case let .lost(data, since): handleLost(data, since: since, frame)
-        case let .spent(firstDownTime, start): handleSpent(firstDownTime: firstDownTime, start: start, frame)
-        case let .threeFinger(ids, start, tDown): handleThreeFinger(ids: ids, start: start, tDown: tDown, frame)
-        }
-    }
-
-    /// Watchdog: ends a slide whose frames stopped arriving. A `now` earlier than the last frame does nothing.
-    public func tick(now: TimeInterval) {
-        let timeout = config.thresholds.lostTimeout
-        switch state {
-        case let .sliding(data) where now - data.lastFrameTime >= timeout:
-            finish(data, .commit)
-            state = .idle
-        case let .lost(data, since) where now - since >= timeout:
-            finish(data, .commit)
-            state = .idle
-        default:
-            break
-        }
-    }
-
-    /// Returns to idle. An active slide only releases the cursor; its action is not committed.
-    public func reset() {
-        switch state {
-        case let .sliding(data), let .lost(data, _):
-            if data.frozen {
-                emit(.freezeCursor(false))
-            }
-        default:
-            break
-        }
-        state = .idle
-        lastTap = nil
-    }
-
     // MARK: - States
 
     private func handleIdle(_ frame: Frame) {
@@ -123,7 +63,7 @@ public final class GestureEngine: @unchecked Sendable {
         guard touches.count >= 1 else { return }
         activeDeviceID = frame.deviceID
         guard admitsNewGesture(at: frame.timestamp) else {
-            state = .spent(firstDownTime: Self.blockedDownTime, start: touches)
+            enterSpent(firstDownTime: Self.blockedDownTime, start: touches)
             return
         }
         let touch = touches[0]
@@ -144,7 +84,7 @@ public final class GestureEngine: @unchecked Sendable {
 
     private func handleCandidate(_ data: CandidateData, _ frame: Frame) {
         let touches = frame.touches
-        let origin = Touch(id: data.touchID, x: data.x0, y: data.y0, majorAxisMM: 0)
+        let origin = data.origin
         guard admitsNewGesture(at: frame.timestamp) else {
             // No slide and no tap; the fingers wait in `spent` until they all lift.
             spend(firstDownTime: Self.blockedDownTime, origin: origin, frame)
@@ -171,7 +111,10 @@ public final class GestureEngine: @unchecked Sendable {
         let thresholds = config.thresholds
         if abs(delta.along) >= thresholds.slideStartMM {
             let action = config.action(for: edge)
-            guard action != .off else {
+            // With `bottomQuarterOnly`, a corner above the bottom quarter only slides along its horizontal edge.
+            let verticalBlocked = config.bottomQuarterOnly && data.y0 >= Geometry.bottomQuarter
+                && (edge == .left || edge == .right)
+            guard action != .off, !verticalBlocked else {
                 spend(firstDownTime: data.t0, origin: origin, frame)
                 return
             }
@@ -203,7 +146,10 @@ public final class GestureEngine: @unchecked Sendable {
         slide.accumulatedMM += delta.along
         slide.previous = touch
         slide.lastFrameTime = frame.timestamp
-        emitSteps(&slide)
+        guard emitSteps(&slide) else {
+            abandon(slide, frame)
+            return
+        }
         state = .sliding(slide)
     }
 
@@ -225,7 +171,7 @@ public final class GestureEngine: @unchecked Sendable {
 
     private func startSlide(from candidate: CandidateData, edge: Edge, action: EdgeAction, touch: Touch, frame: Frame) {
         lastTap = nil
-        let origin = Touch(id: candidate.touchID, x: candidate.x0, y: candidate.y0, majorAxisMM: 0)
+        let origin = candidate.origin
         let alongMM = Geometry.deltaMM(edge: edge, from: origin, to: touch, in: frame.geometry).along
         let frozen = config.freezeCursor
         if frozen {
@@ -244,22 +190,41 @@ public final class GestureEngine: @unchecked Sendable {
             lastFrameTime: frame.timestamp,
             frozen: frozen
         )
-        emitSteps(&slide)
+        guard emitSteps(&slide) else {
+            abandon(slide, frame)
+            return
+        }
         state = .sliding(slide)
     }
 
-    private func emitSteps(_ slide: inout SlideData) {
+    /// Turns the accumulated distance into step commands, at most `maxStepsPerFrame` of them. Returns `false`
+    /// without emitting anything when the accumulator is not finite: the accumulator starts finite, so a
+    /// non-finite one means this frame's movement came from a non-finite (corrupt) coordinate.
+    private func emitSteps(_ slide: inout SlideData) -> Bool {
+        guard slide.accumulatedMM.isFinite else { return false }
         let step = Geometry.stepMM(for: slide.action, thresholds: config.thresholds)
         // A step at or below the tolerance would never shrink the remainder below the threshold.
-        guard step.isFinite, step > Self.stepToleranceMM else { return }
+        guard step.isFinite, step > Self.stepToleranceMM else { return true }
         let threshold = step - Self.stepToleranceMM
-        while abs(slide.accumulatedMM) >= threshold {
+        for _ in 0 ..< Self.maxStepsPerFrame {
+            guard abs(slide.accumulatedMM) >= threshold else { break }
             let sign = slide.accumulatedMM > 0 ? 1 : -1
             emit(stepCommand(for: slide.action, sign: sign))
             emit(.haptic(.step))
             slide.accumulatedMM -= Float(sign) * step
             slide.stepsEmitted += 1
         }
+        if abs(slide.accumulatedMM) >= threshold {
+            // The cap was hit: drop the remaining distance instead of paying it out on later frames.
+            slide.accumulatedMM = 0
+        }
+        return true
+    }
+
+    /// A non-finite coordinate corrupted the slide: cancel it and wait in `spent` for the fingers to lift.
+    private func abandon(_ slide: SlideData, _ frame: Frame) {
+        finish(slide, .cancel)
+        spend(firstDownTime: slide.firstDownTime, origin: slide.origin, frame)
     }
 
     private func stepCommand(for action: EdgeAction, sign: Int) -> GestureCommand {
@@ -291,5 +256,137 @@ public final class GestureEngine: @unchecked Sendable {
     func emit(_ command: GestureCommand) {
         guard let sink else { return }
         sink.handle(command, device: activeDeviceID)
+    }
+}
+
+// MARK: - Public API (each call holds the lock)
+
+public extension GestureEngine {
+    var stateKind: StateKind {
+        lock.withLock { stateKindLocked }
+    }
+
+    /// Applies a new configuration immediately: an active slide is committed first, and a finger that is
+    /// still a candidate is dropped (it waits in `spent` until it lifts).
+    func update(config: EngineConfig) {
+        lock.withLock { updateLocked(config: config) }
+    }
+
+    /// Handles one frame. `frame.timestamp` is in seconds of system uptime
+    /// (`ProcessInfo.processInfo.systemUptime`); CGEvent timestamps must be divided by 1e9.
+    func process(_ frame: Frame) {
+        lock.withLock { processLocked(frame) }
+    }
+
+    /// Watchdog: ends a slide whose frames stopped arriving. A `now` earlier than the last frame does nothing.
+    /// `now` is in seconds of system uptime (`ProcessInfo.processInfo.systemUptime`); CGEvent timestamps must
+    /// be divided by 1e9.
+    func tick(now: TimeInterval) {
+        lock.withLock { tickLocked(now: now) }
+    }
+
+    /// Records a key press; for `typingGate` seconds after it no new gesture starts. An active slide or
+    /// middle click is not affected. `time` is in seconds of system uptime
+    /// (`ProcessInfo.processInfo.systemUptime`); CGEvent timestamps must be divided by 1e9.
+    func noteKeyDown(at time: TimeInterval) {
+        lock.withLock { lastKeyDown = time }
+    }
+
+    /// Reports whether the Hold-to-Slide key is down. When the key is required and released, an active slide
+    /// is committed and any other gesture in progress is dropped without commands.
+    func setHoldKeySatisfied(_ satisfied: Bool) {
+        lock.withLock { setHoldKeySatisfiedLocked(satisfied) }
+    }
+
+    /// Pauses or resumes the engine. Pausing commits an active slide and drops any other gesture without
+    /// commands; while paused, every frame is ignored.
+    func setPaused(_ paused: Bool) {
+        lock.withLock { setPausedLocked(paused) }
+    }
+
+    /// Returns to idle. An active slide is cancelled, not committed: an app switch emits `appSwitchCancel`,
+    /// a scrub `scrubCancel`, and a frozen cursor is released.
+    func reset() {
+        lock.withLock { resetLocked() }
+    }
+}
+
+// MARK: - Locked bodies
+
+private extension GestureEngine {
+    var stateKindLocked: StateKind {
+        switch state {
+        case .idle: .idle
+        case .candidate: .candidate
+        case .sliding: .sliding
+        case .lost: .lost
+        case .spent: .spent
+        case .threeFinger: .threeFinger
+        }
+    }
+
+    func updateLocked(config: EngineConfig) {
+        switch state {
+        case let .sliding(data), let .lost(data, _):
+            finish(data, .commit)
+            state = .idle
+        case let .candidate(data):
+            // The candidate was judged under the old configuration; it keeps its landing position.
+            var start = TouchBuffer()
+            start.append(data.origin)
+            enterSpent(firstDownTime: Self.blockedDownTime, start: start)
+        case let .threeFinger(_, start, tDown) where !config.middleClickEnabled:
+            enterSpent(firstDownTime: tDown, start: start)
+        default:
+            break
+        }
+        lastTap = nil
+        self.config = config
+    }
+
+    /// The gates of spec 5.6 apply in order: palms are dropped from the frame, the typing and hold-key gates
+    /// keep new gestures from starting (see `admitsNewGesture(at:)`), and a paused engine ignores the frame
+    /// altogether.
+    func processLocked(_ rawFrame: Frame) {
+        let frame = Self.withoutPalms(rawFrame, maxMajorAxisMM: config.thresholds.palmMajorAxisMM)
+        guard !paused else { return }
+        if case .idle = state {
+            handleIdle(frame)
+            return
+        }
+        guard frame.deviceID == activeDeviceID else { return }
+        switch state {
+        case .idle: handleIdle(frame)
+        case let .candidate(data): handleCandidate(data, frame)
+        case let .sliding(data): handleSliding(data, frame)
+        case let .lost(data, since): handleLost(data, since: since, frame)
+        case let .spent(firstDownTime, start): handleSpent(firstDownTime: firstDownTime, start: start, frame)
+        case let .threeFinger(ids, start, tDown): handleThreeFinger(ids: ids, start: start, tDown: tDown, frame)
+        }
+    }
+
+    func tickLocked(now: TimeInterval) {
+        let timeout = config.thresholds.lostTimeout
+        switch state {
+        case let .sliding(data) where now - data.lastFrameTime >= timeout:
+            finish(data, .commit)
+            state = .idle
+        case let .lost(data, since) where now - since >= timeout:
+            finish(data, .commit)
+            state = .idle
+        default:
+            break
+        }
+    }
+
+    func resetLocked() {
+        switch state {
+        case let .sliding(data), let .lost(data, _):
+            finish(data, .cancel)
+        default:
+            break
+        }
+        state = .idle
+        lastTap = nil
     }
 }

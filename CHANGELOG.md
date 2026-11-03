@@ -11,3 +11,5 @@ All notable changes to this project are documented in this file.
 - Engine: slide state machine with lost-finger recovery and watchdog
 - Engine: corner and media double-taps, three-finger middle click
 - Engine: palm, typing, hold-key and pause gates
+- Engine: internal lock, clock contract, non-finite guard and step cap, bottom-quarter rule keeps corners, reset cancels
+- CI: read-only token permissions

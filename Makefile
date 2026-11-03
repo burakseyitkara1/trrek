@@ -37,7 +37,7 @@ app:
 
 # Install into ~/Applications and register with Launch Services.
 install: app
-	rm -rf ~/Applications/trrek.app && cp -R dist/trrek.app ~/Applications/ && /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f ~/Applications/trrek.app
+	mkdir -p ~/Applications && rm -rf ~/Applications/trrek.app && cp -R dist/trrek.app ~/Applications/ && /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f ~/Applications/trrek.app
 
 # Generate dist/AppIcon.icns.
 icon:

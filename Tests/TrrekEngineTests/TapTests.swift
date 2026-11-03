@@ -120,6 +120,22 @@ private func middleClickConfig() -> EngineConfig {
     #expect(leftSink.count(.mediaNext) == 0)
 }
 
+@Test func lastTapClearedByInterveningGesture() {
+    var cfg = middleClickConfig()
+    cfg.bottomRight = .mute
+    let (e, sink, fb) = makeEngine(cfg)
+    let lift = tap(e, fb, id: 1, at: (115, 5), t: 0)
+    // A three-finger tap between the two corner taps breaks the pair.
+    e.process(fb.frame(t: lift + 0.05, threeFingers))
+    #expect(e.stateKind == .threeFinger)
+    e.process(fb.frame(t: lift + 0.10, []))
+    #expect(sink.count(.middleClick) == 1)
+    tap(e, fb, id: 4, at: (115, 5), t: lift + 0.15)
+    #expect(sink.count(.mute) == 0)
+    #expect(sink.commands == [.middleClick, .haptic(.tap)])
+    #expect(e.stateKind == .idle)
+}
+
 // MARK: - Three-finger middle click
 
 @Test func threeFingerTapEmitsMiddleClick() {
