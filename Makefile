@@ -1,4 +1,4 @@
-.PHONY: build test format lint check hooks clean
+.PHONY: build test format lint check hooks clean app install icon perf
 
 # On Command Line Tools-only hosts, swiftlint needs TOOLCHAIN_DIR to find sourcekitd, and
 # swift test needs the Testing macro plugin path passed explicitly (otherwise it is
@@ -27,6 +27,25 @@ check: test lint
 
 hooks:
 	scripts/install-hooks.sh
+
+VERSION ?= 0.0.0
+BUILD ?= 1
+
+# Package dist/trrek.app (ad-hoc signed).
+app:
+	scripts/build-app.sh --version $(VERSION) --build $(BUILD)
+
+# Install into ~/Applications and register with Launch Services.
+install: app
+	rm -rf ~/Applications/trrek.app && cp -R dist/trrek.app ~/Applications/ && /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f ~/Applications/trrek.app
+
+# Generate dist/AppIcon.icns.
+icon:
+	scripts/make-icon.sh dist/AppIcon.icns
+
+# Idle CPU/memory check of the installed (or dist) app; fails above 15 MB RSS.
+perf:
+	scripts/perf.sh
 
 clean:
 	rm -rf .build dist

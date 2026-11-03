@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-swift-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: ${{ runner.os }}-swift-
+      - name: Build
+        run: swift build -c release --arch arm64
+      - name: Test
+        run: swift test
+      - name: Format check
+        run: swiftformat --lint .
+      - name: Lint
+        run: swiftlint lint --strict
+      - name: Package app
+        run: scripts/build-app.sh --version 0.0.0 --build ${{ github.run_number }}
+      - name: Archive app
+        run: ditto -c -k --keepParent dist/trrek.app trrek-ci.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trrek-app
+          path: trrek-ci.zip
+          retention-days: 7
