@@ -20,9 +20,14 @@ let package = Package(
                 .linkedFramework("CoreGraphics")
             ]
         ),
+        .target(
+            name: "TrrekAppCore",
+            dependencies: ["TrrekEngine", "TrrekPlatform"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
         .executableTarget(
             name: "Trrek",
-            dependencies: ["TrrekEngine", "TrrekPlatform"],
+            dependencies: ["TrrekAppCore", "TrrekEngine", "TrrekPlatform"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .executableTarget(
@@ -38,6 +43,11 @@ let package = Package(
         .testTarget(
             name: "TrrekPlatformTests",
             dependencies: ["TrrekPlatform", "TrrekEngine", "CMultitouch"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "TrrekAppCoreTests",
+            dependencies: ["TrrekAppCore", "TrrekEngine", "TrrekPlatform"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         )
     ]
