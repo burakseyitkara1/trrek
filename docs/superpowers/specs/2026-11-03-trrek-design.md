@@ -158,7 +158,7 @@ Swap Sides, uygulama katmanında `left`/`right` eylemlerini değiştirerek uygul
 
 - mm dönüşümü: `dxMM = Δx · widthMM`, `dyMM = Δy · heightMM`.
 - Kenar şeritleri: `left: x·W < w`, `right: (1−x)·W < w`, `bottom: y·H < w`, `top: (1−y)·H < w` (w = edgeWidthMM).
-- Köşe: iki şeridin kesişimi. Köşe eylemi Off ise o kare normal kenar şeridi sayılır; Off değilse köşe önceliklidir.
+- Köşe: iki şeridin kesişimi; her zaman `corner` bölgesidir. Köşede başlayan parmak hareket eksenine göre komşu kenara bağlanır (5.4); köşe eylemi Off ise çift dokunma hiçbir şey yapmaz.
 - `bottomQuarterOnly` açıkken sol/sağ şeritleri yalnızca `y < 0.25` iken aday kabul eder.
 - Eylemi `off` olan kenarlar bölge sayılmaz.
 - Kenar ekseni ve yön: left/right → y ekseni, yukarı = +1. top/bottom → x ekseni, sağa = +1.
@@ -191,12 +191,11 @@ Geçişler (kare başına; kapılar Bölüm 5.6'daki sırayla önce uygulanır):
 3. **sliding**
    - dokunma sayısı ≥ 2 → bitir(cancel) → `spent`.
    - her karede `accumulatedMM += Δ(kenar ekseni)`; `|accumulatedMM| ≥ stepMM(action)` olduğu sürece bir adım komutu + `haptic(.step)` emit, `accumulatedMM` azalt. Adım komutları: `stepVolume(±1, fine)`, `stepBrightness(±1, fine)`, `stepKeyboardBacklight(±1, fine)`, `appSwitchStep(±1)`, `scrubStep(±1)`, `mediaNext`/`mediaPrevious`. `fine = config.precision`.
-   - kalkma → bitir(commit) → `idle`.
+   - dokunma id'si kareden kayboldu (kalkma ya da anlık düşme; ikisi ayırt edilemez) → `lost`.
    - kare gelmedi (watchdog `tick(now)` ile `now − lastFrameTime ≥ lostTimeout`) → bitir(commit) → `idle`.
-   - dokunma id'si kayboldu ama kare geldi (parmak düşmesi) → `lost`.
 4. **lost**
    - aynı id geri geldi, `lostTimeout` içinde → `sliding`.
-   - `lostTimeout` doldu → bitir(commit) → `idle`.
+   - `lostTimeout` doldu (kare ya da `tick` ile) → bitir(commit) → `idle`.
 5. **spent** — dokunma sayısı 3'e çıkmış, ilk inişten bu yana ≤ `threeFingerSettle` geçmiş, hiçbiri `tapMaxMoveMM`'den fazla hareket etmemiş ve `middleClickEnabled` → `threeFinger`. Tüm dokunmalar kalkınca → `idle`.
 6. **threeFinger**
    - herhangi bir dokunma `tapMaxMoveMM`'den fazla hareket etti ya da süre > `threeFingerMaxDuration` → `spent`.
@@ -446,7 +445,7 @@ Sentetik `Frame` üreten bir yardımcı (`FrameBuilder`) ile; her kural bir test
 | 5 | precision → `fine: true` | 5.5 |
 | 6 | Dik 4 mm hareket → spent, sonraki kareler yok sayılır | abortPerpendicularMM |
 | 7 | İkinci parmak slide'ı iptal eder, kalkana kadar spent | 5.4 |
-| 8 | 180 ms parmak kaybı → devam; 181 ms → commit | lostTimeout |
+| 8 | Parmak kaybolup 170 ms içinde dönerse slide sürer; 181 ms sonra commit ve freezeCursor(false) | lostTimeout |
 | 9 | Watchdog `tick` → commit | 5.4 |
 | 10 | Tap: 250 ms, 2 mm → komut yok | tap |
 | 11 | Köşe çift dokunma 350 ms içinde → mute/screenshot; 351 ms → yok | doubleTapWindow |
