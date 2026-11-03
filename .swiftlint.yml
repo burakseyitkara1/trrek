@@ -1,0 +1,14 @@
+excluded:
+  - .build
+  - dist
+line_length:
+  warning: 120
+  error: 160
+disabled_rules:
+  - todo
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+identifier_name:
+  min_length: 2
+  excluded: [x, y, id, dx, dy, t, e]
