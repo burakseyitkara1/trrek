@@ -35,7 +35,7 @@ jobs:
         run: scripts/build-app.sh --version 0.0.0 --build ${{ github.run_number }}
       - name: Archive app
         run: ditto -c -k --keepParent dist/trrek.app trrek-ci.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: trrek-app
           path: trrek-ci.zip
