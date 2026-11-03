@@ -1,0 +1,17 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+# Xcode (ileride açılırsa)
+xcuserdata/
+*.xcuserstate
+DerivedData/
+# Derleme çıktıları
+dist/
+build/
+*.app
+*.dmg
+*.zip
+# macOS
+.DS_Store
+# Claude Code yerel ayarları
+.claude/settings.local.json
