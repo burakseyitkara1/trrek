@@ -9,3 +9,4 @@ All notable changes to this project are documented in this file.
 - Platform: private symbol loader, raw multitouch stream, haptics, event posting, cursor-freeze tap and the TrrekProbe tool
 - Engine: core types, configuration, command model and edge/corner geometry
 - Engine: slide state machine with lost-finger recovery and watchdog
+- Engine: corner and media double-taps, three-finger middle click

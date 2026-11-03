@@ -22,9 +22,12 @@ public final class GestureEngine: @unchecked Sendable {
     private static let stepToleranceMM: Float = 0.001
 
     private weak var sink: CommandSink?
-    private var config: EngineConfig
-    private var state: EngineState = .idle
+    // Internal rather than private so the tap and three-finger handlers in `GestureEngine+Taps.swift` reach them.
+    var config: EngineConfig
+    var state: EngineState = .idle
     private var activeDeviceID: UInt64 = 0
+    /// The previous single tap on a corner or a media edge, waiting for its second tap.
+    var lastTap: TapRecord?
 
     // Host signals; the gates that read them are applied by `admitsNewGesture(at:)`.
     private var lastKeyDown: TimeInterval = -.infinity
@@ -53,9 +56,12 @@ public final class GestureEngine: @unchecked Sendable {
         case let .sliding(data), let .lost(data, _):
             finish(data, .commit)
             state = .idle
+        case let .threeFinger(_, start, tDown) where !config.middleClickEnabled:
+            state = .spent(firstDownTime: tDown, start: start)
         default:
             break
         }
+        lastTap = nil
         self.config = config
     }
 
@@ -70,8 +76,8 @@ public final class GestureEngine: @unchecked Sendable {
         case let .candidate(data): handleCandidate(data, frame)
         case let .sliding(data): handleSliding(data, frame)
         case let .lost(data, since): handleLost(data, since: since, frame)
-        case .spent: handleSpent(frame)
-        case .threeFinger: handleSpent(frame)
+        case let .spent(firstDownTime, start): handleSpent(firstDownTime: firstDownTime, start: start, frame)
+        case let .threeFinger(ids, start, tDown): handleThreeFinger(ids: ids, start: start, tDown: tDown, frame)
         }
     }
 
@@ -113,6 +119,7 @@ public final class GestureEngine: @unchecked Sendable {
             break
         }
         state = .idle
+        lastTap = nil
     }
 
     // MARK: - States
@@ -121,14 +128,11 @@ public final class GestureEngine: @unchecked Sendable {
         let touches = frame.touches
         guard touches.count >= 1, admitsNewGesture(at: frame.timestamp) else { return }
         activeDeviceID = frame.deviceID
-        guard touches.count == 1 else {
-            state = .spent(firstDownTime: frame.timestamp)
-            return
-        }
         let touch = touches[0]
-        let zone = Geometry.zone(of: touch, in: frame.geometry, config: config)
+        let zone = touches.count == 1 ? Geometry.zone(of: touch, in: frame.geometry, config: config) : .none
         if zone == .none {
-            state = .spent(firstDownTime: frame.timestamp)
+            // Every touch is new here, so three of them landing together may arm a middle click.
+            handleSpent(firstDownTime: frame.timestamp, start: TouchBuffer(), frame)
         } else {
             state = .candidate(CandidateData(
                 zone: zone,
@@ -142,36 +146,47 @@ public final class GestureEngine: @unchecked Sendable {
 
     private func handleCandidate(_ data: CandidateData, _ frame: Frame) {
         let touches = frame.touches
+        let origin = Touch(id: data.touchID, x: data.x0, y: data.y0, majorAxisMM: 0)
         if touches.count >= 2 {
-            state = .spent(firstDownTime: data.t0)
+            // The candidate finger keeps its landing position; the new fingers join `spent` as they are now,
+            // and the three-finger rule applies on this same frame.
+            spend(firstDownTime: data.t0, origin: origin, frame)
             return
         }
         guard let touch = touches.touch(id: data.touchID) else {
-            // Lift (taps are recognized here by the tap rules); a different finger starts over from idle.
+            // Lift; a different finger starts over from idle on the same frame.
+            recognizeTap(data, liftTime: frame.timestamp)
             state = .idle
             handleIdle(frame)
             return
         }
-        let origin = Touch(id: data.touchID, x: data.x0, y: data.y0, majorAxisMM: touch.majorAxisMM)
-        let edge = slideEdge(for: data.zone, from: origin, to: touch, in: frame.geometry)
+        guard let edge = Geometry.slideEdge(for: data.zone, from: origin, to: touch, in: frame.geometry) else {
+            spend(firstDownTime: data.t0, origin: origin, frame)
+            return
+        }
         let delta = Geometry.deltaMM(edge: edge, from: origin, to: touch, in: frame.geometry)
         let thresholds = config.thresholds
         if abs(delta.along) >= thresholds.slideStartMM {
             let action = config.action(for: edge)
             guard action != .off else {
-                state = .spent(firstDownTime: data.t0)
+                spend(firstDownTime: data.t0, origin: origin, frame)
                 return
             }
-            startSlide(edge: edge, action: action, touch: touch, alongMM: delta.along, time: frame.timestamp)
+            startSlide(from: data, edge: edge, action: action, touch: touch, frame: frame)
         } else if abs(delta.perpendicular) >= thresholds.abortPerpendicularMM {
-            state = .spent(firstDownTime: data.t0)
+            spend(firstDownTime: data.t0, origin: origin, frame)
+        } else {
+            var updated = data
+            updated.maxMoveMM = max(data.maxMoveMM, Self.axisMoveMM(from: origin, to: touch, in: frame.geometry))
+            state = .candidate(updated)
         }
     }
 
     private func handleSliding(_ data: SlideData, _ frame: Frame) {
         if frame.touches.count >= 2 {
             finish(data, .cancel)
-            state = .spent(firstDownTime: frame.timestamp)
+            // Seeded with the landing point, so the slide's own movement rules out a middle click.
+            spend(firstDownTime: data.firstDownTime, origin: data.origin, frame)
             return
         }
         guard let touch = frame.touches.touch(id: data.touchID) else {
@@ -203,15 +218,12 @@ public final class GestureEngine: @unchecked Sendable {
         handleSliding(slide, frame)
     }
 
-    private func handleSpent(_ frame: Frame) {
-        if frame.touches.count < 1 {
-            state = .idle
-        }
-    }
-
     // MARK: - Slides
 
-    private func startSlide(edge: Edge, action: EdgeAction, touch: Touch, alongMM: Float, time: TimeInterval) {
+    private func startSlide(from candidate: CandidateData, edge: Edge, action: EdgeAction, touch: Touch, frame: Frame) {
+        lastTap = nil
+        let origin = Touch(id: candidate.touchID, x: candidate.x0, y: candidate.y0, majorAxisMM: 0)
+        let alongMM = Geometry.deltaMM(edge: edge, from: origin, to: touch, in: frame.geometry).along
         let frozen = config.freezeCursor
         if frozen {
             emit(.freezeCursor(true))
@@ -220,11 +232,13 @@ public final class GestureEngine: @unchecked Sendable {
         var slide = SlideData(
             edge: edge,
             action: action,
+            firstDownTime: candidate.t0,
+            origin: origin,
             touchID: touch.id,
             previous: touch,
             accumulatedMM: alongMM,
             stepsEmitted: 0,
-            lastFrameTime: time,
+            lastFrameTime: frame.timestamp,
             frozen: frozen
         )
         emitSteps(&slide)
@@ -233,7 +247,8 @@ public final class GestureEngine: @unchecked Sendable {
 
     private func emitSteps(_ slide: inout SlideData) {
         let step = Geometry.stepMM(for: slide.action, thresholds: config.thresholds)
-        guard step.isFinite, step > 0 else { return }
+        // A step at or below the tolerance would never shrink the remainder below the threshold.
+        guard step.isFinite, step > Self.stepToleranceMM else { return }
         let threshold = step - Self.stepToleranceMM
         while abs(slide.accumulatedMM) >= threshold {
             let sign = slide.accumulatedMM > 0 ? 1 : -1
@@ -270,21 +285,6 @@ public final class GestureEngine: @unchecked Sendable {
         }
     }
 
-    /// The edge a slide binds to. A corner picks its neighbouring edge by the dominant movement axis.
-    private func slideEdge(for zone: Zone, from origin: Touch, to touch: Touch, in geometry: DeviceGeometry) -> Edge {
-        switch zone {
-        case let .edge(edge):
-            return edge
-        case let .corner(corner):
-            let edges = Geometry.edges(of: corner)
-            let dx = abs(touch.x - origin.x) * geometry.widthMM
-            let dy = abs(touch.y - origin.y) * geometry.heightMM
-            return dx >= dy ? edges.horizontal : edges.vertical
-        case .none:
-            return .right
-        }
-    }
-
     // MARK: - Gates
 
     /// Whether a new gesture may begin. The typing, hold-key and pause gates plug in here; none apply yet.
@@ -292,7 +292,7 @@ public final class GestureEngine: @unchecked Sendable {
         true
     }
 
-    private func emit(_ command: GestureCommand) {
+    func emit(_ command: GestureCommand) {
         guard let sink else { return }
         sink.handle(command, device: activeDeviceID)
     }

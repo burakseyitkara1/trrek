@@ -8,12 +8,17 @@ struct CandidateData {
     var x0: Float
     var y0: Float
     var t0: TimeInterval
+    /// Largest per-axis distance from (x0, y0) seen so far, in mm; decides whether a lift is a tap.
+    var maxMoveMM: Float = 0
 }
 
 /// An active slide along one edge.
 struct SlideData {
     var edge: Edge
     var action: EdgeAction
+    /// When and where the sliding finger first touched down (the candidate's `t0`, `x0`, `y0`).
+    var firstDownTime: TimeInterval
+    var origin: Touch
     var touchID: Int32
     /// Position of the tracked finger in the previous frame; each frame adds the movement since then.
     var previous: Touch
@@ -25,12 +30,11 @@ struct SlideData {
     var frozen: Bool
 }
 
-/// Three fingers down together; transitions are filled in by the multi-finger rules.
-struct ThreeFingerData {
-    var ids: InlineArray<3, Int32>
-    var tDown: TimeInterval
-    var maxMoveMM: Float
-}
+/// The previous single tap on a corner or media edge; exactly one of `corner` and `edge` is set.
+typealias TapRecord = (corner: Corner?, edge: Edge?, at: TimeInterval) // swiftlint:disable:this large_tuple
+
+/// The ids of the three fingers of a possible middle click.
+typealias ThreeFingerIDs = (Int32, Int32, Int32) // swiftlint:disable:this large_tuple
 
 /// The engine's single state, shared by all devices. Pure value type: changing state never allocates.
 enum EngineState {
@@ -38,6 +42,10 @@ enum EngineState {
     case candidate(CandidateData)
     case sliding(SlideData)
     case lost(SlideData, since: TimeInterval)
-    case spent(firstDownTime: TimeInterval)
-    case threeFinger(ThreeFingerData)
+    /// Fingers that will not produce a gesture until all of them lift. `start` holds each finger's position
+    /// when it joined (used by the three-finger movement check).
+    case spent(firstDownTime: TimeInterval, start: TouchBuffer)
+    /// Three fingers down together, a possible middle click. `start` holds their positions when they landed;
+    /// `tDown` is when the first of them touched down.
+    case threeFinger(ids: ThreeFingerIDs, start: TouchBuffer, tDown: TimeInterval)
 }

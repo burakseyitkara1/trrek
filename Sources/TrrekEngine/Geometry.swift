@@ -64,6 +64,23 @@ public enum Geometry {
         }
     }
 
+    /// The edge a slide binds to. A corner picks its neighbouring edge by the dominant movement axis.
+    /// Returns `nil` for `.none`, which never becomes a candidate; the caller then gives up on the finger.
+    static func slideEdge(for zone: Zone, from origin: Touch, to touch: Touch, in geometry: DeviceGeometry) -> Edge? {
+        switch zone {
+        case let .edge(edge):
+            return edge
+        case let .corner(corner):
+            let edges = edges(of: corner)
+            let dx = abs(touch.x - origin.x) * geometry.widthMM
+            let dy = abs(touch.y - origin.y) * geometry.heightMM
+            return dx >= dy ? edges.horizontal : edges.vertical
+        case .none:
+            assertionFailure("a candidate never has zone .none")
+            return nil
+        }
+    }
+
     private static func corner(vertical: Edge, horizontal: Edge) -> Corner {
         switch (vertical, horizontal) {
         case (.left, .top): .topLeft
