@@ -60,7 +60,7 @@ extension GestureEngine {
         var start = start
         let landed = Self.addLandings(touches, to: &start)
         // Only a finger landing can bring the count up to three; dropping back to three from four cannot.
-        let armsMiddleClick = landed && touches.count == 3
+        let armsMiddleClick = landed && touches.count == 3 && admitsNewGesture(at: frame.timestamp)
             && canStartMiddleClick(firstDownTime: firstDownTime, start: start, frame)
         guard armsMiddleClick else {
             state = .spent(firstDownTime: firstDownTime, start: start)

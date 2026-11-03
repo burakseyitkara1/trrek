@@ -10,3 +10,4 @@ All notable changes to this project are documented in this file.
 - Engine: core types, configuration, command model and edge/corner geometry
 - Engine: slide state machine with lost-finger recovery and watchdog
 - Engine: corner and media double-taps, three-finger middle click
+- Engine: palm, typing, hold-key and pause gates

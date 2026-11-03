@@ -3,7 +3,8 @@ import Foundation
 
 extension GestureEngine {
     /// Moves finger `id` in a straight line from `from` to `to` (mm), one frame every `stepMM` of travel
-    /// and every `dt` seconds starting at `startT`. Both end points get a frame. Returns the last timestamp.
+    /// and every `dt` seconds starting at `startT`, with contact size `major` (mm). Both end points get a frame.
+    /// Returns the last timestamp.
     @discardableResult
     func drive(
         _ fb: FrameBuilder,
@@ -12,6 +13,7 @@ extension GestureEngine {
         to: (Float, Float),
         stepMM: Float = 1,
         dt: TimeInterval = 0.008,
+        major: Float = 8,
         startT: TimeInterval
     ) -> TimeInterval {
         let dx = to.0 - from.0
@@ -24,7 +26,7 @@ extension GestureEngine {
             let xMM = distance > 0 ? from.0 + (dx * travelled) / distance : from.0
             let yMM = distance > 0 ? from.1 + (dy * travelled) / distance : from.1
             t = startT + Double(index) * dt
-            process(fb.frame(t: t, [(id, xMM, yMM)]))
+            process(fb.frame(t: t, [(id, xMM, yMM)], major: major))
         }
         return t
     }

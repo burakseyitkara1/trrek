@@ -13,7 +13,8 @@ public enum StateKind: Sendable, Equatable {
 /// The sink is held weakly so that the engine never keeps its owner alive; commands emitted after the sink
 /// has gone away are dropped.
 public final class GestureEngine: @unchecked Sendable {
-    private enum Outcome {
+    /// How a slide ends. Internal rather than private so the gates in `GestureEngine+Gates.swift` reach it.
+    enum Outcome {
         case commit, cancel
     }
 
@@ -29,10 +30,10 @@ public final class GestureEngine: @unchecked Sendable {
     /// The previous single tap on a corner or a media edge, waiting for its second tap.
     var lastTap: TapRecord?
 
-    // Host signals; the gates that read them are applied by `admitsNewGesture(at:)`.
-    private var lastKeyDown: TimeInterval = -.infinity
-    private var holdKeySatisfied = false
-    private var paused = false
+    // Host signals, set through `GestureEngine+Gates.swift` and read by the gates there.
+    var lastKeyDown: TimeInterval = -.infinity
+    var holdKeySatisfied = false
+    var paused = false
 
     public init(config: EngineConfig, sink: CommandSink) {
         self.config = config
@@ -65,7 +66,12 @@ public final class GestureEngine: @unchecked Sendable {
         self.config = config
     }
 
-    public func process(_ frame: Frame) {
+    /// Handles one frame. The gates of spec 5.6 apply in order: palms are dropped from the frame, the typing
+    /// and hold-key gates keep new gestures from starting (see `admitsNewGesture(at:)`), and a paused engine
+    /// ignores the frame altogether.
+    public func process(_ rawFrame: Frame) {
+        let frame = Self.withoutPalms(rawFrame, maxMajorAxisMM: config.thresholds.palmMajorAxisMM)
+        guard !paused else { return }
         if case .idle = state {
             handleIdle(frame)
             return
@@ -96,18 +102,6 @@ public final class GestureEngine: @unchecked Sendable {
         }
     }
 
-    public func noteKeyDown(at time: TimeInterval) {
-        lastKeyDown = time
-    }
-
-    public func setHoldKeySatisfied(_ satisfied: Bool) {
-        holdKeySatisfied = satisfied
-    }
-
-    public func setPaused(_ paused: Bool) {
-        self.paused = paused
-    }
-
     /// Returns to idle. An active slide only releases the cursor; its action is not committed.
     public func reset() {
         switch state {
@@ -126,8 +120,12 @@ public final class GestureEngine: @unchecked Sendable {
 
     private func handleIdle(_ frame: Frame) {
         let touches = frame.touches
-        guard touches.count >= 1, admitsNewGesture(at: frame.timestamp) else { return }
+        guard touches.count >= 1 else { return }
         activeDeviceID = frame.deviceID
+        guard admitsNewGesture(at: frame.timestamp) else {
+            state = .spent(firstDownTime: Self.blockedDownTime, start: touches)
+            return
+        }
         let touch = touches[0]
         let zone = touches.count == 1 ? Geometry.zone(of: touch, in: frame.geometry, config: config) : .none
         if zone == .none {
@@ -147,6 +145,11 @@ public final class GestureEngine: @unchecked Sendable {
     private func handleCandidate(_ data: CandidateData, _ frame: Frame) {
         let touches = frame.touches
         let origin = Touch(id: data.touchID, x: data.x0, y: data.y0, majorAxisMM: 0)
+        guard admitsNewGesture(at: frame.timestamp) else {
+            // No slide and no tap; the fingers wait in `spent` until they all lift.
+            spend(firstDownTime: Self.blockedDownTime, origin: origin, frame)
+            return
+        }
         if touches.count >= 2 {
             // The candidate finger keeps its landing position; the new fingers join `spent` as they are now,
             // and the three-finger rule applies on this same frame.
@@ -272,7 +275,7 @@ public final class GestureEngine: @unchecked Sendable {
     }
 
     /// Ends a slide: the action's commit or cancel command, then the cursor release. The caller sets the state.
-    private func finish(_ slide: SlideData, _ outcome: Outcome) {
+    func finish(_ slide: SlideData, _ outcome: Outcome) {
         switch (slide.action, outcome) {
         case (.switchApps, .commit): emit(.appSwitchCommit)
         case (.switchApps, .cancel): emit(.appSwitchCancel)
@@ -283,13 +286,6 @@ public final class GestureEngine: @unchecked Sendable {
         if slide.frozen {
             emit(.freezeCursor(false))
         }
-    }
-
-    // MARK: - Gates
-
-    /// Whether a new gesture may begin. The typing, hold-key and pause gates plug in here; none apply yet.
-    private func admitsNewGesture(at _: TimeInterval) -> Bool {
-        true
     }
 
     func emit(_ command: GestureCommand) {
