@@ -9,7 +9,8 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-26
+    # Intel image: GitHub-hosted macOS arm64 runners are capacity-constrained; the app is cross-compiled for arm64 below.
+    runs-on: macos-26-intel
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

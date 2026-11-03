@@ -5,4 +5,4 @@ All notable changes to this project are documented in this file.
 ## [Unreleased]
 
 - Project scaffold: SPM package, Makefile, lint/format config, git hooks
-- Packaging: app bundle build script, icon generation, CI and release workflows
+- Packaging: app bundle build script, icon generation, CI and release workflows (Intel runner image)
