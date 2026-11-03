@@ -202,7 +202,7 @@ Geçişler (kare başına; kapılar Bölüm 5.6'daki sırayla önce uygulanır):
    - dördüncü dokunma → `spent`.
    - üçü de kalktı → emit `middleClick` + `haptic(.tap)` → `idle`.
 
-**bitir(commit/cancel):** `switchApps` → `appSwitchCommit` (cancel'da `appSwitchCancel`); `scrubVideo` → `scrubCommit` (cancel'da `scrubCancel`); diğerleri komut üretmez. Her durumda `freezeCursor(false)`.
+**bitir(commit/cancel):** `switchApps` → `appSwitchCommit` (cancel'da `appSwitchCancel`); `scrubVideo` → `scrubCommit` (cancel'da `scrubCancel`); diğerleri komut üretmez. `frozen` ise `freezeCursor(false)`.
 
 ### 5.5 Eylem eşlemesi
 
