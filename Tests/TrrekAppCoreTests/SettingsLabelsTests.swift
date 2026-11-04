@@ -125,3 +125,8 @@ import TrrekPlatform
     #expect(EdgeChoices.isSelectable(.scrubVideo, backlightAvailable: false))
     #expect(EdgeChoices.isSelectable(.scrubVideo, backlightAvailable: true))
 }
+
+@Test func externalBrightnessCaptionSaysWhenUnavailable() {
+    #expect(SettingsLabels.externalBrightnessCaption(available: true) == SettingsLabels.externalBrightnessCaption)
+    #expect(SettingsLabels.externalBrightnessCaption(available: false) == "Not available on this Mac")
+}

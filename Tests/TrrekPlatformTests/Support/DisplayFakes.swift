@@ -4,7 +4,8 @@ import TrrekPlatform
 
 /// An external brightness port with a fixed set of external displays. Steps move by 1/16 (1/64 when fine),
 /// after an optional delay; `failing` makes every step fail. The dispatcher calls `step` on its display queue, so
-/// the recorded state is locked.
+/// the recorded state is locked. Like the real port, a display that `reachability` knows to lack a DDC service is not
+/// external.
 final class FakeExternalBrightness: ExternalBrightnessControlling, @unchecked Sendable {
     struct Step: Equatable {
         let display: CGDirectDisplayID
@@ -21,6 +22,7 @@ final class FakeExternalBrightness: ExternalBrightnessControlling, @unchecked Se
     private var stepQueues: [Bool] = []
     /// Set on the queue the steps are expected to run on.
     let queueKey = DispatchSpecificKey<Bool>()
+    let reachability = DDCReachability()
 
     init(externals: Set<CGDirectDisplayID>, level: Float = 0.5, delay: TimeInterval = 0, failing: Bool = false) {
         self.externals = externals
@@ -39,7 +41,7 @@ final class FakeExternalBrightness: ExternalBrightnessControlling, @unchecked Se
     }
 
     func isExternal(display: CGDirectDisplayID) -> Bool {
-        externals.contains(display)
+        externals.contains(display) && reachability.mayHaveService(display)
     }
 
     func step(display: CGDirectDisplayID, direction: Int, fine: Bool) -> Float? {

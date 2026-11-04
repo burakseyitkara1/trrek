@@ -39,13 +39,24 @@ struct EdgesTab: View {
                     Text("Bottom Quarter Only")
                     Text("The side edges respond only in their lower quarter.")
                 }
-                Toggle(isOn: $model.settings.externalMonitorBrightness) {
-                    Text("External Monitor Brightness")
-                    Text(SettingsLabels.externalBrightnessCaption)
-                }
+                externalBrightnessToggle
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// Disabled and shown off, with the reason, while the DDC/CI bridge is missing.
+    private var externalBrightnessToggle: some View {
+        let available = model.externalBrightnessAvailable
+        let isOn = Binding(
+            get: { available && model.settings.externalMonitorBrightness },
+            set: { model.settings.externalMonitorBrightness = $0 }
+        )
+        return Toggle(isOn: isOn) {
+            Text("External Monitor Brightness")
+            Text(SettingsLabels.externalBrightnessCaption(available: available))
+        }
+        .disabled(!available)
     }
 
     /// A picker for the top or bottom edge. Options that cannot be used on this Mac are listed but disabled, with

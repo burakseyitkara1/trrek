@@ -51,6 +51,13 @@ public protocol KeyboardBacklightControlling: Sendable {
     func step(_ direction: Int, fine: Bool) -> Float?
 }
 
+/// Reads a system level (output volume, built-in display brightness) before a step, so a step at the end of the
+/// range can be skipped. Called on the frame thread once per step, never per frame.
+public protocol LevelReading: Sendable {
+    /// The level in 0...1, or `nil` when it is unknown (then the step runs as if no reader existed).
+    func level() -> Float?
+}
+
 /// Shows a transient level indicator. Called on the frame thread, or on the dispatcher's display queue for external
 /// brightness; implementations hop to the main thread without waiting.
 public protocol LevelOverlayPresenting: Sendable {

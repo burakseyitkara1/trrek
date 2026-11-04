@@ -111,8 +111,12 @@ extension Coordinator {
     // MARK: - System
 
     func startObservers() {
-        frontmostObserver.onChange = { [weak self] bundleID in
-            MainActor.assumeIsolated { self?.updatePause(bundleID: bundleID) }
+        frontmostObserver.onChange = { [weak self] bundleID, isOwnApp in
+            MainActor.assumeIsolated {
+                self?.updatePause(bundleID: bundleID)
+                // Scrub sends arrow keys to the front app; while that is trrek's own window it sends none.
+                self?.dispatcher?.ownAppFrontmost = isOwnApp
+            }
         }
         frontmostObserver.start()
         wakeObserver.onWake = { [weak self] in

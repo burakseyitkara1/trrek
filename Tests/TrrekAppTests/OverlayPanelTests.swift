@@ -70,7 +70,7 @@ struct OverlayPanelTests {
     @Test func originIsTopRightOfVisibleArea() throws {
         let screen = try #require(NSScreen.main)
         let origin = OverlayPanel.origin(on: screen)
-        #expect(origin.x == screen.visibleFrame.maxX - 16 - 220)
+        #expect(origin.x == screen.visibleFrame.maxX - 16 - 240)
         #expect(origin.y == screen.visibleFrame.maxY - 16 - 56)
     }
 

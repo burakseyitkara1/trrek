@@ -64,3 +64,16 @@ private func convert(_ contacts: [MTTouch], timestamp: Double = 1.5, deviceID: U
     let bad = [contact(id: 1, state: 3, nx: 1.5, ny: 0.5)]
     #expect(!bad.withUnsafeBufferPointer { FrameConverter.isPlausible($0) })
 }
+
+@Test func plausibilityRejectsUnknownStates() {
+    let known = (Int32(0) ... 7).map { contact(id: $0, state: $0) }
+    #expect(known.withUnsafeBufferPointer { FrameConverter.isPlausible($0) })
+    #expect(!known.withUnsafeBufferPointer { FrameConverter.hasInvalidState($0) })
+
+    for state: Int32 in [-1, 8, 0x4000_0000] {
+        // Even beside a valid touching contact, and with plausible positions.
+        let drifted = [contact(id: 1, state: 4), contact(id: 2, state: state)]
+        #expect(!drifted.withUnsafeBufferPointer { FrameConverter.isPlausible($0) })
+        #expect(drifted.withUnsafeBufferPointer { FrameConverter.hasInvalidState($0) })
+    }
+}

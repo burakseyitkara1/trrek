@@ -15,22 +15,22 @@ private func attributes(_ manufacturer: String, product: Int, serial: Int) -> [S
 }
 
 @Test func matchesDisplaysByEDID() {
-    #expect(DisplayServiceMatcher.vendorNumber(manufacturerID: "DEL") == 0x10AC)
-    #expect(DisplayServiceMatcher.vendorNumber(manufacturerID: "GSM") == 0x1E6D)
-    #expect(DisplayServiceMatcher.vendorNumber(manufacturerID: "D1L") == nil)
+    #expect(DisplayServiceMatcher.vendorNumber(manufacturerID: "ABC") == 0x0443)
+    #expect(DisplayServiceMatcher.vendorNumber(manufacturerID: "XYZ") == 0x633A)
+    #expect(DisplayServiceMatcher.vendorNumber(manufacturerID: "A1C") == nil)
 
     // Two identical models told apart by serial, listed in the opposite order to the displays, plus a third.
     let services = [
-        ServiceDescriptor(displayAttributes: attributes("DEL", product: 0xA0F1, serial: 222)),
-        ServiceDescriptor(displayAttributes: attributes("GSM", product: 0x5B7F, serial: 0)),
-        ServiceDescriptor(displayAttributes: attributes("DEL", product: 0xA0F1, serial: 111))
+        ServiceDescriptor(displayAttributes: attributes("ABC", product: 0xA0F1, serial: 222)),
+        ServiceDescriptor(displayAttributes: attributes("XYZ", product: 0x5B7F, serial: 0)),
+        ServiceDescriptor(displayAttributes: attributes("ABC", product: 0xA0F1, serial: 111))
     ]
-    #expect(services[0] == ServiceDescriptor(vendor: 0x10AC, model: 0xA0F1, serial: 222))
+    #expect(services[0] == ServiceDescriptor(vendor: 0x0443, model: 0xA0F1, serial: 222))
 
     let displays = [
-        DisplayDescriptor(id: 7, vendor: 0x10AC, model: 0xA0F1, serial: 111),
-        DisplayDescriptor(id: 8, vendor: 0x1E6D, model: 0x5B7F, serial: 0),
-        DisplayDescriptor(id: 9, vendor: 0x10AC, model: 0xA0F1, serial: 222)
+        DisplayDescriptor(id: 7, vendor: 0x0443, model: 0xA0F1, serial: 111),
+        DisplayDescriptor(id: 8, vendor: 0x633A, model: 0x5B7F, serial: 0),
+        DisplayDescriptor(id: 9, vendor: 0x0443, model: 0xA0F1, serial: 222)
     ]
     let matched = DisplayServiceMatcher.match(displays: displays, services: services)
     #expect(matched == [7: 2, 8: 1, 9: 0])
@@ -44,15 +44,15 @@ private func attributes(_ manufacturer: String, product: Int, serial: Int) -> [S
     ]
     #expect(anonymous[0] == ServiceDescriptor(vendor: nil, model: nil, serial: nil))
     let displays = [
-        DisplayDescriptor(id: 3, vendor: 0x10AC, model: 1, serial: 5),
-        DisplayDescriptor(id: 4, vendor: 0x1E6D, model: 2, serial: 6)
+        DisplayDescriptor(id: 3, vendor: 0x0443, model: 1, serial: 5),
+        DisplayDescriptor(id: 4, vendor: 0x633A, model: 2, serial: 6)
     ]
     #expect(DisplayServiceMatcher.match(displays: displays, services: anonymous) == [3: 0, 4: 1])
 
     // A display matched by identity keeps its service; the other takes what is left.
     let mixed = [
         ServiceDescriptor(vendor: nil, model: nil, serial: nil),
-        ServiceDescriptor(vendor: 0x1E6D, model: 2, serial: 6)
+        ServiceDescriptor(vendor: 0x633A, model: 2, serial: 6)
     ]
     #expect(DisplayServiceMatcher.match(displays: displays, services: mixed) == [3: 0, 4: 1])
     let swapped = [mixed[1], mixed[0]]

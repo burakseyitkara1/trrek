@@ -11,6 +11,12 @@ public enum OverlayContent {
         return Int((clamped * Float(segmentCount)).rounded())
     }
 
+    /// Whether the segmented bar is drawn. A label replaces it: the scrub distance has no level, and neither does
+    /// a "No DDC" result.
+    public static func showsBar(kind: OverlayKind, label: String?) -> Bool {
+        kind != .scrub && label == nil
+    }
+
     /// `label` when given, otherwise the level as a whole percentage ("50%").
     public static func text(level: Float, label: String?) -> String {
         if let label {
@@ -34,5 +40,34 @@ public enum OverlayContent {
 
     private static func clamp(_ level: Float) -> Float {
         level.isFinite ? min(max(level, 0), 1) : 0
+    }
+}
+
+/// The overlay's geometry in points. A level row is symbol, bar and a fixed-width percentage; a label row is the
+/// symbol and the label at its natural width, so text such as "No DDC" or "+100 s" is never cut.
+public enum OverlayLayout {
+    public static let width: Double = 240
+    public static let height: Double = 56
+    public static let horizontalPadding: Double = 16
+    public static let spacing: Double = 12
+    public static let symbolWidth: Double = 24
+    public static let segmentWidth: Double = 5
+    public static let segmentSpacing: Double = 2
+    /// Wide enough for "100%".
+    public static let levelTextWidth: Double = 40
+    public static let fontSize: Double = 13
+
+    public static var barWidth: Double {
+        Double(OverlayContent.segmentCount) * segmentWidth + Double(OverlayContent.segmentCount - 1) * segmentSpacing
+    }
+
+    /// The width of a level row's content and padding.
+    public static var levelRowWidth: Double {
+        2 * horizontalPadding + symbolWidth + spacing + barWidth + spacing + levelTextWidth
+    }
+
+    /// The widest label that fits: a label row is the symbol, a spacer and the label, so the spacing appears twice.
+    public static var maximumLabelWidth: Double {
+        width - 2 * horizontalPadding - symbolWidth - 2 * spacing
     }
 }

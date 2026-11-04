@@ -313,16 +313,18 @@ Aşama 0 spike sonucu: medya tuşu yolu Accessibility izni olmadan doğrulanamad
 
 ### 6.8 ExternalBrightness ve DisplayLocator (Aşama 2)
 
-- `DisplayLocator`: `NSEvent.mouseLocation` → `NSScreen` → `CGDirectDisplayID`; `CGDisplayIsBuiltin` ise dahili.
-- Dahili → `stepBrightness` medya tuşu yoluyla. Harici ve ayar açık → DDC.
-- DDC/CI: `IOAVServiceCreateWithService`, `IOAVServiceWriteI2C`, `IOAVServiceReadI2C` sembolleri; 7-bit adres 0x37, veri adresi 0x51, VCP kodu 0x10 (parlaklık); DDC sağlama toplamı standardına göre paket kurulur; IORegistry `DCPAVServiceProxy` girdileri `EDID UUID` ile `CGDirectDisplayID`'ye eşlenir. Slide başında mevcut/maks değer okunur, her adımda `maks/16` (fine: `maks/64`) yazılır, overlay yüzdeyi gösterir.
-- Bu Mac'te doğrulanamaz; "best effort" olarak işaretlenir. Hata halinde overlay "No DDC" gösterir.
+- `DisplayLocator`: imleç konumu kaynaksız oluşturulan bir olayın konumundan (`CGEvent(source: nil).location`, global ekran koordinatları) alınır ve `CGGetDisplaysWithPoint` ile `CGDirectDisplayID`'ye çevrilir; `CGDisplayIsBuiltin` ise dahili.
+- Dahili → `stepBrightness` medya tuşu yoluyla. Harici ve ayar açık → DDC. Son taramada DDC servisi bulunamayan harici ekran (kablosuz/sanal ekran gibi) harici sayılmaz ve medya tuşu yolunu kullanır (karar 35).
+- DDC/CI: `IOAVServiceCreateWithService`, `IOAVServiceWriteI2C`, `IOAVServiceReadI2C` sembolleri; 7-bit adres 0x37, veri adresi 0x51, VCP kodu 0x10 (parlaklık); DDC sağlama toplamı standardına göre paket kurulur. IORegistry'deki harici `DCPAVServiceProxy` girdileri ekranlara önce EDID üretici/model/seri numarasıyla (sonra seri numarası eksikse üretici/modelle) eşlenir; eşleşmeyen ekranlar kalan servisleri sırayla alır. Tarama oluşturulurken ve her ekran yeniden yapılandırmasından sonra arka planda yapılır. Slide başında mevcut/maks değer okunur, her adımda `maks/16` (fine: `maks/64`) yazılır, overlay yüzdeyi gösterir.
+- Sembollerden biri yoksa köprü oluşturulmaz; Edges sekmesindeki ayar "Not available on this Mac" notuyla devre dışı kalır.
+- Bu Mac'te doğrulanamaz; "best effort" olarak işaretlenir. Servisi olan ekranda aktarım hatası olursa overlay "No DDC" gösterir (çubuk yok); hata her hata durumuna girişte bir kez günlüğe yazılır.
 
 ### 6.9 Scrub Video (ok tuşları)
 
 - Video sarma, öndeki uygulamaya ←/→ ok tuşu göndererek yapılır (karar 33): `scrubStep(+1)` → sağ ok (keyCode 124), `scrubStep(−1)` → sol ok (123), bayraksız. Tarayıcılar ve çoğu oynatıcı bu tuşlarla sarar; ek süreç ya da özel API gerekmez.
 - Adım boyunu uygulama belirler; overlay etiketi adım başına 5 s varsayar. `CommandDispatcher` slide başına net adım sayısını tutar ve overlay'de `"+15 s"` / `"−10 s"` / `"0 s"` gösterir (simge + etiket, seviye çubuğu yok).
 - `scrubCommit` ve `scrubCancel` yalnızca sayacı sıfırlar; tuş göndermez (adımlar zaten uygulanmıştır).
+- Öndeki uygulama trrek'in kendisiyse (ayar ya da karşılama penceresi) adımlar tuş göndermez ve sayılmaz (karar 35).
 - Sentetik olay gönderdiği için Accessibility izni yokken kapalıdır (karar 27).
 
 ### 6.10 Sistem köprüleri
@@ -404,8 +406,8 @@ struct Settings: Codable, Equatable {
 ### 7.5 OverlayPanel
 
 - `NSPanel(styleMask: [.borderless, .nonactivatingPanel])`, `level = .statusBar`, `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]`, `ignoresMouseEvents = true`, `hasShadow = false`.
-- İçerik: `NSHostingView<OverlayView>`; SwiftUI görünümü `.glassEffect(.regular, in: .capsule)` ile SF Symbol ikon + 16 bölmeli seviye çubuğu + metin (yüzde ya da `m:ss`).
-- Konum: imlecin bulunduğu ekranın sağ üstü, 16 pt kenar boşluğu, 220×56 pt.
+- İçerik: `NSHostingView<OverlayView>`; SwiftUI görünümü `.glassEffect(.regular, in: .capsule)` ile SF Symbol ikon + 16 bölmeli seviye çubuğu + yüzde; etiketli değerlerde (scrub süresi, "No DDC") çubuk yoktur ve etiket doğal genişliğini alır (karar 35).
+- Konum: imlecin bulunduğu ekranın sağ üstü, 16 pt kenar boşluğu, 240×56 pt (yüzdeli satır ve en geniş etiketler sığsın diye 220'den genişletildi).
 - Kullanım: keyboardBacklight Yol B, DDC, Scrub Video. İlk ihtiyaçta oluşturulur; son güncellemeden 1,0 s sonra gizlenir (tek seferlik `DispatchWorkItem`).
 
 ### 7.6 Karşılama penceresi (SwiftUI, Liquid Glass)
@@ -531,7 +533,7 @@ Push-to-main tetikleyicisi yoktur (squash merge içeriği PR başıyla aynıdır
 - `dependabot.yml`: `github-actions`, haftalık.
 - `PULL_REQUEST_TEMPLATE.md`: özet, değişiklik türü, test notları, kontrol listesi (build, test, lint, `docs/testing.md`, perf etkisi, CHANGELOG).
 - `Makefile`: `build`, `test`, `lint`, `format`, `app`, `install`, `check` (= CI adımları), `perf`, `probe`, `hooks`.
-- `CHANGELOG.md`: her PR "Unreleased" altına satır ekler.
+- `CHANGELOG.md`: sürüm ve tarih başlıkları; her PR "Unreleased" altına satır ekler.
 
 ## 11. Aşamalar
 

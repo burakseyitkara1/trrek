@@ -30,6 +30,8 @@ final class Coordinator {
 
     let freezer = CursorFreezerSlot()
     private var backlight: KeyboardBacklight?
+    /// Whether the DDC/CI bridge could be created (its system symbols were found).
+    private var externalBrightnessAvailable = false
     /// Retained here: the engine only holds its sink weakly.
     var dispatcher: CommandDispatcher?
     var pipeline: GesturePipeline?
@@ -198,6 +200,7 @@ final class Coordinator {
         let model = windows.settingsModel ?? SettingsModel(
             settings: settings,
             backlightAvailable: backlight?.isAvailable ?? false,
+            externalBrightnessAvailable: externalBrightnessAvailable,
             accessibilityGranted: isTrusted,
             onChange: { [weak self] in self?.apply($0) }
         )
@@ -281,6 +284,9 @@ final class Coordinator {
 
     /// The dispatcher with the system ports, set up from the current settings.
     private func makeDispatcher(haptics: any HapticPerforming, backlight: KeyboardBacklight?) -> CommandDispatcher {
+        let externalBrightness = ExternalBrightness()
+        externalBrightnessAvailable = externalBrightness != nil
+        appLogger.info("external brightness available: \(externalBrightness != nil, privacy: .public)")
         let dispatcher = CommandDispatcher(
             mediaKeys: SystemMediaKeys(),
             keys: SystemKeys(),
@@ -289,11 +295,14 @@ final class Coordinator {
             freezer: freezer,
             backlight: backlight,
             overlay: overlay,
-            externalBrightness: ExternalBrightness(),
-            displayLocator: { DisplayLocator.displayUnderPointer() }
+            externalBrightness: externalBrightness,
+            displayLocator: { DisplayLocator.displayUnderPointer() },
+            volumeLevel: OutputVolumeReader(),
+            brightnessLevel: BuiltInBrightnessReader()
         )
         dispatcher.hapticStrength = settings.hapticStrength
         dispatcher.externalBrightnessEnabled = settings.externalMonitorBrightness
+        dispatcher.ownAppFrontmost = FrontmostObserver.isOwnAppFrontmost
         return dispatcher
     }
 

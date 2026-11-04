@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Synchronization
+import TrrekAppCore
 import TrrekPlatform
 
 /// A transient level indicator near the top-right corner of the screen with the pointer. While it is visible it
@@ -12,7 +13,7 @@ import TrrekPlatform
 /// released `hideDelay` after the last one.
 @MainActor
 final class OverlayPanel: LevelOverlayPresenting {
-    static let size = CGSize(width: 220, height: 56)
+    static let size = CGSize(width: OverlayLayout.width, height: OverlayLayout.height)
     /// Distance from the top and right edges of the screen's visible area.
     static let inset: CGFloat = 16
 

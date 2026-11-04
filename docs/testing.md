@@ -16,6 +16,10 @@ Donanım ve sistem izni gerektiren davranışlar otomatik testlerle doğrulanama
 - **Nasıl:** Accessibility iznini kaldır (ya da `make install` ile yeniden kur), trrek'i aç.
 - **Beklenen:** Karşılama penceresi yeniden açılır ve "trrek needs Accessibility access to change volume, brightness and the other controls." der; menü çubuğu simgesinin sağ üst köşesinde nokta vardır. İzin verilince nokta kaybolur.
 
+### 1.3a Karşılama animasyonu
+- **Nasıl:** Ayarları silip trrek'i aç (karşılama penceresi); sonra Sistem Ayarları › Erişilebilirlik › Ekran › Hareketi Azalt'ı aç ve tekrarla.
+- **Beklenen:** Hareket Azaltma kapalıyken kartlar sırayla belirir; açıkken hepsi animasyonsuz, hemen görünür.
+
 ### 1.4 Uygulamayı yeniden açmak ayarları açar
 - **Nasıl:** trrek çalışırken Uygulamalar klasöründen (`~/Applications/trrek.app`) ya da `open ~/Applications/trrek.app` ile tekrar aç.
 - **Beklenen:** Ayarlar penceresi açılır (ya da öne gelir).
@@ -37,8 +41,16 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Beklenen:** İmleç harici ekrandayken o monitörün parlaklığı adım adım değişir (⌥⇧ ile ince adım); harici ekranın sağ üstünde trrek overlay'i yeni yüzdeyi gösterir; kaydırma takılmaz, diğer kenarlar gecikmeden çalışır. Monitörün kendi düğmeleriyle parlaklık değiştirilip birkaç saniye sonra tekrar kaydırılınca yeni değerden devam eder. İmleç dahili ekrandayken dahili ekranın parlaklığı sistem göstergesiyle değişir. Ayar kapalıyken harici ekranda da medya tuşu yolu kullanılır. Birden çok harici monitörde her biri yalnızca imleç üzerindeyken değişir.
 
 ### 2.2b Harici monitör parlaklığı (DDC/CI desteklemeyen monitör)
-- **Nasıl:** DDC/CI desteklemeyen (ya da DDC/CI'ı menüsünden kapatılmış) bir monitör veya yayın/sanal ekran bağla, External Monitor Brightness açık; imleç o ekrandayken parlaklık kenarında kaydır. `swift run TrrekProbe ddc list` çıktısını not et.
-- **Beklenen:** Overlay "No DDC" gösterir; trrek donmaz, çökmez, dahili ekranın parlaklığı değişmez. Probe o ekran için bir hata (`no valid reply`, `I2C write failed …` ya da `service: none`) yazdırır.
+- **Nasıl:** DDC/CI desteklemeyen (ya da DDC/CI'ı menüsünden kapatılmış) kablolu bir monitör bağla, External Monitor Brightness açık; imleç o ekrandayken parlaklık kenarında kaydır. `swift run TrrekProbe ddc list` çıktısını not et. Sonra `log stream --predicate 'subsystem == "com.burakseyitkara.trrek"'` açıkken birkaç slide daha yap.
+- **Beklenen:** Overlay seviye çubuğu olmadan, kesilmeden "No DDC" gösterir; trrek donmaz, çökmez, dahili ekranın parlaklığı değişmez. Probe o ekran için bir hata (`no valid reply` ya da `I2C write failed …`) yazdırır. "external brightness step failed" günlük satırı her adımda değil, hata durumuna girişte bir kez görünür.
+
+### 2.2c Harici ekran, DDC servisi yok (kablosuz/sanal ekran)
+- **Nasıl:** Kablosuz yansıtma ya da sanal bir ekran ekle (DDC servisi olmayan ekran), External Monitor Brightness açık; imleç o ekrandayken parlaklık kenarında kaydır. `swift run TrrekProbe ddc list` çıktısını not et.
+- **Beklenen:** Probe o ekran için `service: none` yazdırır. "No DDC" görünmez; parlaklık kenarı medya tuşu yolunu kullanır (sistem göstergesi, ekrana göre dahili parlaklık değişebilir).
+
+### 2.2d Overlay imlecin ekranına gider
+- **Nasıl:** İki ekranlı düzende (en az biri harici) üst kenarı Keyboard Backlight yap; imleç bir ekrandayken kaydır, overlay görünürken imleci diğer ekrana götürüp tekrar kaydır.
+- **Beklenen:** Overlay her seferinde imlecin bulunduğu ekranın sağ üstünde görünür; görünürken bir sonraki değerle diğer ekrana taşınır.
 
 ### 2.3 Üst kenar: uygulama değiştirme
 - **Nasıl:** Üst kenarda sağa kaydır; kaydırma sürerken ⌘-Tab uygulama değiştiricisinin açıldığını ve seçimin ilerlediğini izle; parmağı kaldır.
@@ -46,15 +58,27 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 
 ### 2.4 Alt kenar: klavye ışığı
 - **Nasıl:** Alt kenarda sağa/sola kaydır (alt kenar eylemi Keyboard Backlight; desteklenmeyen Mac'te seçenek devre dışı).
-- **Beklenen:** Klavye arka ışığı değişir; trrek'in overlay'i (yalnızca bu eylemde görünür) sağ üstte seviyeyi gösterir ve son adımdan yaklaşık 1 sn sonra kaybolur. En üst ya da en alt seviyedeyken bir adım daha sınır haptiği verir.
+- **Beklenen:** Klavye arka ışığı değişir; trrek'in overlay'i imlecin bulunduğu ekranın sağ üstünde seviye çubuğu ve yüzdeyi ("100%" kesilmeden) gösterir ve son adımdan yaklaşık 1 sn sonra kaybolur. Aralığın sonundaki davranış 2.5'te.
 
-### 2.5 Medya kenarı: oynat/duraklat
-- **Nasıl:** Bir kenarın eylemini Media yap; o kenarda çift dokun.
-- **Beklenen:** Çalan medya oynar/duraklar.
+### 2.5 Aralığın sonunda tek sınır haptiği (bütün seviye kenarları)
+- **Nasıl:** Haptik Medium. Sağ kenarda sesi en üste çıkar ve parmağı kaldırmadan aynı yönde birkaç cm daha kaydır; sonra yön değiştir; parmağı kaldırıp yeni bir slide'la tekrar en üste it. Aynısını sesi en alta indirerek (sessize almadan), sol kenarda dahili ekran parlaklığıyla (en üst ve en alt), klavye ışığı kenarıyla ve DDC/CI destekli harici monitörde (External Monitor Brightness açık, imleç harici ekranda) yap. Ayrıca ses sessize alınmışken (Mute) en altta kaydır.
+- **Beklenen:** Sınıra varan adım normal adım haptiği verir; sınırın ötesine itilen ilk adım tek bir sınır haptiği verir, sonrakiler hiç haptik vermez ve tuş göndermez (seviye "artıyor" hissi yok; overlay olan kenarlarda overlay sınır değerini göstermeye devam eder). Yön değişince adım haptikleri hemen geri gelir. Yeni slide'da sınıra itmek yine tek sınır haptiği verir. Harici monitörde sınır haptiği sınıra varan adımın sonucuyla birlikte gelir. Ses sessizdeyken seviye bilinmediği için eski davranış sürer (her adımda tuş ve haptik).
 
 ### 2.6 Üst/alt kenar: video sarma
 - **Nasıl:** Edges sekmesinde Top Edge'i Scrub Video yap. Tarayıcıda bir video aç ve oynat; üst kenarda sağa kaydır, sonra sola kaydır.
-- **Beklenen:** Her yaklaşık 6 mm'de video ileri (→) ya da geri (←) sarar; overlay simge ve "+15 s" / "−10 s" gibi net süreyi gösterir (çubuk yok). Parmak kalkınca ek tuş gitmez ve sayaç sıfırlanır. Accessibility izni yokken eylem kapalıdır.
+- **Beklenen:** Her yaklaşık 6 mm'de video ileri (→) ya da geri (←) sarar; overlay simge ve "+15 s" / "−10 s" gibi net süreyi gösterir (çubuk yok; "+100 s" gibi uzun etiketler kesilmez). Parmak kalkınca ek tuş gitmez ve sayaç sıfırlanır. Accessibility izni yokken eylem kapalıdır.
+
+### 2.7 Video sarma, Hold-to-Slide tuşu basılıyken
+- **Nasıl:** Advanced'de Hold-to-Slide Key'i Shift (Hold) yap; videoda Shift basılıyken üst kenarda kaydır. Sonra Control ile tekrarla.
+- **Beklenen:** Video düz ok tuşu davranışıyla sarar (adım başına aynı süre); metin seçimi ya da Space değişimi olmaz.
+
+### 2.8 Video sarma, trrek penceresi öndeyken
+- **Nasıl:** Top Edge Scrub Video; trrek'in ayar penceresini öne getir (Edges sekmesinde bir seçici odaktayken) ve üst kenarda kaydır.
+- **Beklenen:** Hiç ok tuşu gitmez (seçici değeri ya da liste seçimi değişmez), overlay görünmez. Başka bir uygulama öne gelince sarma yeniden çalışır.
+
+### 2.9 Medya kenarı: oynat/duraklat
+- **Nasıl:** Bir kenarın eylemini Media yap; o kenarda çift dokun.
+- **Beklenen:** Çalan medya oynar/duraklar.
 
 ## 3. Köşeler
 
@@ -149,6 +173,14 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 ### 7.2 Seçeneklerin notları ve devre dışı olanlar
 - **Nasıl:** Edges sekmesinde Top Edge ve Bottom Edge seçicilerini aç.
 - **Beklenen:** Seçenek adının yanında not belirtilir: "Scrub Video — Uses ← and → in the front app" seçilebilir. Klavye arka ışığı olmayan Mac'te "Keyboard Backlight — Not available on this Mac" devre dışıdır ve seçili değer Media olarak gösterilir.
+
+### 7.2a Accessibility gerektiren kenar notu
+- **Nasıl:** Accessibility iznini kaldır; Edges sekmesinde Top Edge'i Switch Apps ya da Scrub Video yap.
+- **Beklenen:** Seçicinin başlığı altında "Needs Accessibility access" notu görünür; Keyboard Backlight seçiliyken görünmez. İzin verilince not kaybolur.
+
+### 7.2b External Monitor Brightness kullanılamıyor
+- **Nasıl:** DDC sembolleri olmayan bir sistemde (ya da günlükte "external brightness available: false" görülen bir derlemede) Edges sekmesini aç.
+- **Beklenen:** External Monitor Brightness anahtarı kapalı ve devre dışıdır, altında "Not available on this Mac" yazar.
 
 ### 7.3 Reset to Defaults
 - **Nasıl:** Birkaç ayarı değiştir; General sekmesinde Reset to Defaults…'a bas.

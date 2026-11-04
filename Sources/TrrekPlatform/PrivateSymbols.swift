@@ -1,5 +1,6 @@
 import CMultitouch
 import CoreFoundation
+import CoreGraphics
 import Darwin
 import IOKit
 import os
@@ -57,6 +58,12 @@ public struct AVServiceSymbols: Sendable {
     public let readI2C: @convention(c) (CFTypeRef, UInt32, UInt32, UnsafeMutableRawPointer, UInt32) -> IOReturn
     /// `(service, chipAddress, dataAddress, buffer, length)`: writes `dataAddress` followed by `length` bytes.
     public let writeI2C: @convention(c) (CFTypeRef, UInt32, UInt32, UnsafeMutableRawPointer, UInt32) -> IOReturn
+}
+
+/// Function pointers for the display brightness service.
+public struct DisplayServicesSymbols: Sendable {
+    /// `(display, level)`: writes the display's brightness in 0...1; returns 0 on success.
+    public let getBrightness: @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
 }
 
 /// Names in the I/O Registry entries of external displays.
@@ -193,6 +200,22 @@ public enum PrivateSymbols {
             return nil
         }
         return AVServiceSymbols(createWithService: create, readI2C: read, writeI2C: write)
+    }()
+
+    private static let displayServicesPath =
+        "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
+
+    public static let displayServices: DisplayServicesSymbols? = {
+        let handle = Handle(raw: dlopen(displayServicesPath, RTLD_NOW))
+        guard let get = resolve(
+            "DisplayServicesGetBrightness",
+            as: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32).self,
+            in: handle
+        ) else {
+            platformLogger.error("display brightness symbols unavailable; brightness limit unknown")
+            return nil
+        }
+        return DisplayServicesSymbols(getBrightness: get)
     }()
 
     private static func resolve<T>(_ name: String, as type: T.Type) -> T? {

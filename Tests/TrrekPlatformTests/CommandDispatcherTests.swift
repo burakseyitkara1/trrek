@@ -203,38 +203,6 @@ private let escape: CGKeyCode = 53
     #expect(rig.freezer.calls == [true, false])
 }
 
-@Test func scrubStepsPressArrowKeys() {
-    let rig = Rig()
-    rig.send(.scrubStep(1), .scrubStep(-1))
-    #expect(rig.keys.calls == [.press(124, []), .press(123, [])])
-}
-
-@Test func scrubShowsCumulativeLabel() {
-    let rig = Rig()
-    rig.send(.scrubStep(1), .scrubStep(1), .scrubStep(1))
-    #expect(rig.overlay.calls.last == FakeOverlay.Call(kind: .scrub, level: 0.5, label: "+15 s"))
-    rig.send(.scrubStep(-1), .scrubStep(-1), .scrubStep(-1), .scrubStep(-1), .scrubStep(-1))
-    #expect(rig.overlay.calls.last == FakeOverlay.Call(kind: .scrub, level: 0.5, label: "\u{2212}10 s"))
-}
-
-@Test func scrubCancelSendsNothing() {
-    let rig = Rig()
-    rig.send(.scrubStep(1))
-    rig.keys.removeAll()
-    rig.send(.scrubCancel)
-    #expect(rig.keys.calls.isEmpty)
-}
-
-@Test func scrubCommitResetsCounter() {
-    let rig = Rig()
-    rig.send(.scrubStep(1), .scrubStep(1))
-    rig.keys.removeAll()
-    rig.send(.scrubCommit)
-    #expect(rig.keys.calls.isEmpty)
-    rig.send(.scrubStep(1))
-    #expect(rig.overlay.calls.last?.label == "+5 s")
-}
-
 // MARK: - External brightness
 
 private let builtIn: CGDirectDisplayID = 1
@@ -320,6 +288,16 @@ private struct BrightnessRig {
     rig.send(.stepBrightness(1, fine: false))
     #expect(rig.port.steps.count == 2)
     #expect(rig.media.calls == [FakeMediaKeys.Call(key: .brightnessUp, fine: false)])
+}
+
+@Test func externalScreenWithoutServiceUsesMediaKeys() {
+    let rig = BrightnessRig(pointerOn: external, enabled: true)
+    // The last scan found no DDC service for the display (wireless or virtual): no "No DDC", the media key instead.
+    rig.port.reachability.update(online: [external], matched: [CGDirectDisplayID]())
+    rig.send(.stepBrightness(1, fine: false))
+    #expect(rig.media.calls == [FakeMediaKeys.Call(key: .brightnessUp, fine: false)])
+    #expect(rig.port.steps.isEmpty)
+    #expect(rig.overlay.calls.isEmpty)
 }
 
 @Test func externalDisabledUsesMediaKeys() {

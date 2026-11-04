@@ -1,3 +1,4 @@
+import AppKit
 import Testing
 import TrrekAppCore
 import TrrekPlatform
@@ -33,4 +34,34 @@ import TrrekPlatform
     #expect(OverlayContent.scrubLabel(steps: 3) == "+15 s")
     #expect(OverlayContent.scrubLabel(steps: -2) == "\u{2212}10 s")
     #expect(OverlayContent.scrubLabel(steps: 0) == "0 s")
+}
+
+@Test func labelsReplaceTheBar() {
+    #expect(OverlayContent.showsBar(kind: .keyboardBacklight, label: nil))
+    #expect(OverlayContent.showsBar(kind: .externalBrightness, label: nil))
+    #expect(!OverlayContent.showsBar(kind: .externalBrightness, label: "No DDC"))
+    #expect(!OverlayContent.showsBar(kind: .scrub, label: "+15 s"))
+    #expect(!OverlayContent.showsBar(kind: .scrub, label: nil))
+}
+
+/// Measured with the overlay's font: the level row fits the panel, "100%" fits its fixed column, and the widest
+/// labels fit beside the symbol.
+@Test func overlayTextFitsThePanel() {
+    let font = NSFont.monospacedDigitSystemFont(ofSize: OverlayLayout.fontSize, weight: .semibold)
+    func width(_ text: String) -> Double {
+        ceil((text as NSString).size(withAttributes: [.font: font]).width)
+    }
+    #expect(OverlayLayout.levelRowWidth <= OverlayLayout.width)
+    #expect(width(OverlayContent.text(level: 1, label: nil)) <= OverlayLayout.levelTextWidth)
+    let labels = [
+        "No DDC",
+        OverlayContent.scrubLabel(steps: 20),
+        OverlayContent.scrubLabel(steps: -20),
+        OverlayContent.scrubLabel(steps: 200),
+        OverlayContent.scrubLabel(steps: -200)
+    ]
+    for label in labels {
+        #expect(width(label) <= OverlayLayout.maximumLabelWidth, "\(label)")
+    }
+    #expect(OverlayLayout.height == 56)
 }

@@ -11,6 +11,11 @@ public enum SettingsLabels {
     public static let externalBrightnessCaption =
         "Monitors that support DDC/CI; the brightness edge follows the screen with the pointer"
 
+    /// The caption under External Monitor Brightness: what it does, or that this Mac lacks the DDC/CI bridge.
+    public static func externalBrightnessCaption(available: Bool) -> String {
+        available ? externalBrightnessCaption : "Not available on this Mac"
+    }
+
     public static func title(for action: EdgeAction) -> String {
         switch action {
         case .volume: "Volume"

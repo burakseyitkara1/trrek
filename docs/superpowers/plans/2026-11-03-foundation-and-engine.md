@@ -73,7 +73,7 @@ Expected: `Test run with 1 test passed`
 
 - [ ] **Step 8: Hook betiği** — `scripts/install-hooks.sh`: `.git/hooks/pre-push` (stdin'deki ref satırlarından biri `refs/heads/main`'e gidiyorsa `echo "direct push to main is blocked; open a PR"` ve `exit 1`) ve `.git/hooks/pre-commit` (`make lint`) yazar, `chmod +x`. Çalıştır: `make hooks`.
 
-- [ ] **Step 9: Proje dosyaları** — `LICENSE` MIT (Copyright 2026 Burak Seyit Kara). `README.md`: ad, bir cümle, gereksinimler (macOS 26+, Apple Silicon), `make` hedefleri, "Development" bölümü. `CHANGELOG.md`: `## [Unreleased]` altında `- Project scaffold: SPM package, Makefile, lint/format config, git hooks`.
+- [ ] **Step 9: Proje dosyaları** — `LICENSE` MIT (Copyright 2026 Burak Seyit Kara). `README.md`: ad, bir cümle, gereksinimler (macOS 26+, Apple Silicon), `make` hedefleri, "Development" bölümü. `CHANGELOG.md`: kısa bir açıklama başlığı ve `## [Unreleased]` altında `- Project scaffold: SPM package, Makefile, lint/format config, git hooks`.
 
 - [ ] **Step 10: Tam kontrol**
 

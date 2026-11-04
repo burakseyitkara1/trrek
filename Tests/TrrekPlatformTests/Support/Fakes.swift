@@ -116,3 +116,16 @@ final class FakeOverlay: LevelOverlayPresenting, @unchecked Sendable {
         calls.append(Call(kind: kind, level: level, label: label))
     }
 }
+
+/// A level reader that returns whatever level the test sets; `nil` means unknown.
+final class FakeLevel: LevelReading, @unchecked Sendable {
+    var current: Float?
+
+    init(_ level: Float?) {
+        current = level
+    }
+
+    func level() -> Float? {
+        current
+    }
+}

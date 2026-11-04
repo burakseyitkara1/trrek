@@ -18,6 +18,8 @@ final class SettingsModel {
     }
 
     let backlightAvailable: Bool
+    /// Whether the DDC/CI bridge exists on this Mac; without it the External Monitor Brightness toggle is disabled.
+    let externalBrightnessAvailable: Bool
     var accessibilityGranted: Bool
     var selectedTab: SettingsTab = .general
 
@@ -33,11 +35,13 @@ final class SettingsModel {
     init(
         settings: AppSettings,
         backlightAvailable: Bool,
+        externalBrightnessAvailable: Bool = true,
         accessibilityGranted: Bool = false,
         onChange: @escaping (AppSettings) -> Void
     ) {
         self.settings = settings
         self.backlightAvailable = backlightAvailable
+        self.externalBrightnessAvailable = externalBrightnessAvailable
         self.accessibilityGranted = accessibilityGranted
         self.onChange = onChange
     }

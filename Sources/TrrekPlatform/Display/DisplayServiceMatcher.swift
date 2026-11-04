@@ -84,7 +84,7 @@ public enum DisplayServiceMatcher {
         return result
     }
 
-    /// The packed form of a three-letter EDID manufacturer ID ("DEL" → 0x10AC), as the window server reports
+    /// The packed form of a three-letter EDID manufacturer ID ("ABC" → 0x0443), as the window server reports
     /// vendor numbers: each letter A–Z becomes 1–26 in five bits, first letter highest.
     public static func vendorNumber(manufacturerID: String) -> UInt32? {
         let letters = Array(manufacturerID.uppercased().unicodeScalars)

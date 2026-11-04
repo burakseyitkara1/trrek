@@ -14,6 +14,12 @@ import TrrekEngine
 /// bus, so `handle` only decides on the frame thread whether the pointer's display is external and hands the step
 /// to a serial queue, which talks to the display and updates the overlay. Steps that arrive while the queue is
 /// busy are merged into one pending step per display and precision, so a fast slide neither lags nor overshoots.
+///
+/// Level limits: a level step (volume, brightness, keyboard backlight) reads the level first when it can. When the
+/// level already sits at the bound the step pushes against, the step is skipped; the first such step of a slide
+/// plays one limit haptic, later ones play nothing, and the step haptic the engine sends right after each is
+/// dropped. Step haptics resume when the direction reverses or a new slide starts. An external display's level is
+/// only known on the display queue, so its limit haptic plays there, at the first result at a bound.
 public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     private enum KeyCode {
         static let command: CGKeyCode = 55
@@ -24,6 +30,23 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         static let rightArrow: CGKeyCode = 124
     }
 
+    /// A level a slide can run into the end of.
+    private enum LevelKind: Equatable {
+        case volume, brightness, keyboardBacklight
+    }
+
+    /// The bound a slide reached: the level and the direction that pushes against it.
+    private struct Limit: Equatable {
+        let kind: LevelKind
+        let direction: Int
+    }
+
+    /// The last level read back from an external display, and the slide in which its limit haptic played.
+    private struct DDCLevel {
+        var level: Float
+        var limitSlide: UInt64?
+    }
+
     private struct State {
         var hapticStrength: HapticStrength = .medium
         /// Command is held down for the app switcher.
@@ -31,9 +54,17 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         /// Net arrow-key steps of the current scrub slide.
         var scrubSteps = 0
         var externalBrightnessEnabled = false
-        /// The previous command was a backlight step that hit a bound and played the limit haptic, so the step
-        /// haptic the engine sends right after it is dropped.
-        var backlightAtLimit = false
+        /// trrek itself is the frontmost application, so scrub has no player to send arrow keys to.
+        var ownAppFrontmost = false
+        /// The previous command was a level step skipped at a bound, so the step haptic the engine sends right after
+        /// it is dropped.
+        var dropStepHaptic = false
+        /// The bound the current slide reached and played the limit haptic for; `nil` while it is not at one.
+        var atLimit: Limit?
+        /// Counts slides (each `.haptic(.start)`), so an external display's limit haptic plays once per slide.
+        var slide: UInt64 = 0
+        /// The last level each external display reported; read on the frame thread, written on the display queue.
+        var ddcLevels: [CGDirectDisplayID: DDCLevel] = [:]
     }
 
     private let mediaKeys: any MediaKeyPosting
@@ -44,6 +75,8 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     private let backlight: (any KeyboardBacklightControlling)?
     private let overlay: (any LevelOverlayPresenting)?
     private let externalBrightness: (any ExternalBrightnessControlling)?
+    private let volumeLevel: (any LevelReading)?
+    private let brightnessLevel: (any LevelReading)?
     private let displayLocator: @Sendable () -> CGDirectDisplayID?
     /// Where DDC/CI steps run, in order, off the frame thread.
     private let displayQueue: DispatchQueue
@@ -76,6 +109,8 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         overlay: (any LevelOverlayPresenting)?,
         externalBrightness: (any ExternalBrightnessControlling)? = nil,
         displayLocator: @escaping @Sendable () -> CGDirectDisplayID? = { nil },
+        volumeLevel: (any LevelReading)? = nil,
+        brightnessLevel: (any LevelReading)? = nil,
         displayQueue: DispatchQueue = DispatchQueue(label: "com.burakseyitkara.trrek.ddc", qos: .userInitiated)
     ) {
         self.mediaKeys = mediaKeys
@@ -87,6 +122,8 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         self.overlay = overlay
         self.externalBrightness = externalBrightness
         self.displayLocator = displayLocator
+        self.volumeLevel = volumeLevel
+        self.brightnessLevel = brightnessLevel
         self.displayQueue = displayQueue
     }
 
@@ -99,6 +136,13 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     public var externalBrightnessEnabled: Bool {
         get { state.withLock { $0.externalBrightnessEnabled } }
         set { state.withLock { $0.externalBrightnessEnabled = newValue } }
+    }
+
+    /// Whether trrek itself is frontmost. Scrub steps are dropped meanwhile: arrow keys would move the selection in
+    /// trrek's own window (a picker, the paused apps list) instead of a player.
+    public var ownAppFrontmost: Bool {
+        get { state.withLock { $0.ownAppFrontmost } }
+        set { state.withLock { $0.ownAppFrontmost = newValue } }
     }
 
     public func handle(_ command: GestureCommand, device _: UInt64) {
@@ -119,15 +163,17 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     // A flat, exhaustive command-to-port mapping reads best as one switch.
     // swiftlint:disable:next cyclomatic_complexity
     private func apply(_ command: GestureCommand, _ state: inout State) {
-        let backlightAtLimit = state.backlightAtLimit
-        state.backlightAtLimit = false
+        let dropStepHaptic = state.dropStepHaptic
+        state.dropStepHaptic = false
         switch command {
         case let .stepVolume(direction, fine):
-            mediaKeys.post(direction > 0 ? .soundUp : .soundDown, fine: fine)
+            if !skipAtLimit(.volume, direction, level: volumeLevel?.level(), &state) {
+                mediaKeys.post(direction > 0 ? .soundUp : .soundDown, fine: fine)
+            }
         case let .stepBrightness(direction, fine):
-            stepBrightness(direction, fine: fine, externalEnabled: state.externalBrightnessEnabled)
+            stepBrightness(direction, fine: fine, &state)
         case let .stepKeyboardBacklight(direction, fine):
-            state.backlightAtLimit = stepBacklight(direction, fine: fine, hapticStrength: state.hapticStrength)
+            stepBacklight(direction, fine: fine, &state)
         case let .appSwitchStep(direction):
             if !state.switcherHeld {
                 keys.modifierDown(KeyCode.command, flags: .maskCommand)
@@ -139,10 +185,12 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         case .appSwitchCancel:
             switcherEnd(cancel: true, &state)
         case let .scrubStep(direction):
+            guard !state.ownAppFrontmost else { break }
             keys.press(keyCode: direction > 0 ? KeyCode.rightArrow : KeyCode.leftArrow, flags: [])
             state.scrubSteps += direction > 0 ? 1 : -1
             overlay?.show(kind: .scrub, level: 0.5, label: ScrubLabel.text(steps: state.scrubSteps))
         case .scrubCommit, .scrubCancel:
+            state.atLimit = nil
             state.scrubSteps = 0
         case .mediaPlayPause:
             mediaKeys.post(.play, fine: false)
@@ -157,37 +205,77 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         case .middleClick:
             mouse.middleClick()
         case let .haptic(event):
-            if state.hapticStrength != .off, !(event == .step && backlightAtLimit) {
-                haptics.perform(event, strength: state.hapticStrength)
-            }
+            haptic(event, dropStep: dropStepHaptic, &state)
         case let .freezeCursor(on):
+            state.atLimit = on ? state.atLimit : nil
             freezer.setFreeze(on)
         }
     }
 
-    /// Steps the backlight and shows its level. A step that cannot move because the level already sits at 0 or 1
-    /// plays the limit haptic, as the system levels do at their ends. Returns whether the step hit a bound.
-    private func stepBacklight(_ direction: Int, fine: Bool, hapticStrength: HapticStrength) -> Bool {
-        guard let backlight, backlight.isAvailable else { return false }
-        let previous = backlight.level()
-        guard let level = backlight.step(direction, fine: fine) else { return false }
-        let atLimit = level == previous && (level == 0 || level == 1)
-        if atLimit, hapticStrength != .off {
-            haptics.perform(.limit, strength: hapticStrength)
+    /// Plays an engine haptic. `.start` begins a new slide, which ends any limit; a step haptic is dropped when the
+    /// step before it was skipped at a limit.
+    private func haptic(_ event: HapticEvent, dropStep: Bool, _ state: inout State) {
+        if event == .start {
+            state.atLimit = nil
+            state.slide &+= 1
         }
+        if state.hapticStrength != .off, !(event == .step && dropStep) {
+            haptics.perform(event, strength: state.hapticStrength)
+        }
+    }
+
+    /// Whether a step is skipped because `level` already sits at the bound `direction` pushes against. The first
+    /// such step in a row plays the limit haptic; every one drops the step haptic that follows it. Any other step
+    /// (an unknown level, or one that can move) ends the limit, so reversing the direction plays step haptics again.
+    private func skipAtLimit(_ kind: LevelKind, _ direction: Int, level: Float?, _ state: inout State) -> Bool {
+        guard let level, LevelBounds.isAtBound(level, direction: direction) else {
+            state.atLimit = nil
+            return false
+        }
+        let limit = Limit(kind: kind, direction: direction)
+        if state.atLimit != limit {
+            state.atLimit = limit
+            playLimit(state.hapticStrength)
+        }
+        state.dropStepHaptic = true
+        return true
+    }
+
+    private func playLimit(_ strength: HapticStrength) {
+        if strength != .off {
+            haptics.perform(.limit, strength: strength)
+        }
+    }
+
+    /// Steps the backlight and shows its level; at a bound it shows the level without stepping.
+    private func stepBacklight(_ direction: Int, fine: Bool, _ state: inout State) {
+        guard let backlight, backlight.isAvailable else { return }
+        let current = backlight.level()
+        if skipAtLimit(.keyboardBacklight, direction, level: current, &state) {
+            overlay?.show(kind: .keyboardBacklight, level: current ?? 0, label: nil)
+            return
+        }
+        guard let level = backlight.step(direction, fine: fine) else { return }
         overlay?.show(kind: .keyboardBacklight, level: level, label: nil)
-        return atLimit
     }
 
     /// Steps the external display under the pointer over DDC/CI when that is enabled, otherwise posts the
     /// brightness media key (the built-in display, or DDC turned off). The DDC step runs on `displayQueue`; the
     /// overlay shows the new level, or "No DDC" when the display could not be reached.
-    private func stepBrightness(_ direction: Int, fine: Bool, externalEnabled: Bool) {
-        guard externalEnabled, let externalBrightness, let display = displayLocator(),
+    private func stepBrightness(_ direction: Int, fine: Bool, _ state: inout State) {
+        guard state.externalBrightnessEnabled, let externalBrightness, let display = displayLocator(),
               externalBrightness.isExternal(display: display)
         else {
-            mediaKeys.post(direction > 0 ? .brightnessUp : .brightnessDown, fine: fine)
+            if !skipAtLimit(.brightness, direction, level: brightnessLevel?.level(), &state) {
+                mediaKeys.post(direction > 0 ? .brightnessUp : .brightnessDown, fine: fine)
+            }
             return
+        }
+        state.atLimit = nil
+        // The display was already at this bound: its step haptic is dropped. The step still goes to the display,
+        // which may have been changed with its own buttons since.
+        if let known = state.ddcLevels[display], LevelBounds.isAtBound(known.level, direction: direction) {
+            state.dropStepHaptic = true
         }
         // Joins the newest pending step when it is for the same display and precision (its block has not run
         // yet); otherwise adds a step and queues the one block that will take it.
@@ -203,11 +291,31 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         displayQueue.async { [self] in
             let step = pendingSteps.withLock { $0.queue.removeFirst() }
             let level = externalBrightness.step(display: step.display, direction: step.steps, fine: step.fine)
+            if let level {
+                self.state.withLock { recordDDCLevel(level, display: step.display, steps: step.steps, &$0) }
+            }
             overlay?.show(kind: .externalBrightness, level: level ?? 0, label: level == nil ? "No DDC" : nil)
         }
     }
 
+    /// Remembers an external display's new level. The first result at the bound the steps pushed against plays the
+    /// limit haptic, once per slide; a level away from the bound lets it play again.
+    private func recordDDCLevel(_ level: Float, display: CGDirectDisplayID, steps: Int, _ state: inout State) {
+        var entry = state.ddcLevels[display] ?? DDCLevel(level: level, limitSlide: nil)
+        entry.level = level
+        if LevelBounds.isAtBound(level, direction: steps) {
+            if entry.limitSlide != state.slide {
+                entry.limitSlide = state.slide
+                playLimit(state.hapticStrength)
+            }
+        } else {
+            entry.limitSlide = nil
+        }
+        state.ddcLevels[display] = entry
+    }
+
     private func switcherEnd(cancel: Bool, _ state: inout State) {
+        state.atLimit = nil
         guard state.switcherHeld else { return }
         state.switcherHeld = false
         if cancel {

@@ -10,8 +10,8 @@ public enum PipelineError: Error {
 
 /// What `GesturePipeline.onDataUnavailable` reports.
 public enum PipelineIssue: Sendable {
-    /// A device's first frame had positions or sizes outside any plausible range: the contact layout the
-    /// framework delivers is not the one trrek reads.
+    /// A device's first frame had contact states, positions or sizes outside any plausible range: the contact
+    /// layout the framework delivers is not the one trrek reads.
     case dataUnavailable
 }
 
@@ -24,8 +24,9 @@ public enum PipelineIssue: Sendable {
 ///   must go through `withEngine`, which takes the same lock. The lock is not recursive: neither the sink nor a
 ///   `withEngine` body may call back into the pipeline.
 /// - `start()`, `stop()` and `restart()` are called from one thread (the main thread in the app).
-/// - The first frame with touching contacts from each device is checked for plausible positions and sizes; a
-///   failure stops the pipeline on the main thread and is reported through `onDataUnavailable`.
+/// - The first frame with touching contacts (or a contact in an unknown state) from each device is checked for
+///   known contact states and plausible positions and sizes; a failure stops the pipeline on the main thread and is
+///   reported through `onDataUnavailable`.
 ///
 /// Clocks: frame timestamps come from each device's own clock, which matches no system clock and may differ
 /// between devices. The pipeline remembers, per device, the last frame timestamp and the system uptime at
@@ -269,7 +270,8 @@ public final class GesturePipeline: @unchecked Sendable {
         uptime: TimeInterval
     ) -> Bool {
         guard let index = table.index(of: device), var entry = table[index] else { return false }
-        if !entry.checked, FrameConverter.hasTouchingContact(touches) {
+        // A state outside the known ones triggers the check too: with a drifted layout no contact may read as touching.
+        if !entry.checked, FrameConverter.hasTouchingContact(touches) || FrameConverter.hasInvalidState(touches) {
             guard FrameConverter.isPlausible(touches) else {
                 table = DeviceTable()
                 latestIndex = nil

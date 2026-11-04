@@ -32,6 +32,11 @@ public enum DDCError: Error, Equatable, CustomStringConvertible {
 /// slide), since the display's own buttons may have changed it. After a failure, steps fail at once until the next
 /// slide, so a display without DDC/CI is not asked again on every step.
 ///
+/// An external display that the last scan found no service for (a wireless or virtual display, for example) is not
+/// treated as external: its steps take the brightness media key, as on a Mac without DDC. The services are scanned
+/// once at creation and after each display reconfiguration, in the background, so this is known before the first
+/// slide. A failure is logged once when a display enters it, not on every step.
+///
 /// The I2C transfers wait on the bus with `usleep`, so `step` must only run on a background serial queue. Calls are
 /// serialized by an internal lock.
 public final class ExternalBrightness: ExternalBrightnessControlling, @unchecked Sendable {
@@ -66,6 +71,12 @@ public final class ExternalBrightness: ExternalBrightnessControlling, @unchecked
     /// The external displays online when the services were last matched; `nil` forces a new match.
     private var matchedFor: [CGDirectDisplayID]?
     private var lastFailureRescan: TimeInterval = -.infinity
+    /// The displays the last scan found without a service; read on the frame thread.
+    let reachability = DDCReachability()
+    /// A background scan is queued and has not started yet.
+    private let scanScheduled = Atomic(false)
+    /// The failure last logged for each display; cleared by a successful step.
+    private var loggedFailures: [CGDirectDisplayID: DDCError] = [:]
 
     /// `nil` when the display service symbols are unavailable on this system.
     public init?() {
@@ -78,25 +89,40 @@ public final class ExternalBrightness: ExternalBrightnessControlling, @unchecked
             let code = result.rawValue
             platformLogger.error("display reconfiguration callback not registered: \(code, privacy: .public)")
         }
+        scheduleScan()
     }
 
     deinit {
         CGDisplayRemoveReconfigurationCallback(displayReconfigured, Unmanaged.passUnretained(self).toOpaque())
     }
 
+    /// External and not known to lack a service. Takes no lock that a transfer holds, so it never waits on the bus.
     public func isExternal(display: CGDirectDisplayID) -> Bool {
-        CGDisplayIsBuiltin(display) == 0
+        CGDisplayIsBuiltin(display) == 0 && reachability.mayHaveService(display)
     }
 
     public func step(display: CGDirectDisplayID, direction: Int, fine: Bool) -> Float? {
         lock.withLock {
             switch stepLocked(display: display, steps: direction, fine: fine) {
             case let .success(level):
+                loggedFailures[display] = nil
                 return level
             case let .failure(error):
-                platformLogger.error("external brightness step failed: \(error.description, privacy: .public)")
+                if loggedFailures[display] != error {
+                    loggedFailures[display] = error
+                    platformLogger.error("external brightness step failed: \(error.description, privacy: .public)")
+                }
                 return nil
             }
+        }
+    }
+
+    /// Matches the services again on a background queue, unless a scan is already queued.
+    fileprivate func scheduleScan() {
+        guard !scanScheduled.exchange(true, ordering: .relaxed) else { return }
+        DispatchQueue.global(qos: .utility).async { [self] in
+            scanScheduled.store(false, ordering: .relaxed)
+            lock.withLock { refreshIfNeeded() }
         }
     }
 
@@ -230,18 +256,42 @@ public final class ExternalBrightness: ExternalBrightnessControlling, @unchecked
             services: services
         )
         displays = indices.mapValues { Display(service: found[$0].service) }
+        reachability.update(online: online, matched: indices.keys)
         let serviceCount = found.count
         platformLogger.info("external displays: \(online.count, privacy: .public), DDC services: \(serviceCount)")
     }
 }
 
-/// The window server reports a display change (plug, unplug, mode change, wake); the next step rescans.
+/// The window server reports a display change (plug, unplug, mode change, wake): the services are matched again in
+/// the background once the change is done, and the next step rescans if that has not happened yet.
 private func displayReconfigured(
     _: CGDirectDisplayID,
-    _: CGDisplayChangeSummaryFlags,
+    _ flags: CGDisplayChangeSummaryFlags,
     _ userInfo: UnsafeMutableRawPointer?
 ) {
     guard let userInfo else { return }
-    Unmanaged<ExternalBrightness>.fromOpaque(userInfo).takeUnretainedValue()
-        .configurationChanged.store(true, ordering: .relaxed)
+    let brightness = Unmanaged<ExternalBrightness>.fromOpaque(userInfo).takeUnretainedValue()
+    brightness.configurationChanged.store(true, ordering: .relaxed)
+    if !flags.contains(.beginConfigurationFlag) {
+        brightness.scheduleScan()
+    }
+}
+
+/// The external displays that the last registry scan found without an audio/video service, so DDC/CI cannot reach
+/// them. A display the scan has not seen yet may have one. Safe from any thread; `mayHaveService` never allocates.
+public final class DDCReachability: Sendable {
+    private let withoutService = Mutex(Set<CGDirectDisplayID>())
+
+    public init() {}
+
+    /// Records a scan: of the `online` external displays, those not in `matched` have no service.
+    public func update(online: [CGDirectDisplayID], matched: some Sequence<CGDirectDisplayID>) {
+        var missing = Set(online)
+        missing.subtract(matched)
+        withoutService.withLock { $0 = missing }
+    }
+
+    public func mayHaveService(_ display: CGDirectDisplayID) -> Bool {
+        withoutService.withLock { !$0.contains(display) }
+    }
 }

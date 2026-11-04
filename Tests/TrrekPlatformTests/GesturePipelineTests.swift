@@ -152,6 +152,21 @@ func implausibleFirstFrameStopsThePipeline(_ bad: MTTouch) async throws {
 }
 
 @MainActor
+@Test(arguments: [Int32(8), -3])
+func unknownContactStateFailsTheFirstFrame(_ state: Int32) async throws {
+    let (pipeline, sink) = makePipeline([deviceA])
+    let recorder = IssueRecorder()
+    pipeline.onDataUnavailable = { recorder.issues.append($0) }
+    let base = GesturePipeline.uptime()
+    // With a drifted layout no contact may read as touching; the unknown state alone fails the check.
+    feed(pipeline, deviceA, [contact(id: 1, state: state, nx: 0.5, ny: 0.5)], timestamp: 100, uptime: base)
+    try await waitForMain { !recorder.issues.isEmpty }
+    #expect(recorder.issues == [.dataUnavailable])
+    #expect(!pipeline.isRunning)
+    #expect(sink.commands.isEmpty)
+}
+
+@MainActor
 @Test func onlyTheFirstFrameIsChecked() async throws {
     let (pipeline, _) = makePipeline([deviceA])
     let recorder = IssueRecorder()
