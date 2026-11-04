@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+- Releases are signed with Developer ID, notarized and stapled (`make release`); the DMG has an Applications shortcut; local builds prefer a Developer ID identity
+
 ## [0.1.0] - 2026-11-04
 
 - Fixes from the 0.1.0 review: trackpad-only devices, key timing, accessibility prompts and gating, toggle and limit haptics, first-frame check

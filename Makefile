@@ -1,4 +1,4 @@
-.PHONY: build test format lint check hooks clean app install icon perf
+.PHONY: release build test format lint check hooks clean app install icon perf
 
 # On Command Line Tools-only hosts, swiftlint needs TOOLCHAIN_DIR to find sourcekitd, and
 # swift test needs the Testing macro plugin path passed explicitly (otherwise it is
@@ -50,3 +50,7 @@ perf:
 
 clean:
 	rm -rf .build dist
+
+# Signed, notarized release published to GitHub (see scripts/release.sh). Usage: make release VERSION=X.Y.Z
+release:
+	scripts/release.sh --version $(VERSION)

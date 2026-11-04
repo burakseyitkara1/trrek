@@ -21,11 +21,15 @@ A menu bar app for macOS that turns trackpad edges into single-finger controls f
 
 ## Install
 
-Run `make install` to build and copy `trrek.app` to `~/Applications`. A build installed with `make install` is not quarantined and opens normally. A downloaded build is not notarized and macOS will block it on first launch: move it to Applications, try to open it once, then allow it in System Settings › Privacy & Security › Open Anyway (right-click › Open no longer bypasses Gatekeeper). On first launch trrek asks for the Accessibility permission: grant it in System Settings › Privacy & Security › Accessibility. Without it only the keyboard backlight edge works, since macOS does not deliver the events trrek posts for everything else; until it is granted, trrek shows the welcome window again at each launch and a dot on its menu bar icon.
+Run `make install` to build and copy `trrek.app` to `~/Applications`. A build installed with `make install` is not quarantined and opens normally. Released builds (0.1.1 and later) are signed with Developer ID and notarized by Apple: open the DMG, drag trrek onto the Applications shortcut and open it; macOS only asks once to confirm opening an app downloaded from the internet. (The 0.1.0 download was not notarized and had to be allowed in System Settings › Privacy & Security › Open Anyway.) On first launch trrek asks for the Accessibility permission: grant it in System Settings › Privacy & Security › Accessibility. Without it only the keyboard backlight edge works, since macOS does not deliver the events trrek posts for everything else; until it is granted, trrek shows the welcome window again at each launch and a dot on its menu bar icon.
 
 ### Keeping Accessibility permission across updates
 
-Every ad-hoc-signed build has a different code hash, so macOS drops the Accessibility grant after each reinstall. To avoid that, run `scripts/make-signing-identity.sh` once by hand; it creates a self-signed certificate named "trrek Local Signing" in your login keychain (macOS may ask for your password). `scripts/build-app.sh` then signs with it automatically. The first build signed with it shows a one-time keychain prompt asking to let `codesign` use the key: choose Always Allow, so later builds sign without asking. If signing with the identity fails, the build warns and falls back to ad-hoc signing. To use another identity, set `TRREK_SIGN_IDENTITY` to its name. If you granted Accessibility to an earlier ad-hoc build, macOS keeps that grant tied to the old signature: quit trrek, run `tccutil reset Accessibility com.burakseyitkara.trrek`, reopen it and grant access once more. Later updates keep the grant.
+macOS ties the Accessibility grant to the app's code signature. `scripts/build-app.sh` signs with the first identity it finds: `$TRREK_SIGN_IDENTITY`, a "Developer ID Application" identity, the self-signed "trrek Local Signing" identity created by `scripts/make-signing-identity.sh`, and only then ad-hoc. With a Developer ID identity, local builds and released builds share one grant, which survives every update. Ad-hoc builds change their code hash on every build, so the grant is lost after each reinstall. The first build signed with an identity shows a one-time keychain prompt asking to let `codesign` use the key: choose Always Allow. When you switch identities (for example from ad-hoc or the local identity to Developer ID), macOS keeps the old grant tied to the old signature: quit trrek, run `tccutil reset Accessibility com.burakseyitkara.trrek`, reopen it and grant access once more.
+
+### Publishing a release
+
+Releases are built, signed with Developer ID and the hardened runtime, notarized, stapled and published from the release Mac with `make release VERSION=X.Y.Z` (`scripts/release.sh`; update `Sources/TrrekEngine/Version.swift` and the changelog first, from an up-to-date `main`). One-time setup: create an app-specific password for your Apple ID and store the notarization credentials in the login keychain with `xcrun notarytool store-credentials trrek --team-id <TEAM_ID>`. `scripts/release.sh --version X.Y.Z --no-publish` produces the notarized DMG and zip in `dist/release` without tagging. The tag-triggered workflow only checks that the tagged commit builds and passes the tests.
 
 ## Usage
 
@@ -54,6 +58,7 @@ Measured with `make perf` on the installed 0.1.0 build after 30 s idle: 0.0 % CP
 | `make hooks` | Install local git hooks |
 | `make app` | Package `dist/trrek.app` (version from `Version.swift` unless `VERSION=X.Y.Z` is given) |
 | `make install` | Install into `~/Applications` |
+| `make release` | Signed, notarized release published to GitHub (`VERSION=X.Y.Z`) |
 | `make perf` | Idle check: fails above 15 MB physical footprint or 1% CPU |
 | `make clean` | Remove build output |
 
