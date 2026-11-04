@@ -20,7 +20,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow(model: SettingsModel) -> NSWindow {
-        let window = SettingsWindow(
+        let window = ShortcutClosingWindow(
             contentRect: NSRect(origin: .zero, size: Self.contentSize),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
@@ -51,7 +51,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 }
 
 /// Closes on ⌘W; the app has no main menu to provide it.
-private final class SettingsWindow: NSWindow {
+final class ShortcutClosingWindow: NSWindow {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags == .command, event.charactersIgnoringModifiers == "w" {

@@ -7,4 +7,6 @@ final class WindowRegistry {
     /// The settings window's model, so changes made elsewhere can be shown in the open window.
     var settingsModel: SettingsModel?
     var welcomeWindow: NSWindow?
+    /// The welcome window's model, so settings and Accessibility changes show in the open window.
+    var welcomeModel: WelcomeModel?
 }

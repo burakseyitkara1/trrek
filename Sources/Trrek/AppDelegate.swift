@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator.showWelcome()
         }
         if launchOptions.demoOverlay {
-            appLogger.info("demo overlay requested; not implemented yet")
+            coordinator.showDemoOverlay()
         }
         if let seconds = launchOptions.quitAfter {
             // One-shot, for screenshots and footprint checks.

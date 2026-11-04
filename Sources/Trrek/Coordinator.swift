@@ -21,6 +21,9 @@ final class Coordinator {
 
     let windows = WindowRegistry()
     private lazy var settingsWindowController = SettingsWindowController(registry: windows)
+    private lazy var welcomeWindowController = WelcomeWindowController(registry: windows)
+    /// Shown by the dispatcher for levels the system shows no indicator for.
+    let overlay = OverlayPanel()
     private let store: SettingsStore
 
     private(set) var settings = Settings()
@@ -72,7 +75,7 @@ final class Coordinator {
             haptics: haptics,
             freezer: freezer,
             backlight: backlight,
-            overlay: nil
+            overlay: overlay
         )
         dispatcher.hapticStrength = settings.hapticStrength
         let config = engineConfig()
@@ -125,6 +128,7 @@ final class Coordinator {
         updatePause()
         statusMenu?.refresh()
         windows.settingsModel?.refresh(from: newSettings)
+        windows.welcomeModel?.settings = newSettings
     }
 
     func engineConfig() -> EngineConfig {
@@ -196,8 +200,21 @@ final class Coordinator {
         settingsWindowController.show(model: model)
     }
 
+    /// Opens the welcome window, or brings it to the front.
     func showWelcome() {
-        appLogger.info("welcome window not implemented yet")
+        let model = windows.welcomeModel ?? WelcomeModel(
+            settings: settings,
+            backlightAvailable: backlight?.isAvailable ?? false,
+            accessibilityGranted: isTrusted,
+            grantAccessibility: { [weak self] in self?.grantAccessibility() },
+            openSettings: { [weak self] in self?.openSettings() }
+        )
+        welcomeWindowController.show(model: model)
+    }
+
+    /// Shows the level overlay once, as a slide on the keyboard backlight would (for screenshots).
+    func showDemoOverlay() {
+        overlay.show(kind: .keyboardBacklight, level: 0.5, label: nil)
     }
 
     /// The first request shows the system prompt only. The system shows that prompt once per app, so a later
@@ -224,12 +241,16 @@ final class Coordinator {
         pipeline?.withEngine { $0.setHoldKeySatisfied(satisfied) }
     }
 
+    /// Runs once: registers the login item, shows the welcome window and records that it was shown, so later
+    /// launches skip both.
     private func firstRun() {
         if settings.launchAtLogin {
             setLaunchAtLogin(true)
         }
-        // Task for the welcome window: mark `welcomeShown` once it has actually been shown.
-        appLogger.info("welcome pending")
+        showWelcome()
+        var updated = settings
+        updated.welcomeShown = true
+        apply(updated)
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {

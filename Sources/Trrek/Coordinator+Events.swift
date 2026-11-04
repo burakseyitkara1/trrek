@@ -122,5 +122,6 @@ extension Coordinator {
         pipeline?.withEngine { $0.update(config: config) }
         statusMenu?.refresh()
         windows.settingsModel?.accessibilityGranted = trusted
+        windows.welcomeModel?.accessibilityGranted = trusted
     }
 }
