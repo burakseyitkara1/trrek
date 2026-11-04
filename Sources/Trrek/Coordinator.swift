@@ -9,10 +9,6 @@ import TrrekPlatform
 /// main thread and are handled on the main actor.
 @MainActor
 final class Coordinator {
-    enum TrackpadIssue {
-        case notFound, dataUnavailable
-    }
-
     /// How long wake and device notifications must stay quiet before the multitouch stream restarts.
     static let restartDelay: TimeInterval = 0.4
 
@@ -27,8 +23,12 @@ final class Coordinator {
     var holdKeyTracker = HoldKeyTracker(key: .none, mode: .hold)
     var isTrusted = false
     var trackpadIssue: TrackpadIssue?
+    /// The application whose pause state applies; trrek's own windows coming to the front do not change it.
+    var frontmostPause = FrontmostPause()
 
     let freezer = CursorFreezerSlot()
+    /// Routes haptics to the trackpad that slid; its actuators are rebuilt whenever the pipeline starts.
+    var haptics: DeviceHaptics?
     private var backlight: KeyboardBacklight?
     /// Whether the DDC/CI bridge could be created (its system symbols were found).
     private var externalBrightnessAvailable = false
@@ -63,8 +63,9 @@ final class Coordinator {
         }
         Permissions.startObserving()
 
-        // Haptics enumerate the devices, so they are built before the pipeline takes its own device list.
-        let haptics = Self.makeHaptics()
+        // Each trackpad's actuator is opened when the pipeline starts (`startPipeline`), from its device list.
+        let haptics = DeviceHaptics(fallback: SystemHaptics())
+        self.haptics = haptics
         let backlight = KeyboardBacklight()
         self.backlight = backlight
         appLogger.info("keyboard backlight available: \(backlight != nil, privacy: .public)")
@@ -73,13 +74,17 @@ final class Coordinator {
         let config = engineConfig()
         let engine = GestureEngine(config: config, sink: dispatcher)
         self.dispatcher = dispatcher
-        let pipeline = GesturePipeline(engine: engine, lostTimeout: config.thresholds.lostTimeout)
+        let pipeline = GesturePipeline(engine: engine)
         pipeline.onDataUnavailable = { [weak self] _ in
             MainActor.assumeIsolated { self?.trackpadDataUnavailable() }
         }
         self.pipeline = pipeline
 
         rebuildHoldKeyTracker()
+        frontmostPause.activated(
+            bundleID: FrontmostObserver.currentBundleID,
+            isOwnApp: FrontmostObserver.isOwnAppFrontmost
+        )
         updatePause()
         startPipeline()
         startInputMonitor()
@@ -147,12 +152,12 @@ final class Coordinator {
 
     // MARK: - State shown in the menu
 
-    /// The application in front, unless it is trrek itself.
-    var frontApp: NSRunningApplication? {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              app.processIdentifier != ProcessInfo.processInfo.processIdentifier
-        else { return nil }
-        return app
+    /// The application the pause state, the status line and the Pause/Resume menu item refer to: the frontmost
+    /// application, or while trrek itself is in front the one before it. `nil` when it has no bundle ID.
+    var pauseTargetApp: (bundleID: String, name: String)? {
+        guard let id = frontmostPause.bundleID else { return nil }
+        let name = NSRunningApplication.runningApplications(withBundleIdentifier: id).first?.localizedName ?? id
+        return (id, name)
     }
 
     /// Whether the hold key works as a toggle and is currently switched on.
@@ -161,31 +166,25 @@ final class Coordinator {
     }
 
     var statusText: String {
-        switch trackpadIssue {
-        case .notFound: return "Trackpad not found"
-        case .dataUnavailable: return "Trackpad data unavailable"
-        case nil: break
-        }
-        if !isTrusted {
-            return "Accessibility access needed"
-        }
-        if let app = frontApp, let id = app.bundleIdentifier, settings.pausedBundleIDs.contains(id) {
-            return "Paused in \(app.localizedName ?? id)"
-        }
-        return "trrek is active"
+        let pausedAppName = frontmostPause.isPaused(in: settings.pausedBundleIDs) ? pauseTargetApp?.name : nil
+        return StatusText.text(
+            trackpadIssue: trackpadIssue,
+            accessibilityTrusted: isTrusted,
+            pausedAppName: pausedAppName
+        )
     }
 
     // MARK: - Menu actions
 
     func pauseInFrontApp() {
-        guard let id = frontApp?.bundleIdentifier, !settings.pausedBundleIDs.contains(id) else { return }
+        guard let id = frontmostPause.bundleID, !settings.pausedBundleIDs.contains(id) else { return }
         var updated = settings
         updated.pausedBundleIDs.append(id)
         apply(updated)
     }
 
     func resumeInFrontApp() {
-        guard let id = frontApp?.bundleIdentifier else { return }
+        guard let id = frontmostPause.bundleID else { return }
         var updated = settings
         updated.pausedBundleIDs.removeAll { $0 == id }
         apply(updated)
@@ -239,10 +238,10 @@ final class Coordinator {
 
     // MARK: - Helpers
 
-    /// Pauses the engine while the frontmost application is in the paused list. `bundleID` is the frontmost
-    /// application's; an activation notification passes the one it carries.
-    func updatePause(bundleID: String? = FrontmostObserver.currentBundleID) {
-        let paused = bundleID.map(settings.pausedBundleIDs.contains) ?? false
+    /// Pauses the engine while the frontmost application (the one before trrek, while trrek is in front) is in the
+    /// paused list.
+    func updatePause() {
+        let paused = frontmostPause.isPaused(in: settings.pausedBundleIDs)
         pipeline?.withEngine { $0.setPaused(paused) }
     }
 
@@ -304,17 +303,5 @@ final class Coordinator {
         dispatcher.externalBrightnessEnabled = settings.externalMonitorBrightness
         dispatcher.ownAppFrontmost = FrontmostObserver.isOwnAppFrontmost
         return dispatcher
-    }
-
-    private static func makeHaptics() -> any HapticPerforming {
-        // The actuator of a device that never drives gestures would answer for the wrong surface.
-        let devices = MultitouchDevices.enumerate().filter { $0.kind != .other }
-        let identifier = devices.first(where: \.isBuiltIn)?.multitouchID
-            ?? devices.lazy.compactMap(\.multitouchID).first
-        if let identifier, let actuator = ActuatorHaptics(multitouchID: identifier) {
-            return actuator
-        }
-        appLogger.error("trackpad actuator unavailable; using system haptics")
-        return SystemHaptics()
     }
 }

@@ -5,15 +5,14 @@ import UniformTypeIdentifiers
 /// The apps trrek pauses in while they are in front: one row per app with its icon and name, "+" to add apps
 /// from an open panel and "−" to remove the selected row.
 struct PausedAppsList: View {
-    @Binding var bundleIDs: [String]
-    @Binding var selection: String?
+    @Bindable var model: SettingsModel
 
     var body: some View {
-        if bundleIDs.isEmpty {
+        if model.settings.pausedBundleIDs.isEmpty {
             Text("No paused apps")
                 .foregroundStyle(.secondary)
         }
-        ForEach(bundleIDs, id: \.self) { bundleID in
+        ForEach(model.settings.pausedBundleIDs, id: \.self) { bundleID in
             row(for: bundleID)
         }
         HStack(spacing: 12) {
@@ -25,7 +24,7 @@ struct PausedAppsList: View {
             Button(action: removeSelected) {
                 Image(systemName: "minus")
             }
-            .disabled(selection == nil)
+            .disabled(model.selectedPausedApp == nil)
             .help("Remove the selected app")
             .accessibilityLabel("Remove the selected app")
             Spacer()
@@ -37,7 +36,8 @@ struct PausedAppsList: View {
     }
 
     private func row(for bundleID: String) -> some View {
-        let app = AppInfo(bundleID: bundleID)
+        let app = model.appInfo(for: bundleID)
+        let selected = model.selectedPausedApp == bundleID
         return HStack(spacing: 8) {
             Image(nsImage: app.icon)
                 .resizable()
@@ -49,14 +49,15 @@ struct PausedAppsList: View {
         .padding(.horizontal, 4)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(selection == bundleID ? Color.accentColor.opacity(0.25) : .clear)
+                .fill(selected ? Color.accentColor.opacity(0.25) : .clear)
         )
         .contentShape(.rect)
-        .onTapGesture { selection = selection == bundleID ? nil : bundleID }
+        .onTapGesture { model.selectedPausedApp = selected ? nil : bundleID }
         .help(bundleID)
-        .accessibilityAddTraits(selection == bundleID ? [.isSelected, .isButton] : .isButton)
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
+    /// Shows the open panel as a sheet on the settings window (the key window while its button is clicked).
     private func addApps() {
         let panel = NSOpenPanel()
         panel.title = "Choose Apps to Pause In"
@@ -66,34 +67,22 @@ struct PausedAppsList: View {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        guard panel.runModal() == .OK else { return }
-        for url in panel.urls {
-            guard let id = Bundle(url: url)?.bundleIdentifier, !bundleIDs.contains(id) else { continue }
-            bundleIDs.append(id)
+        let model = model
+        guard let window = NSApp.keyWindow else {
+            if panel.runModal() == .OK {
+                model.addPausedApps(at: panel.urls)
+            }
+            return
+        }
+        panel.beginSheetModal(for: window) { response in
+            guard response == .OK else { return }
+            model.addPausedApps(at: panel.urls)
         }
     }
 
     private func removeSelected() {
-        guard let selection else { return }
-        bundleIDs.removeAll { $0 == selection }
-        self.selection = nil
-    }
-}
-
-/// The name and icon of an installed app; falls back to the bundle ID and a generic icon when it is not found.
-private struct AppInfo {
-    let name: String
-    let icon: NSImage
-
-    init(bundleID: String) {
-        let workspace = NSWorkspace.shared
-        guard let url = workspace.urlForApplication(withBundleIdentifier: bundleID) else {
-            name = bundleID
-            icon = workspace.icon(for: .applicationBundle)
-            return
-        }
-        let displayName = FileManager.default.displayName(atPath: url.path)
-        name = displayName.hasSuffix(".app") ? String(displayName.dropLast(4)) : displayName
-        icon = workspace.icon(forFile: url.path)
+        guard let selection = model.selectedPausedApp else { return }
+        model.settings.pausedBundleIDs.removeAll { $0 == selection }
+        model.selectedPausedApp = nil
     }
 }

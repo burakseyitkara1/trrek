@@ -33,9 +33,9 @@ public enum PipelineIssue: Sendable {
 /// which it arrived; `engineTime(fromUptime:)` and the watchdog translate uptime into the frame clock of the
 /// device that is driving the engine.
 ///
-/// While a slide is active (`sliding` or `lost`) a one-shot watchdog fires `lostTimeout` after the active
-/// device's last frame and calls `engine.tick(now:)`, and a user-initiated activity keeps the process out of
-/// App Nap. Idle, the pipeline schedules nothing.
+/// While a slide is active (`sliding` or `lost`) a one-shot watchdog fires the engine's current `lostTimeout` after
+/// the active device's last frame and calls `engine.tick(now:)`, and a user-initiated activity keeps the process out
+/// of App Nap. Idle, the pipeline schedules nothing.
 public final class GesturePipeline: @unchecked Sendable {
     struct DeviceEntry {
         let ref: MTDeviceRef
@@ -86,7 +86,8 @@ public final class GesturePipeline: @unchecked Sendable {
     private static let minimumRearm: TimeInterval = 0.005
 
     private let engine: GestureEngine
-    private let lostTimeout: TimeInterval
+    /// System uptime in seconds (`GesturePipeline.uptime()`); injected so tests can fire the watchdog at a known time.
+    private let clock: @Sendable () -> TimeInterval
     private let lock: UnsafeMutablePointer<os_unfair_lock>
     private let watchdog: DispatchSourceTimer
 
@@ -105,14 +106,18 @@ public final class GesturePipeline: @unchecked Sendable {
     // Touched only by the thread that calls `start()`/`stop()`.
     private var stream: RawFrameStream?
     public private(set) var isRunning = false
+    /// The devices streaming since the last successful `start()`; empty while stopped. Read it on the thread that
+    /// calls `start()`, for example to open each trackpad's haptic actuator.
+    public private(set) var devices: [MultitouchDeviceInfo] = []
 
     /// Called on the main thread after the pipeline stopped itself because a device's first frame failed the
     /// sanity check. Set it on the main thread before `start()`.
     public var onDataUnavailable: (@Sendable (PipelineIssue) -> Void)?
 
-    public init(engine: GestureEngine, lostTimeout: TimeInterval) {
+    /// `clock` reads system uptime; tests inject a fixed one.
+    public init(engine: GestureEngine, clock: @escaping @Sendable () -> TimeInterval = GesturePipeline.uptime) {
         self.engine = engine
-        self.lostTimeout = lostTimeout
+        self.clock = clock
         lock = UnsafeMutablePointer<os_unfair_lock>.allocate(capacity: 1)
         lock.initialize(to: os_unfair_lock())
         watchdog = DispatchSource.makeTimerSource(
@@ -150,7 +155,8 @@ public final class GesturePipeline: @unchecked Sendable {
 
         let stream = RawFrameStream(devices: selected)
         stream.onFrame = { [weak self] device, touches, timestamp in
-            self?.handleFrame(device, touches, timestamp, uptime: Self.uptime())
+            guard let self else { return }
+            handleFrame(device, touches, timestamp, uptime: clock())
         }
         do {
             try stream.start()
@@ -159,6 +165,7 @@ public final class GesturePipeline: @unchecked Sendable {
             throw error
         }
         self.stream = stream
+        devices = selected
         isRunning = true
     }
 
@@ -166,6 +173,7 @@ public final class GesturePipeline: @unchecked Sendable {
     public func stop() {
         stream?.stop()
         stream = nil
+        devices = []
         locked {
             // A frame still in flight finds an empty table and is dropped.
             table = DeviceTable()
@@ -229,7 +237,7 @@ public final class GesturePipeline: @unchecked Sendable {
                 platformLogger.error("skipping multitouch device without a surface size")
                 continue
             }
-            let id = UInt64(UInt(bitPattern: device.ref))
+            let id = Self.deviceID(of: device.ref)
             guard newTable.append(DeviceEntry(ref: device.ref, id: id, geometry: geometry)) else {
                 platformLogger.error("more than \(DeviceTable.capacity, privacy: .public) devices; ignoring the rest")
                 break
@@ -292,24 +300,33 @@ public final class GesturePipeline: @unchecked Sendable {
         return false
     }
 
+    /// The device ID the engine reports with each command (`CommandSink.handle(_:device:)`) for frames from `ref`.
+    public static func deviceID(of ref: MTDeviceRef) -> UInt64 {
+        UInt64(UInt(bitPattern: ref))
+    }
+
     /// Seconds since boot, not counting sleep (the clock of `ProcessInfo.systemUptime`). A plain clock read,
     /// safe on the frame thread.
-    static func uptime() -> TimeInterval {
+    public static func uptime() -> TimeInterval {
         Double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1_000_000_000
     }
 
-    // MARK: - Watchdog and activity (call with `lock` held)
+    // MARK: - Watchdog and activity
 
-    private func watchdogFired() {
+    /// The watchdog's handler (internal so tests can fire it): ticks the engine with the current time in the frame
+    /// clock of the device driving the slide.
+    func watchdogFired() {
         locked {
             watchdogArmed = false
             let index = activeIndex ?? latestIndex
-            if isActive(engine.stateKind), let now = index.flatMap({ table[$0]?.frameTime(atUptime: Self.uptime()) }) {
+            if isActive(engine.stateKind), let now = index.flatMap({ table[$0]?.frameTime(atUptime: clock()) }) {
                 engine.tick(now: now)
             }
             settle(frameIndex: nil)
         }
     }
+
+    // Call the functions below with `lock` held.
 
     /// Brings the active device, the activity assertion and the watchdog in line with the engine state.
     /// `frameIndex` is the device of the frame just processed, or `nil` outside frame handling.
@@ -317,7 +334,8 @@ public final class GesturePipeline: @unchecked Sendable {
     /// The watchdog is armed once when a slide becomes active and re-arms itself for the remainder of the
     /// timeout when the active device kept sending frames, so it fires `lostTimeout` after that device's last
     /// frame without being rescheduled on every frame (rescheduling a dispatch timer allocates). Frames from
-    /// other devices never move the deadline.
+    /// other devices never move the deadline. The timeout is read from the engine's configuration each time the
+    /// watchdog is armed, so a configuration update applies to the next slide.
     private func settle(frameIndex: Int?) {
         let kind = engine.stateKind
         let active = isActive(kind)
@@ -336,9 +354,10 @@ public final class GesturePipeline: @unchecked Sendable {
             activity = nil
         }
         if active, !watchdogArmed {
-            var delay = lostTimeout
+            let timeout = engine.lostTimeout
+            var delay = timeout
             if let index = activeIndex, let last = table[index]?.lastFrame {
-                delay = max(lostTimeout - (Self.uptime() - last.uptime), Self.minimumRearm)
+                delay = max(timeout - (clock() - last.uptime), Self.minimumRearm)
             }
             watchdog.schedule(deadline: .now() + delay)
             watchdogArmed = true

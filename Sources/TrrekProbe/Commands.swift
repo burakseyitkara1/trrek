@@ -27,6 +27,7 @@ func printUsage() {
       mem                     print this process's memory footprint in MB
       pipeline [seconds]      print every engine command from live frames; sends nothing (default 20 s)
       backlight get|up|down   read or step the keyboard backlight level (0...1)
+      backlight bench         time 50 read+write cycles of the backlight level and restore it
       keys [seconds]          print user key-down and modifier events (default 10 s; needs Accessibility)
       ddc list                list external displays, their DDC services and brightness (current/max)
     """)
@@ -342,7 +343,7 @@ func runPipeline(_ options: [String]) {
     let config = EngineConfig()
     let sink = LoggingSink()
     let engine = GestureEngine(config: config, sink: sink)
-    let pipeline = GesturePipeline(engine: engine, lostTimeout: config.thresholds.lostTimeout)
+    let pipeline = GesturePipeline(engine: engine)
     do {
         try pipeline.start()
     } catch {

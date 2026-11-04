@@ -60,8 +60,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             holdItem.isEnabled = false
             menu.addItem(holdItem)
         }
-        if let app = coordinator.frontApp, let id = app.bundleIdentifier {
-            let name = app.localizedName ?? id
+        // The same app as the status line, also while a trrek window is in front.
+        if let (id, name) = coordinator.pauseTargetApp {
             if settings.pausedBundleIDs.contains(id) {
                 menu.addItem(item("Resume in \(name)", #selector(resumeInFrontApp)))
             } else {

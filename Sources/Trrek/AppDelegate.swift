@@ -6,10 +6,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let coordinator = Coordinator(store: SettingsStore())
     /// Kept for the windows and the overlay that later read it.
     private(set) var launchOptions = LaunchOptions()
+    /// Quits cleanly on SIGTERM and SIGINT, so Command is never left held down.
+    private var terminationSignals: TerminationSignals?
 
     func applicationDidFinishLaunching(_: Notification) {
         launchOptions = LaunchOptions(arguments: CommandLine.arguments)
         coordinator.start(skipFirstRun: launchOptions.skipFirstRun)
+        terminationSignals = TerminationSignals { [coordinator] number in
+            MainActor.assumeIsolated {
+                appLogger.info("signal \(number, privacy: .public); quitting")
+                coordinator.terminate()
+            }
+            exit(0)
+        }
 
         if launchOptions.openSettings {
             coordinator.openSettings(tab: launchOptions.settingsTab)

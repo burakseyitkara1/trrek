@@ -41,7 +41,7 @@ public final class ActuatorHaptics: @unchecked Sendable {
     }
 }
 
-extension ActuatorHaptics: HapticPerforming {
+extension ActuatorHaptics: HapticActuating {
     /// Plays the waveform for `strength`; a strong start or tap adds a second pulse 60 ms later.
     public func perform(_ event: HapticEvent, strength: HapticStrength) {
         let waveform: Int32

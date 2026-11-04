@@ -6,6 +6,14 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-04
+
+- Haptics play on the trackpad you slide on, so an external trackpad gets its own feedback instead of the built-in one
+- Keyboard backlight steps no longer wait for the level to be read back, so fast slides on the backlight edge stay smooth
+- trrek quits cleanly when it receives SIGTERM or SIGINT, so Command is never left held down by the app switcher
+- Opening trrek's settings, welcome or About window over a paused app keeps the edges paused (and over an active app keeps them active)
+- Paused Apps: the app chooser opens as a sheet on the settings window, trrek itself can no longer be added, and app names and icons are looked up once
+
 ## [0.2.0] - 2026-11-04
 
 - Scrub Video: slide the top or bottom edge to step through the video in the front app

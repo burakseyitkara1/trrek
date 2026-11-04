@@ -266,6 +266,11 @@ public extension GestureEngine {
         lock.withLock { stateKindLocked }
     }
 
+    /// How long a slide waits for a lost finger, from the current configuration (`Thresholds.lostTimeout`).
+    var lostTimeout: TimeInterval {
+        lock.withLock { config.thresholds.lostTimeout }
+    }
+
     /// Applies a new configuration immediately: an active slide is committed first, and a finger that is
     /// still a candidate is dropped (it waits in `spent` until it lifts).
     func update(config: EngineConfig) {

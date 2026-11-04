@@ -65,6 +65,8 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         var slide: UInt64 = 0
         /// The last level each external display reported; read on the frame thread, written on the display queue.
         var ddcLevels: [CGDirectDisplayID: DDCLevel] = [:]
+        /// The engine's device ID of the latest command, so haptics play on the trackpad the gesture runs on.
+        var device: UInt64 = 0
     }
 
     private let mediaKeys: any MediaKeyPosting
@@ -145,8 +147,11 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         set { state.withLock { $0.ownAppFrontmost = newValue } }
     }
 
-    public func handle(_ command: GestureCommand, device _: UInt64) {
-        state.withLock { apply(command, &$0) }
+    public func handle(_ command: GestureCommand, device: UInt64) {
+        state.withLock { state in
+            state.device = device
+            apply(command, &state)
+        }
     }
 
     /// Releases anything trrek holds down: the Command key of the app switcher and the cursor freeze.
@@ -220,7 +225,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
             state.slide &+= 1
         }
         if state.hapticStrength != .off, !(event == .step && dropStep) {
-            haptics.perform(event, strength: state.hapticStrength)
+            haptics.perform(event, strength: state.hapticStrength, device: state.device)
         }
     }
 
@@ -235,15 +240,15 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         let limit = Limit(kind: kind, direction: direction)
         if state.atLimit != limit {
             state.atLimit = limit
-            playLimit(state.hapticStrength)
+            playLimit(state)
         }
         state.dropStepHaptic = true
         return true
     }
 
-    private func playLimit(_ strength: HapticStrength) {
-        if strength != .off {
-            haptics.perform(.limit, strength: strength)
+    private func playLimit(_ state: State) {
+        if state.hapticStrength != .off {
+            haptics.perform(.limit, strength: state.hapticStrength, device: state.device)
         }
     }
 
@@ -306,7 +311,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         if LevelBounds.isAtBound(level, direction: steps) {
             if entry.limitSlide != state.slide {
                 entry.limitSlide = state.slide
-                playLimit(state.hapticStrength)
+                playLimit(state)
             }
         } else {
             entry.limitSlide = nil

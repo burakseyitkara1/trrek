@@ -28,7 +28,7 @@ struct AdvancedTab: View {
                 .disabled(model.settings.holdKey == .none)
             }
             Section("Paused Apps") {
-                PausedAppsList(bundleIDs: $model.settings.pausedBundleIDs, selection: $model.selectedPausedApp)
+                PausedAppsList(model: model)
             }
             Section {
                 accessibilityRow

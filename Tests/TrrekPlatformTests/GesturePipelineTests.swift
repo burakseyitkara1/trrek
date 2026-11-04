@@ -18,11 +18,22 @@ private func device(_ ref: MTDeviceRef) -> MultitouchDeviceInfo {
     MultitouchDeviceInfo(ref: ref, isBuiltIn: true, widthMM: 121.94, heightMM: 74.08, multitouchID: nil)
 }
 
+/// A config whose long lost timeout keeps the watchdog from firing during a test.
+private func patientConfig(lostTimeout: TimeInterval = 60) -> EngineConfig {
+    var config = EngineConfig()
+    config.thresholds.lostTimeout = lostTimeout
+    return config
+}
+
 /// A pipeline with synthetic devices. The long watchdog timeout keeps the timer from firing during a test.
-private func makePipeline(_ refs: [MTDeviceRef]) -> (GesturePipeline, CollectingSink) {
+private func makePipeline(
+    _ refs: [MTDeviceRef],
+    config: EngineConfig = patientConfig(),
+    clock: @escaping @Sendable () -> TimeInterval = GesturePipeline.uptime
+) -> (GesturePipeline, CollectingSink) {
     let sink = CollectingSink()
-    let engine = GestureEngine(config: EngineConfig(), sink: sink)
-    let pipeline = GesturePipeline(engine: engine, lostTimeout: 60)
+    let engine = GestureEngine(config: config, sink: sink)
+    let pipeline = GesturePipeline(engine: engine, clock: clock)
     _ = pipeline.install(devices: refs.map(device))
     return (pipeline, sink)
 }
@@ -91,7 +102,7 @@ private func isClose(_ value: TimeInterval?, _ expected: TimeInterval) -> Bool {
 
 @Test func onlyTrackpadsAreInstalled() {
     let sink = CollectingSink()
-    let pipeline = GesturePipeline(engine: GestureEngine(config: EngineConfig(), sink: sink), lostTimeout: 60)
+    let pipeline = GesturePipeline(engine: GestureEngine(config: patientConfig(), sink: sink))
     let geometry = (width: Float(121.94), height: Float(74.08))
     let mouse = MultitouchDeviceInfo(
         ref: deviceB, isBuiltIn: false, widthMM: geometry.width, heightMM: geometry.height,
@@ -207,4 +218,71 @@ func unknownContactStateFailsTheFirstFrame(_ state: Int32) async throws {
     feed(pipeline, deviceA, [contact(id: 1, state: 3, nx: 1.5, ny: 0.5)], timestamp: 100.01, uptime: base)
     try await waitForMain { !recorder.issues.isEmpty }
     #expect(recorder.issues == [.dataUnavailable])
+}
+
+// MARK: - Watchdog
+
+/// A clock the test sets; the pipeline reads it as system uptime.
+private final class ManualClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: TimeInterval
+
+    init(_ value: TimeInterval) {
+        self.value = value
+    }
+
+    func read() -> TimeInterval {
+        lock.withLock { value }
+    }
+
+    func set(_ newValue: TimeInterval) {
+        lock.withLock { value = newValue }
+    }
+}
+
+/// Slides up the right edge of `ref`, whose frame clock reads `timestamp` at uptime `uptime`; returns the uptime of
+/// the last frame.
+@discardableResult
+private func slide(_ pipeline: GesturePipeline, _ ref: MTDeviceRef, timestamp: Double, uptime: Double) -> Double {
+    var last = uptime
+    for (step, y) in [Float(0.30), 0.32, 0.34, 0.36, 0.40].enumerated() {
+        let offset = Double(step) * 0.008
+        last = uptime + offset
+        feed(pipeline, ref, [contact(id: 1, state: 4, nx: 0.98, ny: y)], timestamp: timestamp + offset, uptime: last)
+    }
+    return last
+}
+
+@Test func watchdogTicksWithTheSlidingDevicesClock() {
+    let clock = ManualClock(50)
+    let (pipeline, sink) = makePipeline([deviceA, deviceB], config: patientConfig(lostTimeout: 0.2), clock: clock.read)
+    let lastA = slide(pipeline, deviceA, timestamp: 1000, uptime: 50)
+    #expect(pipeline.withEngine(\.stateKind) == .sliding)
+    // Device B runs on a clock far ahead; ticking with it would end the slide at once.
+    feed(pipeline, deviceB, [], timestamp: 9000, uptime: lastA + 0.01)
+
+    // Before the timeout in device A's clock the slide goes on.
+    clock.set(lastA + 0.1)
+    pipeline.watchdogFired()
+    #expect(pipeline.withEngine(\.stateKind) == .sliding)
+
+    // Past it, the tick commits the slide.
+    clock.set(lastA + 0.25)
+    pipeline.watchdogFired()
+    #expect(pipeline.withEngine(\.stateKind) == .idle)
+    #expect(sink.commands.contains(.stepVolume(1, fine: false)))
+}
+
+@Test func watchdogFollowsLostTimeoutUpdates() async throws {
+    // Built with a timeout far longer than the test; the update shortens it before the slide starts.
+    let (pipeline, _) = makePipeline([deviceA])
+    pipeline.withEngine { $0.update(config: patientConfig(lostTimeout: 0.1)) }
+    slide(pipeline, deviceA, timestamp: 1000, uptime: GesturePipeline.uptime())
+    #expect(pipeline.withEngine(\.stateKind) == .sliding)
+
+    let deadline = Date(timeIntervalSinceNow: 3)
+    while pipeline.withEngine(\.stateKind) != .idle, Date() < deadline {
+        try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(pipeline.withEngine(\.stateKind) == .idle)
 }

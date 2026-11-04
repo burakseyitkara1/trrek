@@ -7,7 +7,8 @@ import TrrekPlatform
 extension Coordinator {
     // MARK: - Multitouch
 
-    /// Starts the multitouch stream and records why it could not start.
+    /// Starts the multitouch stream, records why it could not start and opens the haptic actuator of every
+    /// streaming trackpad (the previous ones are closed).
     func startPipeline() {
         guard let pipeline else { return }
         do {
@@ -17,6 +18,13 @@ extension Coordinator {
         } catch {
             trackpadIssue = Self.issue(for: error)
             appLogger.error("multitouch start failed: \(String(describing: error), privacy: .public)")
+        }
+        guard let haptics else { return }
+        let devices = pipeline.devices
+        haptics.install(devices: devices) { ActuatorHaptics(multitouchID: $0) }
+        if haptics.actuatorCount < devices.count {
+            appLogger
+                .error("\(devices.count - haptics.actuatorCount, privacy: .public) trackpad actuator(s) unavailable")
         }
     }
 
@@ -113,7 +121,8 @@ extension Coordinator {
     func startObservers() {
         frontmostObserver.onChange = { [weak self] bundleID, isOwnApp in
             MainActor.assumeIsolated {
-                self?.updatePause(bundleID: bundleID)
+                self?.frontmostPause.activated(bundleID: bundleID, isOwnApp: isOwnApp)
+                self?.updatePause()
                 // Scrub sends arrow keys to the front app; while that is trrek's own window it sends none.
                 self?.dispatcher?.ownAppFrontmost = isOwnApp
             }

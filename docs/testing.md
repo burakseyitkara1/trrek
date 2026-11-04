@@ -132,7 +132,11 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 
 ### 5.5 Pause in app
 - **Nasıl:** Advanced › Paused Apps listesine `+` ile bir uygulama ekle; o uygulama öndeyken kenarda kaydır; `−` ile çıkar.
-- **Beklenen:** Listedeki uygulama öndeyken jestler çalışmaz, çıkarılınca çalışır. `+`/`−` listeyi doğru günceller.
+- **Beklenen:** Listedeki uygulama öndeyken jestler çalışmaz, çıkarılınca çalışır. `+`/`−` listeyi doğru günceller. `+` uygulama seçicisini ayrı bir pencere olarak değil, ayarlar penceresine bağlı bir sayfa (sheet) olarak açar; seçicide `trrek.app` seçilirse listeye eklenmez.
+
+### 5.5a trrek penceresi öndeyken duraklatma korunur
+- **Nasıl:** Paused Apps listesine bir uygulama ekle ve onu öne getir; menüden Settings'i (ya da Show Welcome'ı, About trrek'i) aç ve pencere öndeyken kenarda kaydır; menünün durum satırına bak. Sonra listede olmayan bir uygulamayı öne getirip aynısını yap.
+- **Beklenen:** Duraklatılmış uygulamanın üstünde trrek penceresi öndeyken jestler çalışmamaya devam eder ve durum satırı "Paused in <uygulama>" der; listede olmayan uygulamanın üstünde jestler çalışır. Pencere öndeyken uygulama listeden `−` ile çıkarılınca jestler hemen çalışır.
 
 ## 6. Sistem olayları
 
@@ -143,6 +147,10 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 ### 6.2 Trackpad takma/çıkarma
 - **Nasıl:** Harici bir trackpad bağla, kenarda kaydır, çıkar, tekrar bağla.
 - **Beklenen:** Harici cihazda da jestler çalışır; çıkarma sırasında takılma ya da çökme olmaz.
+
+### 6.2a Harici trackpad'de haptik
+- **Nasıl:** Dahili trackpad'li bir Mac'e harici bir trackpad bağla (Haptic Medium). Harici trackpad'in sağ kenarında kaydır, sonra dahili trackpad'de kaydır; köşe çift dokunmalarını ve sınır haptiğini (2.5) her iki yüzeyde dene. Sonra harici trackpad'i çıkarıp takarak ya da Mac'i uyutup uyandırarak tekrarla.
+- **Beklenen:** Haptik her seferinde parmağın kaydığı trackpad'de hissedilir; harici trackpad'de kaydırırken dahili trackpad titreşmez ve tersi. Çıkarma/takma ve uykudan sonra da her yüzey kendi haptiğini verir.
 
 ### 6.3 Accessibility izni geri alındı / verildi
 - **Nasıl:** Sistem Ayarları › Gizlilik ve Güvenlik › Erişilebilirlik'ten trrek iznini kaldır; sonra tekrar ver.
@@ -159,6 +167,10 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 ### 6.6 Uygulama değiştirme sırasında çıkış
 - **Nasıl:** Terminalde `sleep 3; osascript -e 'quit app "trrek"'` çalıştır; hemen üst kenarda Switch Apps slide'ı başlat ve parmağı trackpad'de tut.
 - **Beklenen:** trrek kapanınca uygulama değiştirici kapanır; ⌘ basılı kalmaz (sonraki tuş vuruşları ⌘ kısayolu olarak işlenmez).
+
+### 6.6a Sinyalle çıkış (SIGTERM/SIGINT)
+- **Nasıl:** Terminalde `sleep 3; pkill -TERM -x trrek` çalıştır; hemen üst kenarda Switch Apps slide'ı başlat ve parmağı trackpad'de tut. Aynısını `pkill -INT -x trrek` ile tekrarla.
+- **Beklenen:** trrek kapanır, uygulama değiştirici kapanır, ⌘ basılı kalmaz. `log show --last 1m --predicate 'subsystem == "com.burakseyitkara.trrek"'` çıktısında "signal 15; quitting" (INT için 2) satırı görünür.
 
 ### 6.7 Dokunmatik yüzeyli fare bağlı
 - **Nasıl:** Dokunmatik yüzeyli bir fare bağla; `swift run TrrekProbe devices` çıktısına bak; farenin yüzeyinde kenar boyunca kaydır ve köşelere çift dokun; sonra trackpad'de kaydır.
@@ -192,6 +204,10 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Nasıl:** Terminale Accessibility izni ver; `swift run TrrekProbe keys 10` çalıştır, birkaç tuşa bas ve tıkla. Satır biçimi: `arrival=<varış zamanı> event=<olayın kendi zaman damgası> keyDown` (modifier için `flagsChanged`, fare tuşu için `mouseDown`).
 - **Beklenen:** `arrival=` saniye cinsinden sistem uptime'ıdır (tap callback'i içinde okunur) ve trrek'in kullandığı tek değerdir. `event=` yalnızca merak için yazdırılır; saati belgelenmediği için trrek ona dayanmaz. `arrival=` değerleri artan sırada ve `uptime` ile aynı büyüklükte olmalıdır.
 - **Ek (kare saati):** `swift run TrrekProbe pipeline 5` başlarken tek dokunuş iste; çıktı `clock: frame timestamp X, system uptime Y (difference Z s), uptime including sleep W (difference V s)` biçimindedir. Fark sabit bir ofset olmalıdır; motor bu ofseti kendisi öğrenir.
+
+### 8.2 TrrekProbe klavye ışığı ölçümü
+- **Nasıl:** `swift build && .build/debug/TrrekProbe backlight bench` (klavye ışığı olan Mac'te).
+- **Beklenen:** İki satır yazdırır: istemciden okuma + yazma (`raw read+write`) ve önbellekten adım (`step from cache`), her biri 50 döngünün min/avg/max değeriyle. Önbellekten adımın ortalaması 0,1 ms'nin altındadır. Son satır `failures=0 restored=<başlangıç> ok` olur ve klavye ışığı başlangıç seviyesine döner.
 
 ## 9. Performans
 

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import Trrek
@@ -71,5 +72,33 @@ struct SettingsModelTests {
         #expect(last?.launchAtLogin == false)
         #expect(last?.welcomeShown == true)
         #expect(last?.bottomEdge == .media)
+    }
+
+    @Test func appInfoIsResolvedOncePerBundleID() {
+        let model = SettingsModel(settings: AppSettings(), backlightAvailable: true) { _ in }
+        var lookups: [String] = []
+        model.appInfoResolver = { id in
+            lookups.append(id)
+            return PausedAppInfo(name: id.uppercased(), icon: NSImage())
+        }
+        #expect(model.appInfo(for: "com.example.a").name == "COM.EXAMPLE.A")
+        #expect(model.appInfo(for: "com.example.a").name == "COM.EXAMPLE.A")
+        _ = model.appInfo(for: "com.example.b")
+        _ = model.appInfo(for: "com.example.a")
+        #expect(lookups == ["com.example.a", "com.example.b"])
+    }
+
+    @Test func addingPausedAppsSkipsTrrekAndDuplicates() {
+        var initial = AppSettings()
+        initial.pausedBundleIDs = ["com.example.a"]
+        var calls = 0
+        let model = SettingsModel(settings: initial, backlightAvailable: true) { _ in calls += 1 }
+        model.addPausedApps(bundleIDs: ["com.example.a", AppIdentity.bundleID, "com.example.b", "com.example.b"])
+        #expect(model.settings.pausedBundleIDs == ["com.example.a", "com.example.b"])
+        #expect(calls == 1)
+
+        // Nothing new: no change is passed on.
+        model.addPausedApps(bundleIDs: [AppIdentity.bundleID])
+        #expect(calls == 1)
     }
 }

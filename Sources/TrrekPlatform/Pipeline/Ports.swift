@@ -31,8 +31,14 @@ public protocol MousePosting: Sendable {
     func middleClick()
 }
 
-/// Plays trackpad haptic feedback.
+/// Plays trackpad haptic feedback on the surface the gesture ran on.
 public protocol HapticPerforming: Sendable {
+    /// `device` is the engine's device ID of the gesture the haptic belongs to (`GesturePipeline.deviceID(of:)`).
+    func perform(_ event: HapticEvent, strength: HapticStrength, device: UInt64)
+}
+
+/// Plays haptic feedback on one surface: a trackpad's actuator, or the system's generic haptics.
+public protocol HapticActuating: Sendable {
     func perform(_ event: HapticEvent, strength: HapticStrength)
 }
 

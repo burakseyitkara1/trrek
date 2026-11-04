@@ -63,9 +63,21 @@ final class FakeHaptics: HapticPerforming, @unchecked Sendable {
     }
 
     private(set) var calls: [Call] = []
+    /// The device of each call, in the order of `calls`.
+    private(set) var devices: [UInt64] = []
 
-    func perform(_ event: HapticEvent, strength: HapticStrength) {
+    func perform(_ event: HapticEvent, strength: HapticStrength, device: UInt64) {
         calls.append(Call(event: event, strength: strength))
+        devices.append(device)
+    }
+}
+
+/// One surface's actuator; records the events played on it.
+final class FakeActuator: HapticActuating, @unchecked Sendable {
+    private(set) var events: [HapticEvent] = []
+
+    func perform(_ event: HapticEvent, strength _: HapticStrength) {
+        events.append(event)
     }
 }
 
