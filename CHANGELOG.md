@@ -6,6 +6,8 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-04
+
 - The line trrek logs when a signal makes it quit is kept in the system log, so a signal quit can be checked afterwards
 - Paused Apps: the app chooser opens as a sheet on the settings window also when trrek was in the background
 
