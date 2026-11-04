@@ -71,8 +71,9 @@ extension SettingsModel {
         }
     }
 
-    /// Replaces the settings with `pending`, the import the confirmation was shown for, keeping Launch at Login and
-    /// whether the welcome window was shown. Taking the value (rather than reading `pendingImport`) makes Replace
+    /// Replaces the settings with `pending`, the import the confirmation was shown for, keeping Launch at Login, the
+    /// language and whether the welcome window was shown. Taking the value (rather than reading `pendingImport`) makes
+    /// Replace
     /// work whatever the order in which the alert closes and runs its action. The change reaches the store and the
     /// engine like any other.
     func confirmImport(_ pending: PendingImport) {

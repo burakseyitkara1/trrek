@@ -263,6 +263,10 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Nasıl:** Language English iken ayarları dışa aktar, Language'ı Türkçe yapıp yeniden başlat, sonra dosyayı içe aktar.
 - **Beklenen:** Onay "Oturum Açıldığında Başlat ve dil ayarları değişmez." der; içe aktarmadan sonra seçici Türkçe kalır, yeniden başlatma satırı çıkmaz. Dışa aktarılan dosyada `language` anahtarı yoktur.
 
+### 7.11 Dil ve Bölge › Uygulamalar'dan dil seçimi
+- **Nasıl:** trrek'te Language Sistem iken Sistem Ayarları › Genel › Dil ve Bölge › Uygulamalar'da "+" ile trrek'i ekle ve sistem dilinden farklı bir dil (Türkçe ya da English) seç; sistemin önerdiği yeniden başlatmayı kabul et. Sonra trrek'i bir kez daha kapatıp aç. En sonda Uygulamalar listesinden trrek'i kaldır (ya da trrek'te Language'ı Sistem yap).
+- **Beklenen:** trrek seçilen dilde açılır; General sekmesinde Language o dili gösterir, yeniden başlatma satırı çıkmaz. `defaults read com.burakseyitkara.trrek AppleLanguages` seçilen dili (ör. `tr` ya da `tr-TR`) gösterir; ikinci açılışta da dil değişmez ve değer üzerine yazılmaz. trrek'te Language'ı Sistem yapıp yeniden başlatınca anahtar silinir ve Uygulamalar listesindeki seçim de "Sistem Dili"ne döner.
+
 ## 8. Araçlar
 
 ### 8.1 TrrekProbe tuş zamanı

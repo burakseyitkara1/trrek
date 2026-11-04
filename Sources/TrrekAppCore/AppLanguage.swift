@@ -21,7 +21,9 @@ public enum AppLanguage: String, CaseIterable, Codable, Sendable {
 ///
 /// trrek writes the preference into its own defaults domain: a language other than `system` stores that one language,
 /// and `system` removes the key so the system's own list applies. The preference is read once per launch, so a change
-/// takes effect when trrek is next opened.
+/// takes effect when trrek is next opened. The system writes the same key when the user picks trrek's language in
+/// System Settings › General › Language & Region › Applications; at launch the setting adopts such a choice
+/// (`adoptedLanguage(fromStored:setting:)`). Stored codes are compared by language, so "tr-TR" counts as "tr".
 public enum LanguagePreference {
     /// The defaults key Foundation reads the preferred languages from.
     public static let key = "AppleLanguages"
@@ -45,15 +47,38 @@ public enum LanguagePreference {
         }
     }
 
-    /// The change that makes `stored` (the value in trrek's own domain, `nil` when absent) select `language`.
+    /// The change that makes `stored` (the value in trrek's own domain, `nil` when absent) select `language`. A stored
+    /// value that already names the same languages by code (`["tr-TR"]` for `["tr"]`) is left alone.
     public static func change(from stored: Any?, to language: AppLanguage) -> Change {
         let wanted = storedValue(for: language)
-        let current = stored.map { $0 as? [String] ?? [] }
-        guard current != wanted else { return .none }
-        if let wanted {
-            return .set(wanted)
+        guard let stored else { return wanted.map(Change.set) ?? .none }
+        guard let wanted else { return .remove }
+        let codes = (stored as? [String])?.map(languageCode(of:))
+        return codes == wanted ? .none : .set(wanted)
+    }
+
+    /// The language a stored preference names: its first entry's, when trrek has that language; `nil` when the
+    /// key is absent, empty or unreadable, or names a language trrek lacks.
+    public static func language(namedBy stored: Any?) -> AppLanguage? {
+        guard let first = (stored as? [String])?.first else { return nil }
+        switch languageCode(of: first) {
+        case "en": return .english
+        case "tr": return .turkish
+        default: return nil
         }
-        return .remove
+    }
+
+    /// The language setting to adopt at launch: the language the stored preference names, when it differs from
+    /// `setting`. The preference only disagrees with the setting when something other than trrek's own settings
+    /// wrote it, such as the per-app language in System Settings, so that choice wins; `nil` keeps the setting.
+    public static func adoptedLanguage(fromStored stored: Any?, setting: AppLanguage) -> AppLanguage? {
+        guard let named = language(namedBy: stored), named != setting else { return nil }
+        return named
+    }
+
+    /// The language code of a language identifier: "tr-TR" → "tr".
+    static func languageCode(of identifier: String) -> String {
+        Locale.Language(identifier: identifier).languageCode?.identifier ?? identifier.lowercased()
     }
 
     /// The localization (`"en"`, `"tr"`) `language` shows: English or Turkish as chosen, or for `system` the best of

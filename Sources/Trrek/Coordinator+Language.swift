@@ -8,16 +8,28 @@ extension Coordinator {
         Bundle.main.preferredLocalizations.first ?? "en"
     }
 
-    /// Makes the `AppleLanguages` preference match the language setting.
-    /// Every change of the setting writes the preference at once (`languageChanged`), but the two can still disagree
-    /// at launch, for example when the defaults were edited by hand or trrek stopped between the two writes. The
-    /// preference is then written to match the setting and takes effect at the next launch; until then the General
-    /// tab offers to relaunch.
-    func reconcileLanguage() {
+    /// `loaded` with its language and the `AppleLanguages` preference brought into agreement, run once at launch.
+    ///
+    /// Every change of the setting writes the preference at once (`languageChanged`), so a preference that names a
+    /// language other than the setting's was written elsewhere: by the per-app language in System Settings (or by
+    /// hand). The setting adopts it and is saved; the interface already shows it. Otherwise the preference is written
+    /// to match the setting (for example when it is missing for a chosen language) and takes effect at the next
+    /// launch; until then the General tab offers to relaunch.
+    func reconciledLanguage(_ loaded: Settings) -> Settings {
+        var settings = loaded
+        if let adopted = LanguagePreference.adoptedLanguage(
+            fromStored: languagePreference.stored,
+            setting: settings.language
+        ) {
+            settings.language = adopted
+            store.save(settings)
+            appLogger.notice("language setting follows the preference: \(adopted.rawValue, privacy: .public)")
+        }
         let language = settings.language
         if languagePreference.apply(language) {
             appLogger.notice("language preference set to \(language.rawValue, privacy: .public)")
         }
+        return settings
     }
 
     /// Writes the preference for a new language setting; the interface changes at the next launch.

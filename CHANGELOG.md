@@ -13,6 +13,7 @@ Each release lists its changes under its version and date; changes not yet relea
 - Slide Sensitivity setting in General: how far a finger slides for each step, from Very Low to Very High
 - A corner's double tap keeps working when an edge next to it is set to Off
 - Turkish interface, and a Language setting in General (System, English, Türkçe) that applies after a relaunch
+- The Language setting follows a language chosen for trrek in System Settings › General › Language & Region › Applications
 
 ## [0.2.2] - 2026-11-04
 

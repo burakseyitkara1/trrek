@@ -51,7 +51,7 @@ Open Settings from the menu bar icon, or by opening trrek again while it runs. G
 
 ### Language
 
-trrek's interface is in English and Turkish. The Language setting in General is System by default: trrek uses the first of the languages set in System Settings › General › Language & Region that it has, and English otherwise. Choosing English or Türkçe sets trrek's own language preference (`AppleLanguages` in its defaults); System removes it. The new language applies after a relaunch, which the Relaunch button next to the setting offers whenever the choice shows a different language from the one on screen. The language belongs to this Mac's user: it is not part of an exported `.trrek` file, an import keeps it, and so does Reset to Defaults.
+trrek's interface is in English and Turkish. The Language setting in General is System by default: trrek uses the first of the languages set in System Settings › General › Language & Region that it has, and English otherwise. Choosing English or Türkçe sets trrek's own language preference (`AppleLanguages` in its defaults); System removes it. Choosing trrek's language in System Settings › General › Language & Region › Applications works too: trrek's Language setting follows that choice at the next launch. The new language applies after a relaunch, which the Relaunch button next to the setting offers whenever the choice shows a different language from the one on screen. The language belongs to this Mac's user: it is not part of an exported `.trrek` file, an import keeps it, and so does Reset to Defaults.
 
 ### Moving settings to another Mac
 

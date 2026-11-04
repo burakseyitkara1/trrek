@@ -214,4 +214,21 @@ struct SettingsDocumentTests {
         #expect(SettingsDocumentError.notSettingsFile.message.contains("not changed"))
         #expect(SettingsDocumentError.newerFormat.message.contains("newer version"))
     }
+
+    /// A file whose settings predate per-edge side actions carries Swap Sides over, also when a side edge's value
+    /// cannot be read.
+    @Test func swapSidesInAFileMovesTheSideActions() throws {
+        let swapped = try SettingsDocument.decode(Self.data("""
+        {"format": "trrek-settings", "formatVersion": 1, "settings": {"schemaVersion": 1, "swapSides": true}}
+        """))
+        #expect(swapped.leftEdge == .volume)
+        #expect(swapped.rightEdge == .brightness)
+
+        let unreadable = try SettingsDocument.decode(Self.data("""
+        {"format": "trrek-settings", "formatVersion": 1,
+         "settings": {"schemaVersion": 1, "swapSides": true, "leftEdge": "teleport"}}
+        """))
+        #expect(unreadable.leftEdge == .volume)
+        #expect(unreadable.rightEdge == .brightness)
+    }
 }

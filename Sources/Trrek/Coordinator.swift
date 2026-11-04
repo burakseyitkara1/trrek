@@ -17,7 +17,7 @@ final class Coordinator {
     private lazy var welcomeWindowController = WelcomeWindowController(registry: windows)
     /// Shown by the dispatcher for levels the system shows no indicator for.
     let overlay = OverlayPanel()
-    private let store: SettingsStore
+    let store: SettingsStore
 
     private(set) var settings = Settings()
     var holdKeyTracker = HoldKeyTracker(key: .none, mode: .hold)
@@ -56,8 +56,7 @@ final class Coordinator {
     /// Loads the settings and starts everything. `skipFirstRun` records the welcome window as shown and shows no
     /// welcome window at launch (for screenshots and footprint checks).
     func start(skipFirstRun: Bool = false) {
-        settings = store.load()
-        reconcileLanguage()
+        settings = reconciledLanguage(store.load())
         let trusted = Permissions.isTrusted
         isTrusted = trusted
         appLogger.info("accessibility trusted: \(trusted, privacy: .public)")

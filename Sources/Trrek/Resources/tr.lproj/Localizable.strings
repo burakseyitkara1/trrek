@@ -185,9 +185,9 @@
 "Slide to turn the sound up or down." = "Kaydırarak sesi açın ya da kısın.";
 "Slide to brighten or dim the display." = "Kaydırarak ekran parlaklığını ayarlayın.";
 "Slide to brighten or dim the keys." = "Kaydırarak tuş aydınlatmasını ayarlayın.";
-"Slide to pick an app, lift to switch." = "Kaydırıp uygulama seçin, parmağınızı kaldırınca geçin.";
-"Slide to move to the next or previous tab." = "Kaydırarak sonraki ya da önceki sekmeye geçin.";
-"Slide to move to the next or previous desktop." = "Kaydırarak sonraki ya da önceki masaüstüne geçin.";
+"Slide to pick an app, lift to switch." = "Kaydırıp uygulama seçin, bırakınca geçin.";
+"Slide to move to the next or previous tab." = "Kaydırarak sekmeler arasında geçin.";
+"Slide to move to the next or previous desktop." = "Kaydırarak masaüstleri arasında geçin.";
 "Slide to step through a video." = "Kaydırarak videoda ileri ya da geri gidin.";
 "Slide to skip, double-tap to play." = "Kaydırıp parça atlayın, çift dokunup oynatın.";
 "Slide to zoom in or out." = "Kaydırarak yakınlaştırın ya da uzaklaştırın.";
