@@ -25,7 +25,7 @@ Run `make install` to build and copy `trrek.app` to `~/Applications`. A build in
 
 ### Keeping Accessibility permission across updates
 
-Every ad-hoc-signed build has a different code hash, so macOS drops the Accessibility grant after each reinstall. To avoid that, run `scripts/make-signing-identity.sh` once by hand; it creates a self-signed certificate named "trrek Local Signing" in your login keychain (macOS may ask for your password). `scripts/build-app.sh` then signs with it automatically. The first build signed with it shows a one-time keychain prompt asking to let `codesign` use the key: choose Always Allow, so later builds sign without asking. If signing with the identity fails, the build warns and falls back to ad-hoc signing. To use another identity, set `TRREK_SIGN_IDENTITY` to its name.
+Every ad-hoc-signed build has a different code hash, so macOS drops the Accessibility grant after each reinstall. To avoid that, run `scripts/make-signing-identity.sh` once by hand; it creates a self-signed certificate named "trrek Local Signing" in your login keychain (macOS may ask for your password). `scripts/build-app.sh` then signs with it automatically. The first build signed with it shows a one-time keychain prompt asking to let `codesign` use the key: choose Always Allow, so later builds sign without asking. If signing with the identity fails, the build warns and falls back to ad-hoc signing. To use another identity, set `TRREK_SIGN_IDENTITY` to its name. If you granted Accessibility to an earlier ad-hoc build, macOS keeps that grant tied to the old signature: quit trrek, run `tccutil reset Accessibility com.burakseyitkara.trrek`, reopen it and grant access once more. Later updates keep the grant.
 
 ## Usage
 

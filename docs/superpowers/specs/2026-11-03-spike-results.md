@@ -19,4 +19,9 @@ Tarih: 2026-11-03 · Makine: MacBook Air M4, macOS 27.2 · Araç: `TrrekProbe` (
 
 ## Açık kalanlar
 
-- 4–7 numaralı maddeler, uygulama paketi (`trrek.app`) kurulup Accessibility izni verildiğinde ilk elle test turunda kapanır.
+- Kapandı (2026-11-04, ilk elle test turu, `trrek Local Signing` imzalı 0.1.0 derlemesi, Accessibility verili):
+  - 4: Ses ve parlaklık kenarları çalışıyor; değişim sistemin kendi göstergesiyle görünüyor.
+  - 5–7: Genel jest seti kullanıcı tarafından "genel anlamda çalışıyor" olarak doğrulandı.
+  - 6 (imleç dondurma): HID tap'inde hareket olaylarını yutmak imleci durdurmadı; dondururken fare ile imleç bağlantısı kesilip (`CGAssociateMouseAndMouseCursorPosition`) konum korununca imleç yerinde kaldı (kullanıcı doğruladı).
+- Tuş olayı zaman damgası birimi artık önemsiz: karar 25 ile varış zamanı kullanılıyor.
+- İmzalama notu: ad-hoc derlemeden sabit kimliğe geçince eski Accessibility kaydı yeni imzaya uymaz; `tccutil reset Accessibility com.burakseyitkara.trrek` ile sıfırlayıp izni bir kez yeniden vermek gerekir.

@@ -4,10 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-- Fixes from the 0.1.0 review: trackpad-only devices, key timing, accessibility prompts and gating, toggle and limit haptics, first-frame check
-
 ## [0.1.0] - 2026-11-04
 
+- Fixes from the 0.1.0 review: trackpad-only devices, key timing, accessibility prompts and gating, toggle and limit haptics, first-frame check
+- Cursor freeze: disconnect mouse movement from the cursor while sliding (swallowing pointer events alone did not stop it)
 - Project scaffold: SPM package, Makefile, lint/format config, git hooks
 - Packaging: app bundle build script, icon generation, CI and release workflows (Intel runner image)
 - Platform: private symbol loader, raw multitouch stream, haptics, event posting, cursor-freeze tap and the TrrekProbe tool

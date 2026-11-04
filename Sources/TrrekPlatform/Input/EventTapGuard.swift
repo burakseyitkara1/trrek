@@ -15,6 +15,7 @@ public final class EventTapGuard: CursorFreezing, @unchecked Sendable {
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private let frozen = Atomic<Bool>(false)
+    private let anchor = Mutex<CGPoint?>(nil)
 
     @MainActor
     public init() {
@@ -42,6 +43,9 @@ public final class EventTapGuard: CursorFreezing, @unchecked Sendable {
     }
 
     deinit {
+        if frozen.load(ordering: .acquiring) {
+            CGAssociateMouseAndMouseCursorPosition(1)
+        }
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
             CFMachPortInvalidate(tap)
@@ -51,11 +55,20 @@ public final class EventTapGuard: CursorFreezing, @unchecked Sendable {
         }
     }
 
-    /// While frozen, pointer movement and scroll events from the user are swallowed.
-    /// Safe from any thread: enabling or disabling a tap is thread-safe.
+    /// While frozen, the cursor stays where it was and scroll events from the user are swallowed.
+    /// Swallowing pointer events alone does not stop the cursor (its position is updated before taps see the
+    /// event), so freezing also disconnects mouse movement from the cursor and remembers the position to restore
+    /// it if anything still moves it. Safe from any thread: these calls and enabling a tap are thread-safe.
     public func setFreeze(_ on: Bool) {
-        frozen.store(on, ordering: .releasing)
+        let wasFrozen = frozen.exchange(on, ordering: .acquiringAndReleasing)
         guard let tap else { return }
+        if on, !wasFrozen {
+            anchor.withLock { $0 = CGEvent(source: nil)?.location }
+            CGAssociateMouseAndMouseCursorPosition(0)
+        } else if !on, wasFrozen {
+            CGAssociateMouseAndMouseCursorPosition(1)
+            anchor.withLock { $0 = nil }
+        }
         CGEvent.tapEnable(tap: tap, enable: on)
     }
 
@@ -69,6 +82,10 @@ public final class EventTapGuard: CursorFreezing, @unchecked Sendable {
         }
         if EventStamp.isOurs(event) || !isFrozen {
             return Unmanaged.passUnretained(event)
+        }
+        if type != .scrollWheel, let point = anchor.withLock({ $0 }) {
+            CGWarpMouseCursorPosition(point)
+            CGAssociateMouseAndMouseCursorPosition(0)
         }
         return nil
     }
