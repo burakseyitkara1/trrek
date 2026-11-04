@@ -57,7 +57,9 @@ struct PausedAppsList: View {
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
-    /// Shows the open panel as a sheet on the settings window (the key window while its button is clicked).
+    /// Shows the open panel as a sheet on the settings window. The window comes from the model rather than
+    /// `NSApp.keyWindow`, which is `nil` when the click that reaches "+" is also the one that brings trrek to the
+    /// front.
     private func addApps() {
         let panel = NSOpenPanel()
         panel.title = "Choose Apps to Pause In"
@@ -68,7 +70,7 @@ struct PausedAppsList: View {
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         let model = model
-        guard let window = NSApp.keyWindow else {
+        guard let window = model.window ?? NSApp.keyWindow, window.isVisible else {
             if panel.runModal() == .OK {
                 model.addPausedApps(at: panel.urls)
             }

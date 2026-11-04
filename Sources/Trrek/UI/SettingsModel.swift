@@ -35,6 +35,9 @@ final class SettingsModel {
     /// Each paused app's name and icon, resolved once per bundle ID while the window is open.
     @ObservationIgnored private var appInfoCache: [String: PausedAppInfo] = [:]
 
+    /// The settings window, set by its controller; sheets such as the paused apps open panel attach to it.
+    @ObservationIgnored weak var window: NSWindow?
+
     @ObservationIgnored private let onChange: (AppSettings) -> Void
     @ObservationIgnored private var isRefreshing = false
 

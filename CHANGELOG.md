@@ -6,6 +6,8 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+- Paused Apps: the app chooser opens as a sheet on the settings window also when trrek was in the background
+
 ## [0.2.1] - 2026-11-04
 
 - Haptics play on the trackpad you slide on, so an external trackpad gets its own feedback instead of the built-in one

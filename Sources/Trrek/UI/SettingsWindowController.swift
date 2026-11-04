@@ -34,6 +34,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.setContentSize(Self.contentSize)
         window.center()
         window.delegate = self
+        model.window = window
         registry.settingsWindow = window
         registry.settingsModel = model
         return window

@@ -20,6 +20,8 @@ struct SettingsWindowTests {
             weakWindow = registry.settingsWindow
             weakHost = registry.settingsWindow?.contentViewController
             #expect(registry.settingsModel === model)
+            // Sheets (the paused apps open panel) attach to this window, also when trrek is not in front.
+            #expect(model.window === registry.settingsWindow)
             #expect(registry.settingsWindow?.contentLayoutRect.size == SettingsWindowController.contentSize)
 
             // A second request reuses the open window.
