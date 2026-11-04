@@ -168,7 +168,7 @@
 /* Settings tabs */
 "General" = "Genel";
 "Edges" = "Kenarlar";
-"Corners & Taps" = "Köşeler ve Dokunmalar";
+"Corners & Taps" = "Köşe ve Dokunma";
 "Advanced" = "Gelişmiş";
 
 /* Menu bar status line */
