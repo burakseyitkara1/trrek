@@ -12,9 +12,15 @@ public enum FrameConverter {
     private static let positionRange: ClosedRange<Float> = -0.05 ... 1.05
     private static let majorAxisRange: ClosedRange<Float> = 0 ... 100
 
-    /// Whether every contact lies within the plausible ranges; non-finite values fail. Never allocates.
+    /// Whether any contact is touching the surface (state 3 or 4). Never allocates.
+    public static func hasTouchingContact(_ touches: UnsafeBufferPointer<MTTouch>) -> Bool {
+        touches.contains { isTouching($0) }
+    }
+
+    /// Whether every touching contact lies within the plausible ranges; non-finite values fail. Contacts in other
+    /// states (hovering, lifting, gone) carry stale or undefined values and are not checked. Never allocates.
     public static func isPlausible(_ touches: UnsafeBufferPointer<MTTouch>) -> Bool {
-        for touch in touches {
+        for touch in touches where isTouching(touch) {
             guard positionRange.contains(touch.nx), positionRange.contains(touch.ny),
                   majorAxisRange.contains(touch.majorAxis)
             else { return false }
@@ -30,7 +36,7 @@ public enum FrameConverter {
         geometry: DeviceGeometry
     ) -> Frame {
         var buffer = TouchBuffer()
-        for touch in touches where touch.state == touchBegan || touch.state == touching {
+        for touch in touches where isTouching(touch) {
             let accepted = buffer.append(Touch(
                 id: touch.identifier,
                 x: touch.nx,
@@ -42,5 +48,9 @@ public enum FrameConverter {
             }
         }
         return Frame(deviceID: deviceID, timestamp: timestamp, geometry: geometry, touches: buffer)
+    }
+
+    private static func isTouching(_ touch: MTTouch) -> Bool {
+        touch.state == touchBegan || touch.state == touching
     }
 }

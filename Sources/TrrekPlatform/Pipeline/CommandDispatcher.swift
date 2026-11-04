@@ -31,6 +31,9 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         /// Net arrow-key steps of the current scrub slide.
         var scrubSteps = 0
         var externalBrightnessEnabled = false
+        /// The previous command was a backlight step that hit a bound and played the limit haptic, so the step
+        /// haptic the engine sends right after it is dropped.
+        var backlightAtLimit = false
     }
 
     private let mediaKeys: any MediaKeyPosting
@@ -116,13 +119,15 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     // A flat, exhaustive command-to-port mapping reads best as one switch.
     // swiftlint:disable:next cyclomatic_complexity
     private func apply(_ command: GestureCommand, _ state: inout State) {
+        let backlightAtLimit = state.backlightAtLimit
+        state.backlightAtLimit = false
         switch command {
         case let .stepVolume(direction, fine):
             mediaKeys.post(direction > 0 ? .soundUp : .soundDown, fine: fine)
         case let .stepBrightness(direction, fine):
             stepBrightness(direction, fine: fine, externalEnabled: state.externalBrightnessEnabled)
         case let .stepKeyboardBacklight(direction, fine):
-            stepBacklight(direction, fine: fine, hapticStrength: state.hapticStrength)
+            state.backlightAtLimit = stepBacklight(direction, fine: fine, hapticStrength: state.hapticStrength)
         case let .appSwitchStep(direction):
             if !state.switcherHeld {
                 keys.modifierDown(KeyCode.command, flags: .maskCommand)
@@ -152,7 +157,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         case .middleClick:
             mouse.middleClick()
         case let .haptic(event):
-            if state.hapticStrength != .off {
+            if state.hapticStrength != .off, !(event == .step && backlightAtLimit) {
                 haptics.perform(event, strength: state.hapticStrength)
             }
         case let .freezeCursor(on):
@@ -161,15 +166,17 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     }
 
     /// Steps the backlight and shows its level. A step that cannot move because the level already sits at 0 or 1
-    /// plays the limit haptic, as the system levels do at their ends.
-    private func stepBacklight(_ direction: Int, fine: Bool, hapticStrength: HapticStrength) {
-        guard let backlight, backlight.isAvailable else { return }
+    /// plays the limit haptic, as the system levels do at their ends. Returns whether the step hit a bound.
+    private func stepBacklight(_ direction: Int, fine: Bool, hapticStrength: HapticStrength) -> Bool {
+        guard let backlight, backlight.isAvailable else { return false }
         let previous = backlight.level()
-        guard let level = backlight.step(direction, fine: fine) else { return }
-        if level == previous, level == 0 || level == 1, hapticStrength != .off {
+        guard let level = backlight.step(direction, fine: fine) else { return false }
+        let atLimit = level == previous && (level == 0 || level == 1)
+        if atLimit, hapticStrength != .off {
             haptics.perform(.limit, strength: hapticStrength)
         }
         overlay?.show(kind: .keyboardBacklight, level: level, label: nil)
+        return atLimit
     }
 
     /// Steps the external display under the pointer over DDC/CI when that is enabled, otherwise posts the

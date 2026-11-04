@@ -49,14 +49,17 @@ struct EdgesTab: View {
     }
 
     /// A picker for the top or bottom edge. Options that cannot be used on this Mac are listed but disabled, with
-    /// the reason; the keyboard backlight shows as media control while its bridge is missing.
+    /// the reason; the keyboard backlight shows as media control while its bridge is missing. Without Accessibility,
+    /// a caption under the title says the chosen action cannot run yet.
     private func edgePicker(_ title: String, action: WritableKeyPath<AppSettings, EdgeAction>) -> some View {
         let available = model.backlightAvailable
         let selection = Binding(
             get: { EdgeChoices.displayed(model.settings[keyPath: action], backlightAvailable: available) },
             set: { model.settings[keyPath: action] = $0 }
         )
-        return Picker(title, selection: selection) {
+        let shown = selection.wrappedValue
+        let gated = ConfigMapper.gated(shown, accessibilityTrusted: model.accessibilityGranted) != shown
+        return Picker(selection: selection) {
             ForEach(EdgeChoices.topAndBottom, id: \.self) { choice in
                 let name = SettingsLabels.title(for: choice)
                 if let caption = EdgeChoices.caption(for: choice, backlightAvailable: available) {
@@ -65,6 +68,11 @@ struct EdgesTab: View {
                 } else {
                     Text(name).tag(choice)
                 }
+            }
+        } label: {
+            Text(title)
+            if gated {
+                Text("Needs Accessibility access")
             }
         }
     }

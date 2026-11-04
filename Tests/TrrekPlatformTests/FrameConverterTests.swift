@@ -48,3 +48,19 @@ private func convert(_ contacts: [MTTouch], timestamp: Double = 1.5, deviceID: U
     #expect(frame.touches == TouchBuffer())
     #expect(frame.timestamp == 3)
 }
+
+@Test func plausibilityChecksOnlyTouchingContacts() {
+    let mixed = [
+        contact(id: 1, state: 1, nx: 3, ny: 0.5),
+        contact(id: 2, state: 4),
+        contact(id: 3, state: 7, nx: .nan, ny: .nan, majorAxis: 500)
+    ]
+    #expect(mixed.withUnsafeBufferPointer { FrameConverter.isPlausible($0) })
+    #expect(mixed.withUnsafeBufferPointer { FrameConverter.hasTouchingContact($0) })
+
+    let notTouching = [contact(id: 1, state: 1), contact(id: 2, state: 5)]
+    #expect(!notTouching.withUnsafeBufferPointer { FrameConverter.hasTouchingContact($0) })
+
+    let bad = [contact(id: 1, state: 3, nx: 1.5, ny: 0.5)]
+    #expect(!bad.withUnsafeBufferPointer { FrameConverter.isPlausible($0) })
+}

@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 - Scrub Video: slide the top or bottom edge to step through the video in the front app
 - External monitor brightness over DDC/CI: the brightness edge follows the screen with the pointer
+- Polish: welcome cards appear one after another (none with Reduce Motion), the overlay follows the pointer to another screen, the Edges tab says when the top or bottom action needs Accessibility, a single haptic at the keyboard backlight limit, the first-frame check ignores contacts that are not touching, and settings from older versions keep every readable field
 
 ## [0.1.1] - 2026-11-04
 

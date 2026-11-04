@@ -3,7 +3,8 @@ import SwiftUI
 import Synchronization
 import TrrekPlatform
 
-/// A transient level indicator near the top-right corner of the screen with the pointer.
+/// A transient level indicator near the top-right corner of the screen with the pointer. While it is visible it
+/// moves to whichever screen the pointer is on when the next value is drawn.
 ///
 /// `show` is called on the multitouch frame thread while the dispatcher holds its lock, so it only stores the
 /// value and schedules one main-thread update without waiting for it. Values that arrive before that update
@@ -28,6 +29,8 @@ final class OverlayPanel: LevelOverlayPresenting {
 
     private nonisolated let pending = Mutex(Pending())
     private let hideDelay: TimeInterval
+    /// Where the panel belongs right now: the top right of the screen with the pointer. Injected by tests.
+    private let placement: @MainActor () -> CGPoint
     private var panel: NSPanel?
     private var hostingView: NSHostingView<OverlayView>?
     private var hideWork: DispatchWorkItem?
@@ -40,8 +43,17 @@ final class OverlayPanel: LevelOverlayPresenting {
         panel?.isVisible ?? false
     }
 
-    init(hideDelay: TimeInterval = 1.0) {
+    /// The panel's origin on screen; `nil` while hidden.
+    var origin: CGPoint? {
+        panel?.frame.origin
+    }
+
+    init(
+        hideDelay: TimeInterval = 1.0,
+        placement: @escaping @MainActor () -> CGPoint = { OverlayPanel.origin(on: OverlayPanel.screenWithPointer()) }
+    ) {
         self.hideDelay = hideDelay
+        self.placement = placement
     }
 
     nonisolated func show(kind: OverlayKind, level: Float, label: String?) {
@@ -70,8 +82,12 @@ final class OverlayPanel: LevelOverlayPresenting {
         let panel = panel ?? makePanel(rootView: view)
         hostingView?.rootView = view
         displayed = value
+        // Follows the pointer: a value drawn while the pointer is on another screen moves the panel there.
+        let origin = placement()
+        if panel.frame.origin != origin {
+            panel.setFrameOrigin(origin)
+        }
         if !panel.isVisible {
-            panel.setFrameOrigin(Self.origin(on: Self.screenWithPointer()))
             panel.orderFrontRegardless()
         }
         scheduleHide()
@@ -123,7 +139,7 @@ final class OverlayPanel: LevelOverlayPresenting {
         return panel
     }
 
-    private static func screenWithPointer() -> NSScreen? {
+    static func screenWithPointer() -> NSScreen? {
         let pointer = NSEvent.mouseLocation
         return NSScreen.screens.first { NSMouseInRect(pointer, $0.frame, false) } ?? NSScreen.main
     }

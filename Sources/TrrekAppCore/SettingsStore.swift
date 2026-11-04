@@ -2,8 +2,9 @@ import Foundation
 
 /// Reads and writes `Settings` as JSON in user defaults.
 ///
-/// Unreadable data or data written with another schema version loads as the defaults; the stored value is
-/// left alone until the next `save`.
+/// Decoding is forgiving (see `Settings.init(from:)`): missing or unreadable fields take their defaults, and only
+/// data that is not a settings object at all or was written by a newer schema version loads as all defaults. The
+/// stored value is left alone until the next `save`.
 public final class SettingsStore: @unchecked Sendable {
     private let defaults: UserDefaults
     private let key: String
@@ -15,18 +16,12 @@ public final class SettingsStore: @unchecked Sendable {
 
     public func load() -> Settings {
         guard let data = defaults.data(forKey: key) else { return Settings() }
-        let settings: Settings
         do {
-            settings = try JSONDecoder().decode(Settings.self, from: data)
+            return try JSONDecoder().decode(Settings.self, from: data)
         } catch {
             appLogger.error("settings unreadable, using defaults: \(String(describing: error), privacy: .public)")
             return Settings()
         }
-        guard settings.schemaVersion == Settings.currentSchemaVersion else {
-            appLogger.error("settings schema \(settings.schemaVersion, privacy: .public) unsupported, using defaults")
-            return Settings()
-        }
-        return settings
     }
 
     public func save(_ settings: Settings) {

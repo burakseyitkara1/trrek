@@ -16,11 +16,17 @@ struct WelcomeView: View {
                     accessibilityGranted: model.accessibilityGranted,
                     interactive: false
                 )
-                GlassEffectContainer(spacing: 8) {
-                    VStack(spacing: 8) {
-                        ForEach(model.cards, id: \.title) { card in
-                            EdgeCard(card: card)
-                        }
+                // No glass container here: a container draws its members' glass itself, past their opacity, so the
+                // cards could not fade in.
+                VStack(spacing: 8) {
+                    ForEach(Array(model.cards.enumerated()), id: \.element.title) { index, card in
+                        EdgeCard(card: card)
+                            .opacity(model.cardsVisible ? 1 : 0)
+                            .offset(y: model.cardsVisible ? 0 : 10)
+                            .animation(
+                                .smooth.delay(Double(index) * WelcomeModel.cardDelay),
+                                value: model.cardsVisible
+                            )
                     }
                 }
             }
@@ -42,6 +48,12 @@ struct WelcomeView: View {
         .padding(.bottom, 20)
         .frame(width: WelcomeWindowController.contentSize.width, height: WelcomeWindowController.contentSize.height)
         .containerBackground(.regularMaterial, for: .window)
+        .onAppear {
+            // The first frame has the cards hidden; they come in once it is on screen.
+            DispatchQueue.main.async { [weak model] in
+                MainActor.assumeIsolated { model?.revealCards() }
+            }
+        }
     }
 
     private var header: some View {

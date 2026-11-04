@@ -47,6 +47,26 @@ struct OverlayPanelTests {
         #expect(!overlay.isVisible)
     }
 
+    @Test func visiblePanelFollowsThePointerToAnotherScreen() async throws {
+        _ = NSApplication.shared
+        let target = PlacementBox(CGPoint(x: 100, y: 200))
+        let overlay = OverlayPanel(hideDelay: 1, placement: { target.point })
+
+        overlay.show(kind: .keyboardBacklight, level: 0.25, label: nil)
+        try await waitUntil { overlay.displayed != nil }
+        #expect(overlay.origin == CGPoint(x: 100, y: 200))
+
+        // The pointer moved to another screen while the panel is up: the next drawn value moves it there.
+        target.point = CGPoint(x: 2000, y: 900)
+        overlay.show(kind: .keyboardBacklight, level: 0.5, label: nil)
+        try await waitUntil { overlay.displayed?.level == 0.5 }
+        #expect(overlay.isVisible)
+        #expect(overlay.origin == CGPoint(x: 2000, y: 900))
+
+        try await waitUntil { !overlay.isVisible }
+        #expect(overlay.origin == nil)
+    }
+
     @Test func originIsTopRightOfVisibleArea() throws {
         let screen = try #require(NSScreen.main)
         let origin = OverlayPanel.origin(on: screen)
@@ -66,5 +86,15 @@ struct OverlayPanelTests {
         }
         thread.start()
         finished.wait()
+    }
+}
+
+/// A placement the test changes between shows.
+@MainActor
+private final class PlacementBox {
+    var point: CGPoint
+
+    init(_ point: CGPoint) {
+        self.point = point
     }
 }

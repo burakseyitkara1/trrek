@@ -37,4 +37,27 @@ struct WelcomeWindowTests {
         #expect(weakModel == nil)
         #expect(weakWindow == nil)
     }
+
+    @Test func cardsComeInAfterTheWindowShows() async throws {
+        _ = NSApplication.shared
+        let registry = WindowRegistry()
+        let controller = WelcomeWindowController(registry: registry)
+        let model = WelcomeModel(
+            settings: AppSettings(), backlightAvailable: true, accessibilityGranted: true, reduceMotion: false
+        )
+        #expect(!model.cardsVisible)
+        controller.show(model: model)
+        // The window first draws the cards hidden; they come in on the next turn of the main queue.
+        #expect(!model.cardsVisible)
+        try await waitUntil { model.cardsVisible }
+        #expect(model.cardsVisible)
+        model.close()
+    }
+
+    @Test func reduceMotionShowsTheCardsAtOnce() {
+        let model = WelcomeModel(
+            settings: AppSettings(), backlightAvailable: true, accessibilityGranted: true, reduceMotion: true
+        )
+        #expect(model.cardsVisible)
+    }
 }

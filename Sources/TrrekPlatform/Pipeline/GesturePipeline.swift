@@ -24,8 +24,8 @@ public enum PipelineIssue: Sendable {
 ///   must go through `withEngine`, which takes the same lock. The lock is not recursive: neither the sink nor a
 ///   `withEngine` body may call back into the pipeline.
 /// - `start()`, `stop()` and `restart()` are called from one thread (the main thread in the app).
-/// - The first frame with contacts from each device is checked for plausible positions and sizes; a failure stops
-///   the pipeline on the main thread and is reported through `onDataUnavailable`.
+/// - The first frame with touching contacts from each device is checked for plausible positions and sizes; a
+///   failure stops the pipeline on the main thread and is reported through `onDataUnavailable`.
 ///
 /// Clocks: frame timestamps come from each device's own clock, which matches no system clock and may differ
 /// between devices. The pipeline remembers, per device, the last frame timestamp and the system uptime at
@@ -42,7 +42,7 @@ public final class GesturePipeline: @unchecked Sendable {
         let geometry: DeviceGeometry
         /// The last frame's own timestamp and the uptime at which it arrived; `nil` until the first frame.
         var lastFrame: (timestamp: TimeInterval, uptime: TimeInterval)?
-        /// Whether a frame with contacts passed the sanity check; only the first such frame is checked.
+        /// Whether a frame with touching contacts passed the sanity check; only the first such frame is checked.
         var checked = false
 
         /// `uptime` translated into this device's frame clock, once a frame has been seen.
@@ -244,7 +244,7 @@ public final class GesturePipeline: @unchecked Sendable {
     }
 
     /// Handles one frame; `uptime` is when it arrived. Runs on the frame thread and never allocates, except once
-    /// when a device's first frame with contacts fails the sanity check.
+    /// when a device's first frame with touching contacts fails the sanity check.
     func handleFrame(
         _ device: MTDeviceRef,
         _ touches: UnsafeBufferPointer<MTTouch>,
@@ -260,8 +260,8 @@ public final class GesturePipeline: @unchecked Sendable {
         }
     }
 
-    /// The frame work under `lock`. Returns `true` when the frame was the device's first with contacts and
-    /// failed the sanity check: the device table is then emptied, so this and every later frame are dropped.
+    /// The frame work under `lock`. Returns `true` when the frame was the device's first with touching contacts
+    /// and failed the sanity check: the device table is then emptied, so this and every later frame are dropped.
     private func process(
         _ device: MTDeviceRef,
         _ touches: UnsafeBufferPointer<MTTouch>,
@@ -269,7 +269,7 @@ public final class GesturePipeline: @unchecked Sendable {
         uptime: TimeInterval
     ) -> Bool {
         guard let index = table.index(of: device), var entry = table[index] else { return false }
-        if !entry.checked, !touches.isEmpty {
+        if !entry.checked, FrameConverter.hasTouchingContact(touches) {
             guard FrameConverter.isPlausible(touches) else {
                 table = DeviceTable()
                 latestIndex = nil

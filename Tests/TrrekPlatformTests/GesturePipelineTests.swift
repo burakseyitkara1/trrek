@@ -164,3 +164,32 @@ func implausibleFirstFrameStopsThePipeline(_ bad: MTTouch) async throws {
     #expect(recorder.issues.isEmpty)
     #expect(pipeline.deviceCount == 1)
 }
+
+@MainActor
+@Test func firstFrameCheckIgnoresContactsThatAreNotTouching() async throws {
+    let (pipeline, _) = makePipeline([deviceA])
+    let recorder = IssueRecorder()
+    pipeline.onDataUnavailable = { recorder.issues.append($0) }
+    let base = GesturePipeline.uptime()
+    // A hovering or lifting contact may carry out-of-range values; it neither fails nor uses up the check.
+    feed(pipeline, deviceA, [contact(id: 1, state: 1, nx: 3, ny: 0.5)], timestamp: 100, uptime: base)
+    feed(pipeline, deviceA, [
+        contact(id: 2, state: 4, nx: 0.5, ny: 0.5),
+        contact(id: 3, state: 5, nx: 0.5, ny: 0.5, majorAxis: 500)
+    ], timestamp: 100.01, uptime: base)
+    try await Task.sleep(for: .milliseconds(50))
+    #expect(recorder.issues.isEmpty)
+    #expect(pipeline.deviceCount == 1)
+}
+
+@MainActor
+@Test func firstTouchingFrameIsCheckedAfterNonTouchingOnes() async throws {
+    let (pipeline, _) = makePipeline([deviceA])
+    let recorder = IssueRecorder()
+    pipeline.onDataUnavailable = { recorder.issues.append($0) }
+    let base = GesturePipeline.uptime()
+    feed(pipeline, deviceA, [contact(id: 1, state: 1)], timestamp: 100, uptime: base)
+    feed(pipeline, deviceA, [contact(id: 1, state: 3, nx: 1.5, ny: 0.5)], timestamp: 100.01, uptime: base)
+    try await waitForMain { !recorder.issues.isEmpty }
+    #expect(recorder.issues == [.dataUnavailable])
+}

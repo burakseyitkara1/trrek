@@ -126,6 +126,29 @@ private let escape: CGKeyCode = 53
     #expect(rig.haptics.calls.count == 1)
 }
 
+@Test func backlightAtItsBoundDropsTheStepHapticOfThatStep() {
+    // The engine sends each step's haptic right after the step; at a bound only the limit haptic plays.
+    let rig = Rig(backlight: FakeBacklight(level: 1))
+    rig.send(.stepKeyboardBacklight(1, fine: false), .haptic(.step))
+    #expect(rig.haptics.calls.map(\.event) == [.limit])
+    // Only that one step haptic is dropped.
+    rig.send(.haptic(.step))
+    #expect(rig.haptics.calls.map(\.event) == [.limit, .step])
+}
+
+@Test func backlightStepAwayFromTheBoundKeepsItsStepHaptic() {
+    let rig = Rig(backlight: FakeBacklight(level: 0.5))
+    rig.send(.stepKeyboardBacklight(1, fine: false), .haptic(.step))
+    #expect(rig.haptics.calls.map(\.event) == [.step])
+}
+
+@Test func backlightLimitSuppressionEndsAtTheNextCommand() {
+    // A step haptic that does not directly follow the bounded step is played.
+    let rig = Rig(backlight: FakeBacklight(level: 0))
+    rig.send(.stepKeyboardBacklight(-1, fine: false), .stepVolume(1, fine: false), .haptic(.step))
+    #expect(rig.haptics.calls.map(\.event) == [.limit, .step])
+}
+
 @Test func backlightLimitHapticRespectsOff() {
     let rig = Rig(backlight: FakeBacklight(level: 1))
     rig.dispatcher.hapticStrength = .off

@@ -1,3 +1,4 @@
+import os
 import TrrekEngine
 import TrrekPlatform
 
@@ -43,6 +44,47 @@ public struct Settings: Codable, Equatable, Sendable {
     public var welcomeShown = false
 
     public init() {}
+}
+
+extension Settings {
+    /// Decodes forgivingly: a missing field, or one whose value cannot be read (such as an enum case this build
+    /// does not know), takes its default while the other fields keep their stored values. Older schema versions
+    /// load this way and become the current version. Only a blob written by a newer schema loads as all defaults,
+    /// since its fields may mean something else.
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let stored = Self.field(container, .schemaVersion) ?? Settings.currentSchemaVersion
+        guard stored <= Settings.currentSchemaVersion else {
+            appLogger.error("settings schema \(stored, privacy: .public) is newer than this build, using defaults")
+            return
+        }
+        hapticStrength = Self.field(container, .hapticStrength) ?? hapticStrength
+        edgeWidth = Self.field(container, .edgeWidth) ?? edgeWidth
+        precision = Self.field(container, .precision) ?? precision
+        freezeCursor = Self.field(container, .freezeCursor) ?? freezeCursor
+        bottomQuarterOnly = Self.field(container, .bottomQuarterOnly) ?? bottomQuarterOnly
+        swapSides = Self.field(container, .swapSides) ?? swapSides
+        externalMonitorBrightness = Self.field(container, .externalMonitorBrightness) ?? externalMonitorBrightness
+        topEdge = Self.field(container, .topEdge) ?? topEdge
+        bottomEdge = Self.field(container, .bottomEdge) ?? bottomEdge
+        topLeft = Self.field(container, .topLeft) ?? topLeft
+        topRight = Self.field(container, .topRight) ?? topRight
+        bottomLeft = Self.field(container, .bottomLeft) ?? bottomLeft
+        bottomRight = Self.field(container, .bottomRight) ?? bottomRight
+        middleClick = Self.field(container, .middleClick) ?? middleClick
+        holdKey = Self.field(container, .holdKey) ?? holdKey
+        holdKeyMode = Self.field(container, .holdKeyMode) ?? holdKeyMode
+        pausedBundleIDs = Self.field(container, .pausedBundleIDs) ?? pausedBundleIDs
+        launchAtLogin = Self.field(container, .launchAtLogin) ?? launchAtLogin
+        welcomeShown = Self.field(container, .welcomeShown) ?? welcomeShown
+    }
+
+    /// The stored value of `key`, or `nil` when it is missing or unreadable.
+    private static func field<T: Decodable>(_ container: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> T? {
+        guard let value = try? container.decodeIfPresent(T.self, forKey: key) else { return nil }
+        return value
+    }
 }
 
 public extension Settings {

@@ -75,6 +75,64 @@ struct SettingsStoreTests {
         #expect(!loaded.precision)
     }
 
+    @Test func decodesOlderSettingsBlobKeepingKnownFields() throws {
+        let defaults = try Self.freshDefaults()
+        defer { Self.wipe(defaults) }
+
+        // An older blob: an earlier schema version and only some of today's fields.
+        let json = """
+        {"schemaVersion": 0, "precision": true, "topEdge": "media", "pausedBundleIDs": ["com.example.one"]}
+        """
+        defaults.set(Data(json.utf8), forKey: "settings")
+        let loaded = SettingsStore(defaults: defaults).load()
+
+        var expected = Settings()
+        expected.precision = true
+        expected.topEdge = .media
+        expected.pausedBundleIDs = ["com.example.one"]
+        #expect(loaded == expected)
+        #expect(loaded.schemaVersion == Settings.currentSchemaVersion)
+    }
+
+    @Test func blobWithoutSchemaVersionKeepsKnownFields() throws {
+        let defaults = try Self.freshDefaults()
+        defer { Self.wipe(defaults) }
+
+        defaults.set(Data(#"{"swapSides": true}"#.utf8), forKey: "settings")
+        let loaded = SettingsStore(defaults: defaults).load()
+        #expect(loaded.swapSides)
+        #expect(loaded.schemaVersion == Settings.currentSchemaVersion)
+    }
+
+    @Test func newerSchemaFallsBackToDefaults() throws {
+        let defaults = try Self.freshDefaults()
+        defer { Self.wipe(defaults) }
+
+        let json = """
+        {"schemaVersion": \(Settings.currentSchemaVersion + 1), "precision": true, "edgeWidth": "wide"}
+        """
+        defaults.set(Data(json.utf8), forKey: "settings")
+        #expect(SettingsStore(defaults: defaults).load() == Settings())
+    }
+
+    @Test func unknownEnumValueFallsBackPerField() throws {
+        let defaults = try Self.freshDefaults()
+        defer { Self.wipe(defaults) }
+
+        let json = """
+        {"schemaVersion": 1, "hapticStrength": "thunderous", "edgeWidth": "wide", "topEdge": "teleport",
+         "bottomEdge": "media", "topLeft": "confetti", "topRight": "mute", "holdKey": "hyper", "precision": "yes"}
+        """
+        defaults.set(Data(json.utf8), forKey: "settings")
+        let loaded = SettingsStore(defaults: defaults).load()
+
+        var expected = Settings()
+        expected.edgeWidth = .wide
+        expected.bottomEdge = .media
+        expected.topRight = .mute
+        #expect(loaded == expected)
+    }
+
     @Test func missingDataLoadsDefaults() throws {
         let defaults = try Self.freshDefaults()
         defer { Self.wipe(defaults) }
