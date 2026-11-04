@@ -28,3 +28,9 @@ import TrrekPlatform
     #expect(OverlayContent.symbol(for: .externalBrightness) == "sun.max")
     #expect(OverlayContent.symbol(for: .scrub) == "film")
 }
+
+@Test func scrubLabelShowsSignedSeconds() {
+    #expect(OverlayContent.scrubLabel(steps: 3) == "+15 s")
+    #expect(OverlayContent.scrubLabel(steps: -2) == "\u{2212}10 s")
+    #expect(OverlayContent.scrubLabel(steps: 0) == "0 s")
+}

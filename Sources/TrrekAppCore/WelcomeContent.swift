@@ -64,7 +64,7 @@ public enum WelcomeContent {
         case .volume: "Slide to turn the sound up or down."
         case .brightness: "Slide to brighten or dim the display."
         case .switchApps: "Slide to pick an app, lift to switch."
-        case .scrubVideo: "Slide to move through a video."
+        case .scrubVideo: "Slide to step through a video."
         case .keyboardBacklight: "Slide to brighten or dim the keys."
         case .media: "Slide to skip, double-tap to play."
         case .off: "Does nothing."

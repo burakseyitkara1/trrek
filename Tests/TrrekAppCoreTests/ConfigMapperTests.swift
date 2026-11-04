@@ -60,14 +60,22 @@ import TrrekPlatform
     }
 }
 
-@Test func scrubVideoIsOffInPhaseOne() {
+@Test func scrubVideoIsMappedWhenTrusted() {
     var settings = Settings()
     settings.topEdge = .scrubVideo
     settings.bottomEdge = .scrubVideo
     let config = ConfigMapper.engineConfig(from: settings, backlightAvailable: true)
+    #expect(config.top == .scrubVideo)
+    #expect(config.bottom == .scrubVideo)
+}
+
+@Test func scrubVideoIsOffWhenUntrusted() {
+    var settings = Settings()
+    settings.topEdge = .scrubVideo
+    settings.bottomEdge = .scrubVideo
+    let config = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: false)
     #expect(config.top == .off)
     #expect(config.bottom == .off)
-    #expect(ConfigMapper.effectiveBottomEdge(settings, backlightAvailable: true) == .off)
 }
 
 @Test func remainingFieldsAreCopied() {

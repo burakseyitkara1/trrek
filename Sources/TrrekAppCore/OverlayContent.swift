@@ -19,6 +19,11 @@ public enum OverlayContent {
         return "\(Int((clamp(level) * 100).rounded()))%"
     }
 
+    /// The net scrub distance as signed seconds ("+15 s", "\u{2212}10 s", "0 s"), assuming 5 s per step.
+    public static func scrubLabel(steps: Int) -> String {
+        ScrubLabel.text(steps: steps)
+    }
+
     public static func symbol(for kind: OverlayKind) -> String {
         switch kind {
         case .keyboardBacklight: "keyboard"

@@ -105,15 +105,15 @@ public enum SettingsLabels {
 public enum EdgeChoices {
     public static let topAndBottom: [EdgeAction] = [.switchApps, .scrubVideo, .keyboardBacklight, .media, .off]
 
-    /// Video scrubbing is not available yet; the keyboard backlight needs its bridge.
+    /// Only the keyboard backlight can be unavailable: it needs its bridge.
     public static func isSelectable(_ action: EdgeAction, backlightAvailable: Bool) -> Bool {
-        caption(for: action, backlightAvailable: backlightAvailable) == nil
+        action != .keyboardBacklight || backlightAvailable
     }
 
-    /// Why an option cannot be picked, or `nil` when it can.
+    /// A note shown beside an option (why it cannot be picked, or what it does), or `nil` when there is none.
     public static func caption(for action: EdgeAction, backlightAvailable: Bool) -> String? {
         switch action {
-        case .scrubVideo: "Coming later"
+        case .scrubVideo: "Uses ← and → in the front app"
         case .keyboardBacklight where !backlightAvailable: "Not available on this Mac"
         default: nil
         }

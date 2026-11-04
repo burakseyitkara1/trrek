@@ -62,10 +62,9 @@ public enum ConfigMapper {
         effective(settings.bottomEdge, backlightAvailable: backlightAvailable)
     }
 
-    /// Video scrubbing is not available yet, so it maps to `.off`.
+    /// The keyboard backlight becomes media control while its bridge is unavailable.
     private static func effective(_ action: EdgeAction, backlightAvailable: Bool) -> EdgeAction {
         switch action {
-        case .scrubVideo: .off
         case .keyboardBacklight where !backlightAvailable: .media
         default: action
         }

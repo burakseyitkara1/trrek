@@ -44,6 +44,10 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Nasıl:** Bir kenarın eylemini Media yap; o kenarda çift dokun.
 - **Beklenen:** Çalan medya oynar/duraklar.
 
+### 2.6 Üst/alt kenar: video sarma
+- **Nasıl:** Edges sekmesinde Top Edge'i Scrub Video yap. Tarayıcıda bir video aç ve oynat; üst kenarda sağa kaydır, sonra sola kaydır.
+- **Beklenen:** Her yaklaşık 6 mm'de video ileri (→) ya da geri (←) sarar; overlay simge ve "+15 s" / "−10 s" gibi net süreyi gösterir (çubuk yok). Parmak kalkınca ek tuş gitmez ve sayaç sıfırlanır. Accessibility izni yokken eylem kapalıdır.
+
 ## 3. Köşeler
 
 ### 3.1 Köşe çift dokunma
@@ -134,9 +138,9 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Nasıl:** General, Edges, Corners & Taps ve Advanced sekmelerini gez; değerleri değiştir.
 - **Beklenen:** Değişiklikler anında etki eder, pencere kapanıp açılınca korunur.
 
-### 7.2 Devre dışı seçenekler başlık gösterir ve seçilemez
+### 7.2 Seçeneklerin notları ve devre dışı olanlar
 - **Nasıl:** Edges sekmesinde Top Edge ve Bottom Edge seçicilerini aç.
-- **Beklenen:** Seçenek adının yanında neden belirtilir: "Scrub Video — Coming later" her zaman devre dışıdır ve seçilemez. Klavye arka ışığı olmayan Mac'te "Keyboard Backlight — Not available on this Mac" devre dışıdır ve seçili değer Media olarak gösterilir.
+- **Beklenen:** Seçenek adının yanında not belirtilir: "Scrub Video — Uses ← and → in the front app" seçilebilir. Klavye arka ışığı olmayan Mac'te "Keyboard Backlight — Not available on this Mac" devre dışıdır ve seçili değer Media olarak gösterilir.
 
 ### 7.3 Reset to Defaults
 - **Nasıl:** Birkaç ayarı değiştir; General sekmesinde Reset to Defaults…'a bas.

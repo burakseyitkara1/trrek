@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+- Scrub Video: slide the top or bottom edge to step through the video in the front app
+
 ## [0.1.1] - 2026-11-04
 
 - Releases are signed with Developer ID, notarized and stapled (`make release`); the DMG has an Applications shortcut; local builds prefer a Developer ID identity

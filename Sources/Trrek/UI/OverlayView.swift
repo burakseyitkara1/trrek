@@ -16,11 +16,15 @@ struct OverlayView: View {
             Image(systemName: OverlayContent.symbol(for: kind))
                 .font(.system(size: 17, weight: .semibold))
                 .frame(width: 24)
-            HStack(spacing: 2) {
-                ForEach(0 ..< OverlayContent.segmentCount, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(index < filled ? Color.primary : Color.primary.opacity(0.18))
-                        .frame(width: 5, height: 10)
+            if kind == .scrub {
+                Spacer(minLength: 0)
+            } else {
+                HStack(spacing: 2) {
+                    ForEach(0 ..< OverlayContent.segmentCount, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(index < filled ? Color.primary : Color.primary.opacity(0.18))
+                            .frame(width: 5, height: 10)
+                    }
                 }
             }
             Text(text)

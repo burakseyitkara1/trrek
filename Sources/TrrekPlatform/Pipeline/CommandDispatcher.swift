@@ -14,12 +14,16 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         static let tab: CGKeyCode = 48
         static let escape: CGKeyCode = 53
         static let five: CGKeyCode = 23
+        static let leftArrow: CGKeyCode = 123
+        static let rightArrow: CGKeyCode = 124
     }
 
     private struct State {
         var hapticStrength: HapticStrength = .medium
         /// Command is held down for the app switcher.
         var switcherHeld = false
+        /// Net arrow-key steps of the current scrub slide.
+        var scrubSteps = 0
     }
 
     private let mediaKeys: any MediaKeyPosting
@@ -89,8 +93,12 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
             switcherEnd(cancel: false, &state)
         case .appSwitchCancel:
             switcherEnd(cancel: true, &state)
-        case .scrubStep, .scrubCommit, .scrubCancel:
-            platformLogger.info("scrub commands are not supported yet; ignored")
+        case let .scrubStep(direction):
+            keys.press(keyCode: direction > 0 ? KeyCode.rightArrow : KeyCode.leftArrow, flags: [])
+            state.scrubSteps += direction > 0 ? 1 : -1
+            overlay?.show(kind: .scrub, level: 0.5, label: ScrubLabel.text(steps: state.scrubSteps))
+        case .scrubCommit, .scrubCancel:
+            state.scrubSteps = 0
         case .mediaPlayPause:
             mediaKeys.post(.play, fine: false)
         case .mediaNext:
@@ -131,5 +139,18 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
             keys.press(keyCode: KeyCode.escape, flags: .maskCommand)
         }
         keys.modifierUp(KeyCode.command)
+    }
+}
+
+/// The scrub overlay's text. It lives in the platform layer because the dispatcher builds it; `OverlayContent`
+/// re-exposes it for the app layer.
+public enum ScrubLabel {
+    /// The net scrub distance as signed seconds ("+15 s", "\u{2212}10 s", "0 s"), assuming 5 s per step.
+    public static func text(steps: Int) -> String {
+        let seconds = steps * 5
+        guard seconds != 0 else {
+            return "0 s"
+        }
+        return seconds > 0 ? "+\(seconds) s" : "\u{2212}\(-seconds) s"
     }
 }

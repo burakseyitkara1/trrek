@@ -179,10 +179,34 @@ private let escape: CGKeyCode = 53
     #expect(rig.freezer.calls == [true, false])
 }
 
-@Test func scrubCommandsAreIgnored() {
+@Test func scrubStepsPressArrowKeys() {
     let rig = Rig()
-    rig.send(.scrubStep(1), .scrubCommit, .scrubCancel)
-    #expect(rig.media.calls.isEmpty)
+    rig.send(.scrubStep(1), .scrubStep(-1))
+    #expect(rig.keys.calls == [.press(124, []), .press(123, [])])
+}
+
+@Test func scrubShowsCumulativeLabel() {
+    let rig = Rig()
+    rig.send(.scrubStep(1), .scrubStep(1), .scrubStep(1))
+    #expect(rig.overlay.calls.last == FakeOverlay.Call(kind: .scrub, level: 0.5, label: "+15 s"))
+    rig.send(.scrubStep(-1), .scrubStep(-1), .scrubStep(-1), .scrubStep(-1), .scrubStep(-1))
+    #expect(rig.overlay.calls.last == FakeOverlay.Call(kind: .scrub, level: 0.5, label: "\u{2212}10 s"))
+}
+
+@Test func scrubCancelSendsNothing() {
+    let rig = Rig()
+    rig.send(.scrubStep(1))
+    rig.keys.removeAll()
+    rig.send(.scrubCancel)
     #expect(rig.keys.calls.isEmpty)
-    #expect(rig.mouse.middleClicks == 0)
+}
+
+@Test func scrubCommitResetsCounter() {
+    let rig = Rig()
+    rig.send(.scrubStep(1), .scrubStep(1))
+    rig.keys.removeAll()
+    rig.send(.scrubCommit)
+    #expect(rig.keys.calls.isEmpty)
+    rig.send(.scrubStep(1))
+    #expect(rig.overlay.calls.last?.label == "+5 s")
 }

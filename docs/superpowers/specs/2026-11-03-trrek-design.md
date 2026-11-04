@@ -318,11 +318,12 @@ Aşama 0 spike sonucu: medya tuşu yolu Accessibility izni olmadan doğrulanamad
 - DDC/CI: `IOAVServiceCreateWithService`, `IOAVServiceWriteI2C`, `IOAVServiceReadI2C` sembolleri; 7-bit adres 0x37, veri adresi 0x51, VCP kodu 0x10 (parlaklık); DDC sağlama toplamı standardına göre paket kurulur; IORegistry `DCPAVServiceProxy` girdileri `EDID UUID` ile `CGDirectDisplayID`'ye eşlenir. Slide başında mevcut/maks değer okunur, her adımda `maks/16` (fine: `maks/64`) yazılır, overlay yüzdeyi gösterir.
 - Bu Mac'te doğrulanamaz; "best effort" olarak işaretlenir. Hata halinde overlay "No DDC" gösterir.
 
-### 6.9 NowPlayingBridge (Aşama 2)
+### 6.9 Scrub Video (ok tuşları)
 
-- macOS 15.4'ten beri MediaRemote yalnızca Apple imzalı süreçlere açıktır. trrek kendi yardımcısını paketler: küçük bir Objective-C/Swift dinamik kütüphane (`nowplaying-helper.dylib`) `/usr/bin/perl` ile `DynaLoader` üzerinden yüklenir; kütüphane `MRMediaRemoteGetNowPlayingInfo` ile geçen süre ve toplam süreyi JSON olarak yazdırır, `MRMediaRemoteSetElapsedTime` ile konumlandırır.
-- `scrubStep` ilkinde `get` çalıştırılır; hedef konum `elapsed + 5 s × adım` olarak overlay'de gösterilir; `scrubCommit` → `seek <saniye>`; `scrubCancel` → hiçbir şey.
-- Slide sürmezken süreç yok; sıfır maliyet. Yardımcı başarısızsa overlay "No media" gösterir.
+- Video sarma, öndeki uygulamaya ←/→ ok tuşu göndererek yapılır (karar 33): `scrubStep(+1)` → sağ ok (keyCode 124), `scrubStep(−1)` → sol ok (123), bayraksız. Tarayıcılar ve çoğu oynatıcı bu tuşlarla sarar; ek süreç ya da özel API gerekmez.
+- Adım boyunu uygulama belirler; overlay etiketi adım başına 5 s varsayar. `CommandDispatcher` slide başına net adım sayısını tutar ve overlay'de `"+15 s"` / `"−10 s"` / `"0 s"` gösterir (simge + etiket, seviye çubuğu yok).
+- `scrubCommit` ve `scrubCancel` yalnızca sayacı sıfırlar; tuş göndermez (adımlar zaten uygulanmıştır).
+- Sentetik olay gönderdiği için Accessibility izni yokken kapalıdır (karar 27).
 
 ### 6.10 Sistem köprüleri
 
@@ -546,7 +547,7 @@ Push-to-main tetikleyicisi yoktur (squash merge içeriği PR başıyla aynıdır
 
 **Aşama 1 — Çekirdek:** Engine + 26 test; Platform 6.1–6.7, 6.10; uygulama 7.1–7.8 (Scrub Video ve External Monitor Brightness ayarlarda devre dışı); CI/CD 10.x; README, CHANGELOG, lisans. Bitiş: başarı ölçütleri 1–5, etiket `v0.1.0`.
 
-**Aşama 2 — Tamamlayıcılar:** 6.8 DDC, 6.9 Now Playing + Scrub Video, karşılama animasyonu, overlay ve diyagram cilası, harici trackpad ile elle doğrulama (cihaz bulunursa). Etiket `v0.2.0`.
+**Aşama 2 — Tamamlayıcılar:** 6.8 DDC, 6.9 Scrub Video, karşılama animasyonu, overlay ve diyagram cilası, harici trackpad ile elle doğrulama (cihaz bulunursa). Etiket `v0.2.0`.
 
 ## 12. Riskler
 

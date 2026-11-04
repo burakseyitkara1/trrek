@@ -62,7 +62,8 @@ struct EdgesTab: View {
             ForEach(EdgeChoices.topAndBottom, id: \.self) { choice in
                 let name = SettingsLabels.title(for: choice)
                 if let caption = EdgeChoices.caption(for: choice, backlightAvailable: available) {
-                    Text("\(name) — \(caption)").tag(choice).disabled(true)
+                    Text("\(name) — \(caption)").tag(choice)
+                        .disabled(!EdgeChoices.isSelectable(choice, backlightAvailable: available))
                 } else {
                     Text(name).tag(choice)
                 }

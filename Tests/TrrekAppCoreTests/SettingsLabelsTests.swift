@@ -41,11 +41,11 @@ import TrrekPlatform
 
 @Test func topAndBottomChoicesMatchSpec() {
     #expect(EdgeChoices.topAndBottom == [.switchApps, .scrubVideo, .keyboardBacklight, .media, .off])
-    #expect(!EdgeChoices.isSelectable(.scrubVideo, backlightAvailable: true))
+    #expect(EdgeChoices.isSelectable(.scrubVideo, backlightAvailable: true))
     #expect(EdgeChoices.isSelectable(.keyboardBacklight, backlightAvailable: true))
     #expect(!EdgeChoices.isSelectable(.keyboardBacklight, backlightAvailable: false))
     #expect(EdgeChoices.isSelectable(.media, backlightAvailable: false))
-    #expect(EdgeChoices.caption(for: .scrubVideo, backlightAvailable: true) == "Coming later")
+    #expect(EdgeChoices.caption(for: .scrubVideo, backlightAvailable: true) == "Uses ← and → in the front app")
     #expect(EdgeChoices.caption(for: .keyboardBacklight, backlightAvailable: false) == "Not available on this Mac")
     #expect(EdgeChoices.caption(for: .keyboardBacklight, backlightAvailable: true) == nil)
     #expect(EdgeChoices.displayed(.keyboardBacklight, backlightAvailable: false) == .media)
@@ -65,7 +65,7 @@ import TrrekPlatform
     settings.topEdge = .scrubVideo
     settings.bottomEdge = .off
     edges = DiagramEdges(settings: settings, backlightAvailable: true, accessibilityTrusted: true)
-    #expect(edges == DiagramEdges(left: .volume, right: .brightness, top: .off, bottom: .off))
+    #expect(edges == DiagramEdges(left: .volume, right: .brightness, top: .scrubVideo, bottom: .off))
 }
 
 @Test func diagramEdgesShowTheGatedActions() {
@@ -119,4 +119,9 @@ import TrrekPlatform
     #expect(SettingsTab(argument: "other") == nil)
     #expect(SettingsTab(argument: nil) == nil)
     #expect(SettingsTab.allCases.map(\.title) == ["General", "Edges", "Corners & Taps", "Advanced"])
+}
+
+@Test func scrubVideoIsSelectable() {
+    #expect(EdgeChoices.isSelectable(.scrubVideo, backlightAvailable: false))
+    #expect(EdgeChoices.isSelectable(.scrubVideo, backlightAvailable: true))
 }
