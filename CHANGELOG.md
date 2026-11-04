@@ -16,3 +16,4 @@ All notable changes to this project are documented in this file.
 - Platform: gesture pipeline, command dispatcher and testable ports
 - Platform: input monitor, hold-key tracker, keyboard backlight bridge and system observers
 - App: settings store, coordinator, menu bar menu, launch at login
+- App: Liquid Glass settings window

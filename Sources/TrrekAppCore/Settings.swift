@@ -44,3 +44,37 @@ public struct Settings: Codable, Equatable, Sendable {
 
     public init() {}
 }
+
+public extension Settings {
+    /// The action of one corner.
+    subscript(corner corner: Corner) -> CornerAction {
+        get {
+            switch corner {
+            case .topLeft: topLeft
+            case .topRight: topRight
+            case .bottomLeft: bottomLeft
+            case .bottomRight: bottomRight
+            }
+        }
+        set {
+            switch corner {
+            case .topLeft: topLeft = newValue
+            case .topRight: topRight = newValue
+            case .bottomLeft: bottomLeft = newValue
+            case .bottomRight: bottomRight = newValue
+            }
+        }
+    }
+
+    /// The defaults, keeping `launchAtLogin` and `welcomeShown`. Without the keyboard backlight bridge the bottom
+    /// edge starts on media control.
+    func resetToDefaults(backlightAvailable: Bool) -> Settings {
+        var reset = Settings()
+        reset.launchAtLogin = launchAtLogin
+        reset.welcomeShown = welcomeShown
+        if !backlightAvailable {
+            reset.bottomEdge = .media
+        }
+        return reset
+    }
+}

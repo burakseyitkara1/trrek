@@ -121,5 +121,6 @@ extension Coordinator {
         let config = engineConfig()
         pipeline?.withEngine { $0.update(config: config) }
         statusMenu?.refresh()
+        windows.settingsModel?.accessibilityGranted = trusted
     }
 }

@@ -49,6 +49,11 @@ let package = Package(
             name: "TrrekAppCoreTests",
             dependencies: ["TrrekAppCore", "TrrekEngine", "TrrekPlatform"],
             swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "TrrekAppTests",
+            dependencies: ["Trrek", "TrrekAppCore", "TrrekEngine", "TrrekPlatform"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
         )
     ]
 )

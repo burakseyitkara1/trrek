@@ -20,6 +20,7 @@ final class Coordinator {
         URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
 
     let windows = WindowRegistry()
+    private lazy var settingsWindowController = SettingsWindowController(registry: windows)
     private let store: SettingsStore
 
     private(set) var settings = Settings()
@@ -123,6 +124,7 @@ final class Coordinator {
         }
         updatePause()
         statusMenu?.refresh()
+        windows.settingsModel?.refresh(from: newSettings)
     }
 
     func engineConfig() -> EngineConfig {
@@ -179,8 +181,19 @@ final class Coordinator {
         apply(updated)
     }
 
+    /// Opens the settings window, or brings it to the front, on `tab` when it names one ("general", "edges",
+    /// "corners", "advanced").
     func openSettings(tab: String? = nil) {
-        appLogger.info("settings window not implemented yet (tab: \(tab ?? "default", privacy: .public))")
+        let model = windows.settingsModel ?? SettingsModel(
+            settings: settings,
+            backlightAvailable: backlight?.isAvailable ?? false,
+            accessibilityGranted: isTrusted,
+            onChange: { [weak self] in self?.apply($0) }
+        )
+        if let tab = SettingsTab(argument: tab) {
+            model.selectedTab = tab
+        }
+        settingsWindowController.show(model: model)
     }
 
     func showWelcome() {
