@@ -4,8 +4,9 @@ import TrrekEngine
 
 /// A glass trackpad silhouette with the four edge strips and the four corner badges.
 ///
-/// The strips show what each edge does; the badges show the corner actions. When `interactive`, a click on a
-/// badge moves that corner to its next action and passes the updated settings to `onChange`.
+/// The strips and badges show what each edge and corner actually does: without Accessibility, the actions that
+/// need it show as off. When `interactive` and Accessibility is granted, a click on a badge moves that corner to
+/// its next action and passes the updated settings to `onChange`.
 struct TrackpadDiagram: View {
     static let size = CGSize(width: 270, height: 180)
     private static let cornerRadius: CGFloat = 12
@@ -14,11 +15,16 @@ struct TrackpadDiagram: View {
 
     let settings: AppSettings
     let backlightAvailable: Bool
+    let accessibilityGranted: Bool
     let interactive: Bool
     var onChange: ((AppSettings) -> Void)?
 
     var body: some View {
-        let edges = DiagramEdges(settings: settings, backlightAvailable: backlightAvailable)
+        let edges = DiagramEdges(
+            settings: settings,
+            backlightAvailable: backlightAvailable,
+            accessibilityTrusted: accessibilityGranted
+        )
         GlassEffectContainer {
             ZStack {
                 horizontalStrip(edges.top, at: .top)
@@ -90,9 +96,9 @@ struct TrackpadDiagram: View {
 
     @ViewBuilder
     private func badge(for corner: Corner) -> some View {
-        let action = settings[corner: corner]
+        let action = ConfigMapper.gated(settings[corner: corner], accessibilityTrusted: accessibilityGranted)
         let help = "\(SettingsLabels.title(for: corner)): \(SettingsLabels.title(for: action))"
-        if interactive {
+        if interactive, accessibilityGranted {
             Button {
                 var updated = settings
                 updated[corner: corner] = SettingsLabels.next(after: action)

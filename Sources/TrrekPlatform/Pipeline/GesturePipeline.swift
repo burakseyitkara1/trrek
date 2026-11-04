@@ -8,6 +8,13 @@ public enum PipelineError: Error {
     case noDevices
 }
 
+/// What `GesturePipeline.onDataUnavailable` reports.
+public enum PipelineIssue: Sendable {
+    /// A device's first frame had positions or sizes outside any plausible range: the contact layout the
+    /// framework delivers is not the one trrek reads.
+    case dataUnavailable
+}
+
 /// Feeds raw multitouch frames into a `GestureEngine`.
 ///
 /// Thread model:
@@ -17,6 +24,8 @@ public enum PipelineError: Error {
 ///   must go through `withEngine`, which takes the same lock. The lock is not recursive: neither the sink nor a
 ///   `withEngine` body may call back into the pipeline.
 /// - `start()`, `stop()` and `restart()` are called from one thread (the main thread in the app).
+/// - The first frame with contacts from each device is checked for plausible positions and sizes; a failure stops
+///   the pipeline on the main thread and is reported through `onDataUnavailable`.
 ///
 /// Clocks: frame timestamps come from each device's own clock, which matches no system clock and may differ
 /// between devices. The pipeline remembers, per device, the last frame timestamp and the system uptime at
@@ -33,6 +42,8 @@ public final class GesturePipeline: @unchecked Sendable {
         let geometry: DeviceGeometry
         /// The last frame's own timestamp and the uptime at which it arrived; `nil` until the first frame.
         var lastFrame: (timestamp: TimeInterval, uptime: TimeInterval)?
+        /// Whether a frame with contacts passed the sanity check; only the first such frame is checked.
+        var checked = false
 
         /// `uptime` translated into this device's frame clock, once a frame has been seen.
         func frameTime(atUptime uptime: TimeInterval) -> TimeInterval? {
@@ -87,10 +98,16 @@ public final class GesturePipeline: @unchecked Sendable {
     private var latestIndex: Int?
     private var watchdogArmed = false
     private var activity: NSObjectProtocol?
+    /// Counts `start()` calls, so a report about an earlier stream never stops a newer one.
+    fileprivate var generation = 0
 
     // Touched only by the thread that calls `start()`/`stop()`.
     private var stream: RawFrameStream?
     public private(set) var isRunning = false
+
+    /// Called on the main thread after the pipeline stopped itself because a device's first frame failed the
+    /// sanity check. Set it on the main thread before `start()`.
+    public var onDataUnavailable: (@Sendable (PipelineIssue) -> Void)?
 
     public init(engine: GestureEngine, lostTimeout: TimeInterval) {
         self.engine = engine
@@ -120,11 +137,13 @@ public final class GesturePipeline: @unchecked Sendable {
         locked { table.count }
     }
 
-    /// Enumerates the multitouch devices and starts streaming. Throws `PipelineError.noDevices` when there is
-    /// no usable device, or the stream's error when no device could be started. Restarts when already running.
+    /// Enumerates the multitouch devices and starts streaming from the trackpads. Throws
+    /// `PipelineError.noDevices` when there is no usable trackpad, or the stream's error when no device could be
+    /// started. Restarts when already running.
     public func start() throws {
         // Stop first: enumeration releases the previous device list, which the old stream still refers to.
         stop()
+        locked { generation += 1 }
         let selected = install(devices: MultitouchDevices.enumerate())
         guard !selected.isEmpty else { throw PipelineError.noDevices }
 
@@ -177,9 +196,9 @@ public final class GesturePipeline: @unchecked Sendable {
     /// Converts a system-uptime timestamp into the engine's clock, which is the frame clock of the device that
     /// drives the active gesture (the device of the most recent frame when idle).
     ///
-    /// `uptime` is in seconds since boot, not counting sleep: `ProcessInfo.processInfo.systemUptime`, or a
-    /// `CGEvent` timestamp divided by 1e9. Returns `nil` until a frame has been seen since the last `start()`.
-    /// Use it for every time handed to the engine from outside, such as `noteKeyDown(at:)`.
+    /// `uptime` is in seconds since boot, not counting sleep: `ProcessInfo.processInfo.systemUptime`, as the
+    /// input monitor reports for each event's arrival. Returns `nil` until a frame has been seen since the last
+    /// `start()`. Use it for every time handed to the engine from outside, such as `noteKeyDown(at:)`.
     public func engineTime(fromUptime uptime: TimeInterval) -> TimeInterval? {
         locked {
             guard let index = activeIndex ?? latestIndex else { return nil }
@@ -189,12 +208,17 @@ public final class GesturePipeline: @unchecked Sendable {
 
     // MARK: - Devices and frames (internal for tests)
 
-    /// Builds the device table from `devices` and returns the devices that made it in: those with a surface
-    /// size, at most `DeviceTable.capacity`.
+    /// Builds the device table from `devices` and returns the devices that made it in: trackpads (and devices of
+    /// unknown kind) with a surface size, at most `DeviceTable.capacity`. Other multitouch devices, such as a
+    /// mouse with a touch surface, are skipped.
     func install(devices: [MultitouchDeviceInfo]) -> [MultitouchDeviceInfo] {
         var newTable = DeviceTable()
         var selected: [MultitouchDeviceInfo] = []
         for device in devices {
+            guard device.kind != .other else {
+                platformLogger.info("skipping multitouch device that is not a trackpad")
+                continue
+            }
             let geometry = DeviceGeometry(
                 widthMM: device.widthMM,
                 heightMM: device.heightMM,
@@ -219,7 +243,8 @@ public final class GesturePipeline: @unchecked Sendable {
         return selected
     }
 
-    /// Handles one frame; `uptime` is when it arrived. Runs on the frame thread and never allocates.
+    /// Handles one frame; `uptime` is when it arrived. Runs on the frame thread and never allocates, except once
+    /// when a device's first frame with contacts fails the sanity check.
     func handleFrame(
         _ device: MTDeviceRef,
         _ touches: UnsafeBufferPointer<MTTouch>,
@@ -227,8 +252,31 @@ public final class GesturePipeline: @unchecked Sendable {
         uptime: TimeInterval
     ) {
         os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        guard let index = table.index(of: device), var entry = table[index] else { return }
+        let rejected = process(device, touches, timestamp, uptime: uptime)
+        let rejectedGeneration = generation
+        os_unfair_lock_unlock(lock)
+        if rejected {
+            reportDataUnavailable(generation: rejectedGeneration)
+        }
+    }
+
+    /// The frame work under `lock`. Returns `true` when the frame was the device's first with contacts and
+    /// failed the sanity check: the device table is then emptied, so this and every later frame are dropped.
+    private func process(
+        _ device: MTDeviceRef,
+        _ touches: UnsafeBufferPointer<MTTouch>,
+        _ timestamp: Double,
+        uptime: TimeInterval
+    ) -> Bool {
+        guard let index = table.index(of: device), var entry = table[index] else { return false }
+        if !entry.checked, !touches.isEmpty {
+            guard FrameConverter.isPlausible(touches) else {
+                table = DeviceTable()
+                latestIndex = nil
+                return true
+            }
+            entry.checked = true
+        }
         entry.lastFrame = (timestamp, uptime)
         table[index] = entry
         latestIndex = index
@@ -239,6 +287,7 @@ public final class GesturePipeline: @unchecked Sendable {
             geometry: entry.geometry
         ))
         settle(frameIndex: index)
+        return false
     }
 
     /// Seconds since boot, not counting sleep (the clock of `ProcessInfo.systemUptime`). A plain clock read,
@@ -301,9 +350,21 @@ public final class GesturePipeline: @unchecked Sendable {
         kind == .sliding || kind == .lost
     }
 
-    private func locked<T>(_ body: () -> T) -> T {
+    fileprivate func locked<T>(_ body: () -> T) -> T {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         return body()
+    }
+}
+
+private extension GesturePipeline {
+    /// Stops the pipeline on the main thread and reports the issue, unless it was restarted in the meantime.
+    func reportDataUnavailable(generation reported: Int) {
+        platformLogger.error("multitouch data out of range on the first frame; stopping")
+        DispatchQueue.main.async { [weak self] in
+            guard let self, locked({ self.generation == reported }) else { return }
+            stop()
+            onDataUnavailable?(.dataUnavailable)
+        }
     }
 }

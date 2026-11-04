@@ -2,6 +2,11 @@
 # Idle check: launches the app, waits 30 s, prints CPU and physical footprint,
 # fails if footprint > 15 MB or CPU > 1.0 %. Footprint (phys_footprint) is used rather
 # than RSS because RSS counts shared system framework pages.
+#
+# The app is launched with --skip-first-run so the measurement is of the idle menu bar app: no
+# welcome window opens (neither the first-run one nor the one for missing Accessibility) and the
+# first-run login item registration does not happen. Side effect: the app's stored settings
+# record the welcome window as shown, so a later normal first launch will not show it.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,7 +26,7 @@ if [[ ! -d "$APP" ]]; then
     exit 1
 fi
 
-open -g "$APP"
+open -g "$APP" --args --skip-first-run
 sleep 30
 
 PID="$(pgrep -x trrek | head -n 1 || true)"

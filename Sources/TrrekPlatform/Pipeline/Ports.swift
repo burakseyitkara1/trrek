@@ -44,6 +44,8 @@ public protocol CursorFreezing: Sendable {
 /// Adjusts the keyboard backlight.
 public protocol KeyboardBacklightControlling: Sendable {
     var isAvailable: Bool { get }
+    /// The current level in 0...1, or `nil` when it cannot be read.
+    func level() -> Float?
     /// Moves the backlight one step in `direction` (+1 brighter, -1 dimmer) and returns the new level in
     /// 0...1, or `nil` when the level could not be changed.
     func step(_ direction: Int, fine: Bool) -> Float?

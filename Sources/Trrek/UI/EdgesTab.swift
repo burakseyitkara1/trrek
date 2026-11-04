@@ -19,11 +19,14 @@ struct EdgesTab: View {
                 TrackpadDiagram(
                     settings: model.settings,
                     backlightAvailable: model.backlightAvailable,
+                    accessibilityGranted: model.accessibilityGranted,
                     interactive: true,
                     onChange: { model.settings = $0 }
                 )
                 .frame(maxWidth: .infinity)
-                .padding(.bottom, 8)
+                // Pulled up into the space under the tab bar, so the tab fits the window's 480 pt.
+                .padding(.top, -16)
+                .padding(.bottom, -4)
             }
             Section {
                 Picker("Edge Width", selection: $model.settings.edgeWidth) {
@@ -36,7 +39,8 @@ struct EdgesTab: View {
                     Text("Bottom Quarter Only")
                     Text("The side edges respond only in their lower quarter.")
                 }
-                Toggle(isOn: $model.settings.externalMonitorBrightness) {
+                // Not built yet: shown off and disabled whatever the stored value says.
+                Toggle(isOn: .constant(false)) {
                     Text("External Monitor Brightness")
                     Text("Coming later")
                 }

@@ -427,9 +427,10 @@ struct Settings: Codable, Equatable {
 | Durum | Davranış |
 |---|---|
 | Private sembol yok | Köprü `isAvailable=false`; ilgili ayar devre dışı; log `error` |
-| MTTouch düzeni makul değil | Kaynak durur; menü durum satırı "Trackpad data unavailable"; log |
-| Trackpad listesi boş | Durum satırı "Trackpad not found"; uyanma ve cihaz bildirimlerinde yeniden dener |
-| Accessibility yok | Tap'ler kurulmaz; motor çalışır; Switch Apps, orta tık, imleç dondurma ve yazma kapısı devre dışı; menüde "Grant Accessibility…" |
+| MTTouch düzeni makul değil | Bir cihazın temas içeren ilk karesinde normalize konum -0,05…1,05 dışında ya da sonlu değilse, veya majorAxis 0…100 dışındaysa kaynak hemen kareleri bırakır, ana iş parçacığında durur; menü durum satırı "Trackpad data unavailable"; log. Sonraki kareler kontrol edilmez. Uyanma ve cihaz bildirimlerinde yeniden dener |
+| Trackpad olmayan multitouch cihaz (ör. dokunmatik yüzeyli fare) | Akışa alınmaz, jest üretmez ve "trrek is active" için sayılmaz. Tür, I/O Registry'deki genel HID özelliklerinden (`HIDPointerAccelerationType`, `DeviceUsagePairs`) belirlenir; ikisi de yoksa cihaz kullanılır (fail open) ve log yazılır |
+| Trackpad listesi boş | Durum satırı "Trackpad not found" (yalnızca trackpad olmayan cihazlar bağlıyken de); uyanma ve cihaz bildirimlerinde yeniden dener |
+| Accessibility yok | Tap'ler kurulmaz; motor çalışır. İzinsiz sentetik olaylar teslim edilmediği için klavye ışığı dışındaki bütün kenar eylemleri, bütün köşeler, orta tık ve imleç dondurma kapalıdır; yazma kapısı ve hold tuşu da çalışmaz. Diyagram etkin (kapatılmış) eylemleri gösterir, karşılama kartları izin gerektiğini söyler. Menüde "Grant Accessibility…", menü simgesinde nokta; sonraki açılışlarda karşılama penceresi yeniden açılır |
 | Tap sistem tarafından kapatıldı | Callback içinde yeniden etkinleştirilir |
 | DDC/Now Playing başarısız | Overlay "No DDC" / "No media"; log |
 | Ayar verisi bozuk | Varsayılanlar; log `error` |
@@ -476,11 +477,13 @@ Alt komutlar: `devices` (liste, yüzey boyutu, built-in), `frames` (ham kare ak�
 
 ### 9.3 Elle kontrol listesi
 
-`docs/testing.md`: her kenar ve köşe, orta tık, precision, imleç dondurma, yazma kapısı, Hold/Toggle, pause in app, uyku sonrası, ayar penceresi ve karşılama görünümü, Magic Trackpad takma (varsa). PR şablonunda işaretlenir.
+`docs/testing.md`: her kenar ve köşe, orta tık, precision, imleç dondurma, yazma kapısı, Hold/Toggle, pause in app, uyku sonrası, ayar penceresi ve karşılama görünümü, harici trackpad takma (varsa), dokunmatik yüzeyli fare (varsa). PR şablonunda işaretlenir.
 
 ### 9.4 Kaynak ölçümü
 
 `scripts/perf.sh`: uygulamayı başlatır, 30 s bekler, `footprint` ve `ps -o %cpu,rss` çıktısını yazdırır; eşik: RSS < 15 MB, CPU 0.0. Sonuç README'ye işlenir.
+
+Not: Bellek RSS yerine fiziksel ayak izi (`phys_footprint`, `vmmap --summary`) olarak ölçülür; RSS paylaşılan sistem çerçevesi sayfalarını da saydığı için uygulamanın kendi maliyetini göstermez (karar 22). Eşik 15 MB ayak izi ve %1 CPU'dur. Ölçüm `--skip-first-run` ile başlatılır ki karşılama penceresi ölçümü bozmasın.
 
 ## 10. Git, CI/CD ve geliştirme süreci
 
@@ -543,7 +546,7 @@ Push-to-main tetikleyicisi yoktur (squash merge içeriği PR başıyla aynıdır
 
 **Aşama 1 — Çekirdek:** Engine + 26 test; Platform 6.1–6.7, 6.10; uygulama 7.1–7.8 (Scrub Video ve External Monitor Brightness ayarlarda devre dışı); CI/CD 10.x; README, CHANGELOG, lisans. Bitiş: başarı ölçütleri 1–5, etiket `v0.1.0`.
 
-**Aşama 2 — Tamamlayıcılar:** 6.8 DDC, 6.9 Now Playing + Scrub Video, karşılama animasyonu, overlay ve diyagram cilası, Magic Trackpad ile elle doğrulama (cihaz bulunursa). Etiket `v0.2.0`.
+**Aşama 2 — Tamamlayıcılar:** 6.8 DDC, 6.9 Now Playing + Scrub Video, karşılama animasyonu, overlay ve diyagram cilası, harici trackpad ile elle doğrulama (cihaz bulunursa). Etiket `v0.2.0`.
 
 ## 12. Riskler
 

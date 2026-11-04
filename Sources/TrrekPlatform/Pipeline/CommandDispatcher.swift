@@ -78,7 +78,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         case let .stepBrightness(direction, fine):
             mediaKeys.post(direction > 0 ? .brightnessUp : .brightnessDown, fine: fine)
         case let .stepKeyboardBacklight(direction, fine):
-            stepBacklight(direction, fine: fine)
+            stepBacklight(direction, fine: fine, hapticStrength: state.hapticStrength)
         case let .appSwitchStep(direction):
             if !state.switcherHeld {
                 keys.modifierDown(KeyCode.command, flags: .maskCommand)
@@ -112,8 +112,15 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         }
     }
 
-    private func stepBacklight(_ direction: Int, fine: Bool) {
-        guard let backlight, backlight.isAvailable, let level = backlight.step(direction, fine: fine) else { return }
+    /// Steps the backlight and shows its level. A step that cannot move because the level already sits at 0 or 1
+    /// plays the limit haptic, as the system levels do at their ends.
+    private func stepBacklight(_ direction: Int, fine: Bool, hapticStrength: HapticStrength) {
+        guard let backlight, backlight.isAvailable else { return }
+        let previous = backlight.level()
+        guard let level = backlight.step(direction, fine: fine) else { return }
+        if level == previous, level == 0 || level == 1, hapticStrength != .off {
+            haptics.perform(.limit, strength: hapticStrength)
+        }
         overlay?.show(kind: .keyboardBacklight, level: level, label: nil)
     }
 

@@ -17,7 +17,7 @@ func printUsage() {
     usage: trrek-probe <command> [arguments]
 
     commands:
-      devices                 list multitouch devices (built-in, surface size, multitouch ID)
+      devices                 list multitouch devices (built-in, kind, surface size, multitouch ID)
       frames [seconds]        print raw contact frames (default 10 s)
       layout-check            validate the contact struct layout against the first 50 frames
       haptic <id> [repeat]    play haptic waveform <id> on the built-in trackpad
@@ -75,8 +75,8 @@ func runDevices() {
         }
         let size = String(format: "%.2f x %.2f mm", device.widthMM, device.heightMM)
         let identifier = device.multitouchID.map { String(format: "0x%llx (%llu)", $0, $0) } ?? "none"
-        output("[\(index)] built-in=\(device.isBuiltIn) raw=\(rawWidth)x\(rawHeight) size(raw/100)=\(size) "
-            + "multitouch-id=\(identifier)")
+        output("[\(index)] built-in=\(device.isBuiltIn) kind=\(device.kind) raw=\(rawWidth)x\(rawHeight) "
+            + "size(raw/100)=\(size) multitouch-id=\(identifier)")
     }
 }
 

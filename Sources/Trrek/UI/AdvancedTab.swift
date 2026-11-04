@@ -6,9 +6,6 @@ import TrrekPlatform
 
 /// Hold-to-slide, paused apps, Accessibility status and version.
 struct AdvancedTab: View {
-    private static let accessibilityPaneURL =
-        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-
     @Bindable var model: SettingsModel
 
     var body: some View {
@@ -46,7 +43,7 @@ struct AdvancedTab: View {
     private var accessibilityRow: some View {
         LabeledContent {
             Button("Open System Settings") {
-                if let url = Self.accessibilityPaneURL {
+                if let url = Permissions.accessibilityPaneURL {
                     NSWorkspace.shared.open(url)
                 }
             }
@@ -64,7 +61,9 @@ struct AdvancedTab: View {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 }
             }
-            Text("Switch Apps, middle click and Freeze Cursor need it.")
+            if !model.accessibilityGranted {
+                Text(SettingsLabels.accessibilityNeeded)
+            }
         }
     }
 

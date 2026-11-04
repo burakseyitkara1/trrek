@@ -8,35 +8,45 @@ public struct WelcomeCard: Equatable, Sendable {
     public var title: String
     /// One short line on how to use the edge.
     public var detail: String
+    /// The edge is set to `action` but does nothing until Accessibility is granted.
+    public var needsAccessibility: Bool
 
-    public init(edge: Edge, action: EdgeAction, title: String, detail: String) {
+    public init(edge: Edge, action: EdgeAction, title: String, detail: String, needsAccessibility: Bool = false) {
         self.edge = edge
         self.action = action
         self.title = title
         self.detail = detail
+        self.needsAccessibility = needsAccessibility
     }
 }
 
 /// What the welcome window says about each edge.
 public enum WelcomeContent {
     /// The right, left, top and bottom edge cards for `settings`: Swap Sides moves volume to the left, and the
-    /// bottom edge shows media control while the keyboard backlight bridge is unavailable.
-    public static func cards(for settings: Settings, backlightAvailable: Bool) -> [WelcomeCard] {
-        let edges = DiagramEdges(settings: settings, backlightAvailable: backlightAvailable)
+    /// bottom edge shows media control while the keyboard backlight bridge is unavailable. Without Accessibility,
+    /// a card still names the configured action but says it needs the permission (the diagram shows it off).
+    public static func cards(
+        for settings: Settings,
+        backlightAvailable: Bool,
+        accessibilityTrusted: Bool
+    ) -> [WelcomeCard] {
+        let edges = DiagramEdges(settings: settings, backlightAvailable: backlightAvailable, accessibilityTrusted: true)
         return [
-            card(.right, edges.right),
-            card(.left, edges.left),
-            card(.top, edges.top),
-            card(.bottom, edges.bottom)
+            card(.right, edges.right, accessibilityTrusted),
+            card(.left, edges.left, accessibilityTrusted),
+            card(.top, edges.top, accessibilityTrusted),
+            card(.bottom, edges.bottom, accessibilityTrusted)
         ]
     }
 
-    private static func card(_ edge: Edge, _ action: EdgeAction) -> WelcomeCard {
-        WelcomeCard(
+    private static func card(_ edge: Edge, _ action: EdgeAction, _ trusted: Bool) -> WelcomeCard {
+        let gated = ConfigMapper.gated(action, accessibilityTrusted: trusted) != action
+        return WelcomeCard(
             edge: edge,
             action: action,
             title: "\(name(of: edge)) edge — \(SettingsLabels.title(for: action))",
-            detail: detail(for: action)
+            detail: gated ? "Needs Accessibility access." : detail(for: action),
+            needsAccessibility: gated
         )
     }
 

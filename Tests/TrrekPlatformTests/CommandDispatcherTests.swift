@@ -100,6 +100,38 @@ private let escape: CGKeyCode = 53
     #expect(rig.media.calls.isEmpty)
 }
 
+@Test func backlightAtItsBoundsPlaysTheLimitHaptic() {
+    let rig = Rig(backlight: FakeBacklight(level: 1))
+    rig.dispatcher.hapticStrength = .light
+    rig.send(.stepKeyboardBacklight(1, fine: false))
+    #expect(rig.haptics.calls == [FakeHaptics.Call(event: .limit, strength: .light)])
+    #expect(rig.overlay.calls.last?.level == 1)
+
+    let low = Rig(backlight: FakeBacklight(level: 0))
+    low.send(.stepKeyboardBacklight(-1, fine: true))
+    #expect(low.haptics.calls == [FakeHaptics.Call(event: .limit, strength: .medium)])
+}
+
+@Test func backlightReachingABoundPlaysNoLimitHaptic() {
+    // The step that arrives at the bound still moved the level; only the next one hits the limit.
+    let rig = Rig(backlight: FakeBacklight(level: 0.9375))
+    rig.send(.stepKeyboardBacklight(1, fine: false))
+    #expect(rig.backlight?.current == 1)
+    #expect(rig.haptics.calls.isEmpty)
+    rig.send(.stepKeyboardBacklight(1, fine: false))
+    #expect(rig.haptics.calls.map(\.event) == [.limit])
+    // Moving away from the bound is an ordinary step.
+    rig.send(.stepKeyboardBacklight(-1, fine: false))
+    #expect(rig.haptics.calls.count == 1)
+}
+
+@Test func backlightLimitHapticRespectsOff() {
+    let rig = Rig(backlight: FakeBacklight(level: 1))
+    rig.dispatcher.hapticStrength = .off
+    rig.send(.stepKeyboardBacklight(1, fine: false))
+    #expect(rig.haptics.calls.isEmpty)
+}
+
 @Test func backlightMissingDoesNothing() {
     let rig = Rig(backlight: nil)
     rig.send(.stepKeyboardBacklight(1, fine: false), .stepKeyboardBacklight(-1, fine: true))

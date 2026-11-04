@@ -28,10 +28,11 @@ check: test lint
 hooks:
 	scripts/install-hooks.sh
 
-VERSION ?= 0.0.0
+# The version defaults to the one in Sources/TrrekEngine/Version.swift; pass VERSION=X.Y.Z to override.
+VERSION ?= $(shell sed -nE 's/.*string = "([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' Sources/TrrekEngine/Version.swift)
 BUILD ?= 1
 
-# Package dist/trrek.app (ad-hoc signed).
+# Package dist/trrek.app (signed with the local identity when present, ad-hoc otherwise).
 app:
 	scripts/build-app.sh --version $(VERSION) --build $(BUILD)
 

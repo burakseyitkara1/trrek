@@ -8,7 +8,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
     private weak var coordinator: Coordinator?
-    private var iconActive: Bool?
+    /// The state the icon was last drawn for: hold toggle on, Accessibility missing.
+    private var iconState: (active: Bool, attention: Bool)?
 
     init(coordinator: Coordinator) {
         self.coordinator = coordinator
@@ -29,9 +30,12 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
     func refreshIcon() {
         let active = coordinator?.isHoldToggleActive ?? false
-        guard active != iconActive else { return }
-        iconActive = active
-        statusItem.button?.image = MenuIcon.image(active: active)
+        let attention = !(coordinator?.isTrusted ?? true)
+        if let iconState, iconState == (active, attention) {
+            return
+        }
+        iconState = (active, attention)
+        statusItem.button?.image = MenuIcon.image(active: active, attention: attention)
     }
 
     func menuNeedsUpdate(_: NSMenu) {

@@ -34,3 +34,13 @@ Geliştirme sırasında kontrolörün verdiği kararlar; her madde ne kararlaşt
 ## Sürüm
 
 21. **`TrrekVersion.string` sürüm PR'larında elle güncellenir; paket sürümü etiketten gelir.** Bedel: yalnızca "About"ta görünen bir uyumsuzluk.
+
+## Son inceleme
+
+22. **Bellek `phys_footprint` olarak ölçülür, RSS olarak değil.** RSS paylaşılan sistem çerçevesi sayfalarını da sayar ve uygulamanın kendi maliyetini abartır; 15 MB bütçesi ayak izine uygulanır (spec 9.4 notu). Bedel: eski RSS rakamlarıyla doğrudan karşılaştırılamaz.
+23. **Kararlı yerel imza kimliği ("trrek Local Signing").** Ad-hoc imza her derlemede kod özetini değiştirir ve Accessibility iznini düşürür; yerel kimlik izni korur. Kimlikle imzalama başarısız olursa (anahtar zinciri istemi reddedildi gibi) derleme uyarıyla ad-hoc'a düşer. Bedel: ilk imzada bir kerelik anahtar zinciri istemi ("Always Allow").
+24. **`v0.1.0` etiketi yalnızca son inceleme ve elle kontrol listesi tamamlandıktan sonra atılır.** Etiket sürüm iş akışını tetikler; geri almak pahalıdır. Bedel: sürüm biraz gecikir.
+25. **Tuş olayı zamanı = varış zamanı.** `InputMonitor`, tap callback'i içinde okunan `ProcessInfo.processInfo.systemUptime` değerini iletir; `CGEvent.timestamp`'in saati belgelenmediği için ona dayanılmaz (`TrrekProbe keys` ikisini de yazdırır). Bedel: zaman damgası callback gecikmesi kadar geç (milisaniye altı), yazma kapısı için önemsiz.
+26. **Yalnızca trackpad'ler jest üretir.** Tür, `AppleMultitouchDevice` kaydındaki genel HID özelliklerinden belirlenir: `HIDPointerAccelerationType` = `HIDTrackpadAcceleration` ya da `DeviceUsagePairs` içinde Digitizer/Touch Pad (0x0D/0x05) kullanımı varsa trackpad; özelliklerden biri var ama sinyal yoksa trackpad değil (ör. dokunmatik yüzeyli fare); ikisi de yoksa cihaz kullanılır ve log yazılır. "Family ID" kullanılmadı: değerler donanım kuşağına göre değişir ve yayımlanmış bir listesi yoktur (buradaki yerleşik trackpad 110 bildirir); bir beyaz liste yeni donanımda trackpad'i kapatırdı. Cihazlar kayıt girdileriyle multitouch kimliği üzerinden eşleştirilir. Bedel: sınıflandırıcı fare için elde doğrulanamadı; temsilî sözlüklerle test edildi.
+27. **İzinsiz durumda sentetik olay gönderen her eylem kapalıdır.** Klavye ışığı (doğrudan ayarlanır) dışındaki bütün kenarlar, bütün köşeler, orta tık ve imleç dondurma `.off`; diyagram etkin eylemleri gösterir. İzinsiz gönderilen olaylar teslim edilmediği için açık görünen ama çalışmayan kontroller yanıltıcıydı. Bedel: izin verilene kadar trrek neredeyse hiçbir şey yapmaz; karşılama penceresi bunu her açılışta anlatır.
+28. **İnceleyici iddiaları kaynağa karşı doğrulanır; yanlışsa gerekçesiyle reddedilir.** Bir bulgu ancak kodda ya da ölçümde doğrulanınca düzeltilir. Bedel: inceleme turu biraz uzar.

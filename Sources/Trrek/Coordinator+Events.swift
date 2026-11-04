@@ -38,10 +38,25 @@ extension Coordinator {
         appLogger.info("restarting multitouch after \(reason, privacy: .public)")
         pipeline?.stop()
         dispatcher?.releaseAll()
-        holdKeyTracker.reset()
+        // A held key may have been released unseen. Toggle mode keeps its on/off state, which the user set on
+        // purpose; only the press in flight is forgotten.
+        if holdKeyTracker.mode == .toggle {
+            holdKeyTracker.cancelPress()
+        } else {
+            holdKeyTracker.reset()
+        }
         let satisfied = holdKeyTracker.isSatisfied
         pipeline?.withEngine { $0.setHoldKeySatisfied(satisfied) }
         startPipeline()
+        statusMenu?.refresh()
+    }
+
+    /// The pipeline stopped itself because a first frame was implausible; it stays stopped until the next wake or
+    /// device change restarts it.
+    func trackpadDataUnavailable() {
+        dispatcher?.releaseAll()
+        trackpadIssue = .dataUnavailable
+        appLogger.error("multitouch stopped: trackpad data unavailable")
         statusMenu?.refresh()
     }
 
@@ -71,6 +86,9 @@ extension Coordinator {
             monitor.onFlagsChanged = { [weak self] flags, uptime in
                 MainActor.assumeIsolated { self?.flagsChanged(flags, at: uptime) }
             }
+            monitor.onMouseDown = { [weak self] uptime in
+                MainActor.assumeIsolated { self?.holdKeyTracker.handleMouseDown(at: uptime) }
+            }
             inputMonitor = monitor
         }
         monitor.start()
@@ -93,8 +111,8 @@ extension Coordinator {
     // MARK: - System
 
     func startObservers() {
-        frontmostObserver.onChange = { [weak self] _ in
-            MainActor.assumeIsolated { self?.updatePause() }
+        frontmostObserver.onChange = { [weak self] bundleID in
+            MainActor.assumeIsolated { self?.updatePause(bundleID: bundleID) }
         }
         frontmostObserver.start()
         wakeObserver.onWake = { [weak self] in

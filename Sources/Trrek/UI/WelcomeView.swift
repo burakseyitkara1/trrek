@@ -13,6 +13,7 @@ struct WelcomeView: View {
                 TrackpadDiagram(
                     settings: model.settings,
                     backlightAvailable: model.backlightAvailable,
+                    accessibilityGranted: model.accessibilityGranted,
                     interactive: false
                 )
                 GlassEffectContainer(spacing: 8) {
@@ -67,9 +68,10 @@ struct WelcomeView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Accessibility access needed")
                         .font(.callout.weight(.semibold))
-                    Text("Switch Apps, middle click and Freeze Cursor need it.")
+                    Text(SettingsLabels.accessibilityNeeded)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
                 Button("Grant Accessibility Access") { model.grantAccessibility() }
@@ -91,7 +93,7 @@ private struct EdgeCard: View {
         HStack(spacing: 10) {
             Image(systemName: SettingsLabels.symbol(for: card.action) ?? "nosign")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(TrackpadDiagram.color(for: card.action))
+                .foregroundStyle(card.needsAccessibility ? .secondary : TrackpadDiagram.color(for: card.action))
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 1) {
                 Text(card.title)

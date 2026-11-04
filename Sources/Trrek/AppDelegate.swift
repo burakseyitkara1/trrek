@@ -9,7 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         launchOptions = LaunchOptions(arguments: CommandLine.arguments)
-        coordinator.start()
+        coordinator.start(skipFirstRun: launchOptions.skipFirstRun)
 
         if launchOptions.openSettings {
             coordinator.openSettings(tab: launchOptions.settingsTab)
@@ -28,6 +28,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    /// Opening the app again while it runs (for example from the Applications folder) shows the settings window.
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        coordinator.openSettings()
+        return false
     }
 
     func applicationWillTerminate(_: Notification) {

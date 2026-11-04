@@ -3,6 +3,10 @@ import TrrekPlatform
 
 /// The English titles and SF Symbol names the settings and welcome windows show for each option.
 public enum SettingsLabels {
+    /// Why trrek asks for Accessibility; shown wherever the permission is missing.
+    public static let accessibilityNeeded =
+        "trrek needs Accessibility access to change volume, brightness and the other controls."
+
     public static func title(for action: EdgeAction) -> String {
         switch action {
         case .volume: "Volume"
@@ -122,7 +126,8 @@ public enum EdgeChoices {
     }
 }
 
-/// The action each edge of the trackpad diagram shows: what the engine actually runs for these settings.
+/// The action each edge of the trackpad diagram shows: what the engine actually runs for these settings, including
+/// the actions turned off while Accessibility is missing.
 public struct DiagramEdges: Equatable, Sendable {
     public var left: EdgeAction
     public var right: EdgeAction
@@ -136,9 +141,12 @@ public struct DiagramEdges: Equatable, Sendable {
         self.bottom = bottom
     }
 
-    /// Accessibility is assumed granted: the diagram shows the configured layout, not the gated one.
-    public init(settings: Settings, backlightAvailable: Bool) {
-        let config = ConfigMapper.engineConfig(from: settings, backlightAvailable: backlightAvailable)
+    public init(settings: Settings, backlightAvailable: Bool, accessibilityTrusted: Bool) {
+        let config = ConfigMapper.engineConfig(
+            from: settings,
+            backlightAvailable: backlightAvailable,
+            accessibilityTrusted: accessibilityTrusted
+        )
         self.init(left: config.left, right: config.right, top: config.top, bottom: config.bottom)
     }
 }

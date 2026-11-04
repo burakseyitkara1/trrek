@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+- Fixes from the 0.1.0 review: trackpad-only devices, key timing, accessibility prompts and gating, toggle and limit haptics, first-frame check
+
 ## [0.1.0] - 2026-11-04
 
 - Project scaffold: SPM package, Makefile, lint/format config, git hooks

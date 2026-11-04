@@ -58,10 +58,13 @@ public struct HoldKeyTracker: Sendable {
             return update(down)
         case .toggle:
             if down {
+                // A lone press starts with no other modifier held, and stops being one when another joins.
+                let othersHeld = !flags.intersection(Self.modifierFlags).subtracting(flag).isEmpty
                 if !wasDown {
-                    // A lone press starts with no other modifier held.
                     pressedAt = time
-                    isLonePress = flags.intersection(Self.modifierFlags).subtracting(flag).isEmpty
+                    isLonePress = !othersHeld
+                } else if othersHeld {
+                    isLonePress = false
                 }
                 return false
             }
@@ -79,9 +82,19 @@ public struct HoldKeyTracker: Sendable {
         isLonePress = false
     }
 
+    /// Notes a mouse button press; a modifier held during one is a modifier-click, not a toggle tap.
+    public mutating func handleMouseDown(at time: TimeInterval) {
+        handleKeyDown(at: time)
+    }
+
     /// Returns to the initial state: satisfied only for `.none`, with no press in flight.
     public mutating func reset() {
         isSatisfied = key == .none
+        cancelPress()
+    }
+
+    /// Forgets the press in flight, keeping `isSatisfied`; for when a key-up may have been missed.
+    public mutating func cancelPress() {
         isDown = false
         pressedAt = 0
         isLonePress = false

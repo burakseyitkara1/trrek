@@ -8,6 +8,15 @@ struct GeneralTab: View {
 
     var body: some View {
         Form {
+            if !model.accessibilityGranted {
+                Section {
+                    Label {
+                        Text(SettingsLabels.accessibilityNeeded)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    }
+                }
+            }
             Section {
                 Picker("Haptic Feedback", selection: $model.settings.hapticStrength) {
                     ForEach(HapticStrength.allCases, id: \.self) { strength in

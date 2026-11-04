@@ -37,3 +37,12 @@ import TrrekAppCore
     #expect(LaunchOptions(arguments: ["trrek", "--quit-after", "soon"]).quitAfter == nil)
     #expect(LaunchOptions(arguments: ["trrek", "--quit-after", "-1"]).quitAfter == nil)
 }
+
+@Test func skipFirstRunIsParsed() {
+    #expect(LaunchOptions(arguments: ["trrek", "--skip-first-run"]).skipFirstRun)
+    #expect(!LaunchOptions(arguments: ["trrek"]).skipFirstRun)
+    let combined = LaunchOptions(arguments: ["trrek", "--settings", "edges", "--skip-first-run", "--quit-after", "6"])
+    #expect(combined.settingsTab == "edges")
+    #expect(combined.skipFirstRun)
+    #expect(combined.quitAfter == 6)
+}

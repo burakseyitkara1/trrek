@@ -83,19 +83,23 @@ final class FakeFreezer: CursorFreezing, @unchecked Sendable {
 
 /// A backlight that moves by 1/16 per step (1/64 when fine) and clamps to 0...1.
 final class FakeBacklight: KeyboardBacklightControlling, @unchecked Sendable {
-    private(set) var level: Float
+    private(set) var current: Float
     private(set) var steps: [(direction: Int, fine: Bool)] = []
     let isAvailable = true
 
     init(level: Float) {
-        self.level = level
+        current = level
+    }
+
+    func level() -> Float? {
+        current
     }
 
     func step(_ direction: Int, fine: Bool) -> Float? {
         steps.append((direction, fine))
         let delta: Float = fine ? 1 / 64 : 1 / 16
-        level = min(1, max(0, level + Float(direction) * delta))
-        return level
+        current = min(1, max(0, current + Float(direction) * delta))
+        return current
     }
 }
 

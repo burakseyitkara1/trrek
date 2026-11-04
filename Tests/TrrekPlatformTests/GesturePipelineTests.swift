@@ -88,3 +88,79 @@ private func isClose(_ value: TimeInterval?, _ expected: TimeInterval) -> Bool {
     pipeline.withEngine { $0.reset() }
     #expect(isClose(pipeline.engineTime(fromUptime: base + 1), 9000.96))
 }
+
+@Test func onlyTrackpadsAreInstalled() {
+    let sink = CollectingSink()
+    let pipeline = GesturePipeline(engine: GestureEngine(config: EngineConfig(), sink: sink), lostTimeout: 60)
+    let geometry = (width: Float(121.94), height: Float(74.08))
+    let mouse = MultitouchDeviceInfo(
+        ref: deviceB, isBuiltIn: false, widthMM: geometry.width, heightMM: geometry.height,
+        multitouchID: 2, kind: .other
+    )
+    let trackpad = MultitouchDeviceInfo(
+        ref: deviceA, isBuiltIn: true, widthMM: geometry.width, heightMM: geometry.height,
+        multitouchID: 1, kind: .trackpad
+    )
+    let selected = pipeline.install(devices: [mouse, trackpad])
+    #expect(selected.map(\.ref) == [deviceA])
+    #expect(pipeline.deviceCount == 1)
+
+    // A pipeline with only a non-trackpad has no device: start would report `noDevices`.
+    #expect(pipeline.install(devices: [mouse]).isEmpty)
+    #expect(pipeline.deviceCount == 0)
+}
+
+/// Records the issues a pipeline reports; written and read on the main thread.
+private final class IssueRecorder: @unchecked Sendable {
+    var issues: [PipelineIssue] = []
+}
+
+/// Lets the main queue run until `done` holds or a few seconds pass.
+@MainActor
+private func waitForMain(_ done: () -> Bool) async throws {
+    let deadline = Date(timeIntervalSinceNow: 5)
+    while !done(), Date() < deadline {
+        try await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+@MainActor
+@Test(arguments: [
+    contact(id: 1, state: 4, nx: .nan, ny: 0.5),
+    contact(id: 1, state: 4, nx: 0.5, ny: 1.2),
+    contact(id: 1, state: 4, nx: -0.1, ny: 0.5),
+    contact(id: 1, state: 4, nx: 0.5, ny: 0.5, majorAxis: 150),
+    contact(id: 1, state: 4, nx: 0.5, ny: 0.5, majorAxis: -1),
+    contact(id: 1, state: 4, nx: 0.5, ny: 0.5, majorAxis: .infinity)
+])
+func implausibleFirstFrameStopsThePipeline(_ bad: MTTouch) async throws {
+    let (pipeline, sink) = makePipeline([deviceA])
+    let recorder = IssueRecorder()
+    pipeline.onDataUnavailable = { recorder.issues.append($0) }
+    let base = GesturePipeline.uptime()
+    // An empty frame is not checked; the first frame with a contact is.
+    feed(pipeline, deviceA, [], timestamp: 100, uptime: base)
+    feed(pipeline, deviceA, [contact(id: 2, state: 4, nx: 0.98, ny: 0.3), bad], timestamp: 100.01, uptime: base)
+    // Frames after the rejected one are dropped before the main thread stops the pipeline.
+    feed(pipeline, deviceA, [contact(id: 2, state: 4, nx: 0.98, ny: 0.4)], timestamp: 100.02, uptime: base)
+    #expect(pipeline.deviceCount == 0)
+
+    try await waitForMain { !recorder.issues.isEmpty }
+    #expect(recorder.issues == [.dataUnavailable])
+    #expect(!pipeline.isRunning)
+    #expect(sink.commands.isEmpty)
+}
+
+@MainActor
+@Test func onlyTheFirstFrameIsChecked() async throws {
+    let (pipeline, _) = makePipeline([deviceA])
+    let recorder = IssueRecorder()
+    pipeline.onDataUnavailable = { recorder.issues.append($0) }
+    let base = GesturePipeline.uptime()
+    feed(pipeline, deviceA, [contact(id: 1, state: 4, nx: 0.5, ny: 0.5)], timestamp: 100, uptime: base)
+    // Later frames go straight to the engine, which has its own guards.
+    feed(pipeline, deviceA, [contact(id: 1, state: 4, nx: 2, ny: 0.5)], timestamp: 100.01, uptime: base)
+    try await Task.sleep(for: .milliseconds(50))
+    #expect(recorder.issues.isEmpty)
+    #expect(pipeline.deviceCount == 1)
+}

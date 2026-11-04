@@ -6,6 +6,8 @@ import Foundation
 /// - `--welcome` opens the welcome window.
 /// - `--demo-overlay` shows the level overlay once.
 /// - `--quit-after <seconds>` quits after the given time (for screenshots and footprint checks).
+/// - `--skip-first-run` records the welcome window as shown and shows no welcome window at launch, neither the
+///   first-run one nor the one for missing Accessibility (for screenshots and footprint checks).
 public struct LaunchOptions: Equatable, Sendable {
     public var openSettings = false
     /// The tab to open settings on; `nil` for the default tab.
@@ -13,6 +15,7 @@ public struct LaunchOptions: Equatable, Sendable {
     public var welcome = false
     public var demoOverlay = false
     public var quitAfter: TimeInterval?
+    public var skipFirstRun = false
 
     public init() {}
 
@@ -32,6 +35,8 @@ public struct LaunchOptions: Equatable, Sendable {
                 welcome = true
             case "--demo-overlay":
                 demoOverlay = true
+            case "--skip-first-run":
+                skipFirstRun = true
             case "--quit-after":
                 if let value = remaining.first.flatMap(TimeInterval.init), value >= 0 {
                     quitAfter = value

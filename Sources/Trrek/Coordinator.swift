@@ -16,9 +16,6 @@ final class Coordinator {
     /// How long wake and device notifications must stay quiet before the multitouch stream restarts.
     static let restartDelay: TimeInterval = 0.4
 
-    private static let accessibilityPaneURL =
-        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-
     let windows = WindowRegistry()
     private lazy var settingsWindowController = SettingsWindowController(registry: windows)
     private lazy var welcomeWindowController = WelcomeWindowController(registry: windows)
@@ -52,7 +49,9 @@ final class Coordinator {
 
     // MARK: - Lifecycle
 
-    func start() {
+    /// Loads the settings and starts everything. `skipFirstRun` records the welcome window as shown and shows no
+    /// welcome window at launch (for screenshots and footprint checks).
+    func start(skipFirstRun: Bool = false) {
         settings = store.load()
         let trusted = Permissions.isTrusted
         isTrusted = trusted
@@ -81,7 +80,11 @@ final class Coordinator {
         let config = engineConfig()
         let engine = GestureEngine(config: config, sink: dispatcher)
         self.dispatcher = dispatcher
-        pipeline = GesturePipeline(engine: engine, lostTimeout: config.thresholds.lostTimeout)
+        let pipeline = GesturePipeline(engine: engine, lostTimeout: config.thresholds.lostTimeout)
+        pipeline.onDataUnavailable = { [weak self] _ in
+            MainActor.assumeIsolated { self?.trackpadDataUnavailable() }
+        }
+        self.pipeline = pipeline
 
         rebuildHoldKeyTracker()
         updatePause()
@@ -90,8 +93,17 @@ final class Coordinator {
         startObservers()
         statusMenu = StatusMenu(coordinator: self)
 
-        if !settings.welcomeShown {
+        if skipFirstRun {
+            if !settings.welcomeShown {
+                var updated = settings
+                updated.welcomeShown = true
+                apply(updated)
+            }
+        } else if !settings.welcomeShown {
             firstRun()
+        } else if !trusted {
+            // A later launch without Accessibility (revoked, or reset by a reinstall) explains it again.
+            showWelcome()
         }
     }
 
@@ -188,6 +200,9 @@ final class Coordinator {
     /// Opens the settings window, or brings it to the front, on `tab` when it names one ("general", "edges",
     /// "corners", "advanced").
     func openSettings(tab: String? = nil) {
+        if windows.settingsModel == nil {
+            syncLaunchAtLogin()
+        }
         let model = windows.settingsModel ?? SettingsModel(
             settings: settings,
             backlightAvailable: backlight?.isAvailable ?? false,
@@ -223,15 +238,16 @@ final class Coordinator {
         let promptedBefore = accessibilityPrompted
         accessibilityPrompted = true
         Permissions.prompt()
-        guard promptedBefore, !Permissions.isTrusted, let url = Self.accessibilityPaneURL else { return }
+        guard promptedBefore, !Permissions.isTrusted, let url = Permissions.accessibilityPaneURL else { return }
         NSWorkspace.shared.open(url)
     }
 
     // MARK: - Helpers
 
-    /// Pauses the engine while the frontmost application is in the paused list.
-    func updatePause() {
-        let paused = FrontmostObserver.currentBundleID.map(settings.pausedBundleIDs.contains) ?? false
+    /// Pauses the engine while the frontmost application is in the paused list. `bundleID` is the frontmost
+    /// application's; an activation notification passes the one it carries.
+    func updatePause(bundleID: String? = FrontmostObserver.currentBundleID) {
+        let paused = bundleID.map(settings.pausedBundleIDs.contains) ?? false
         pipeline?.withEngine { $0.setPaused(paused) }
     }
 
@@ -253,6 +269,16 @@ final class Coordinator {
         apply(updated)
     }
 
+    /// Makes the stored Launch at Login value match the system's login item, which the user can change in System
+    /// Settings. Only the stored value changes: registering or unregistering here could undo a pending approval.
+    private func syncLaunchAtLogin() {
+        let enabled = LaunchAtLogin.isEnabled
+        guard settings.launchAtLogin != enabled else { return }
+        settings.launchAtLogin = enabled
+        store.save(settings)
+        statusMenu?.refresh()
+    }
+
     private func setLaunchAtLogin(_ enabled: Bool) {
         do {
             try LaunchAtLogin.setEnabled(enabled)
@@ -262,7 +288,8 @@ final class Coordinator {
     }
 
     private static func makeHaptics() -> any HapticPerforming {
-        let devices = MultitouchDevices.enumerate()
+        // The actuator of a device that never drives gestures would answer for the wrong surface.
+        let devices = MultitouchDevices.enumerate().filter { $0.kind != .other }
         let identifier = devices.first(where: \.isBuiltIn)?.multitouchID
             ?? devices.lazy.compactMap(\.multitouchID).first
         if let identifier, let actuator = ActuatorHaptics(multitouchID: identifier) {

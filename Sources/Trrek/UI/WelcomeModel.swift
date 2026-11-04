@@ -30,6 +30,10 @@ final class WelcomeModel {
     }
 
     var cards: [WelcomeCard] {
-        WelcomeContent.cards(for: settings, backlightAvailable: backlightAvailable)
+        WelcomeContent.cards(
+            for: settings,
+            backlightAvailable: backlightAvailable,
+            accessibilityTrusted: accessibilityGranted
+        )
     }
 }

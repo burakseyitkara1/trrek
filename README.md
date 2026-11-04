@@ -7,9 +7,11 @@ A menu bar app for macOS that turns trackpad edges into single-finger controls f
 - Right edge controls volume, left edge brightness; the top and bottom edges run a configurable action (app switching, keyboard backlight, media)
 - Corner double taps mute or take a screenshot; a double tap on a media edge plays or pauses
 - Optional three-finger tap sends a middle click
-- Precision steps with Option+Shift, cursor freeze and scroll suppression while sliding
+- Precision Control setting: each step changes the level by a quarter as much (sent as an Option+Shift step)
+- Freeze Cursor setting: the pointer stays still and scrolling is suppressed while sliding
 - Palm, typing, hold-key and per-app pause gates
-- Haptic feedback and a level overlay
+- Haptic feedback, and a level overlay for the keyboard backlight (volume and brightness use the system indicator)
+- Only trackpads drive gestures; touches on a mouse with a touch surface are ignored
 - Liquid Glass settings window, launch at login
 
 ## Requirements
@@ -19,11 +21,11 @@ A menu bar app for macOS that turns trackpad edges into single-finger controls f
 
 ## Install
 
-Run `make install` to build and copy `trrek.app` to `~/Applications`. A build installed with `make install` is not quarantined and opens normally. A downloaded build is not notarized and macOS will block it on first launch: move it to Applications, try to open it once, then allow it in System Settings › Privacy & Security › Open Anyway (right-click › Open no longer bypasses Gatekeeper). On first launch trrek asks for the Accessibility permission: grant it in System Settings › Privacy & Security › Accessibility.
+Run `make install` to build and copy `trrek.app` to `~/Applications`. A build installed with `make install` is not quarantined and opens normally. A downloaded build is not notarized and macOS will block it on first launch: move it to Applications, try to open it once, then allow it in System Settings › Privacy & Security › Open Anyway (right-click › Open no longer bypasses Gatekeeper). On first launch trrek asks for the Accessibility permission: grant it in System Settings › Privacy & Security › Accessibility. Without it only the keyboard backlight edge works, since macOS does not deliver the events trrek posts for everything else; until it is granted, trrek shows the welcome window again at each launch and a dot on its menu bar icon.
 
 ### Keeping Accessibility permission across updates
 
-Every ad-hoc-signed build has a different code hash, so macOS drops the Accessibility grant after each reinstall. To avoid that, run `scripts/make-signing-identity.sh` once by hand; it creates a self-signed certificate named "trrek Local Signing" in your login keychain (macOS may ask for your password). `scripts/build-app.sh` then signs with it automatically. To use another identity, set `TRREK_SIGN_IDENTITY` to its name.
+Every ad-hoc-signed build has a different code hash, so macOS drops the Accessibility grant after each reinstall. To avoid that, run `scripts/make-signing-identity.sh` once by hand; it creates a self-signed certificate named "trrek Local Signing" in your login keychain (macOS may ask for your password). `scripts/build-app.sh` then signs with it automatically. The first build signed with it shows a one-time keychain prompt asking to let `codesign` use the key: choose Always Allow, so later builds sign without asking. If signing with the identity fails, the build warns and falls back to ad-hoc signing. To use another identity, set `TRREK_SIGN_IDENTITY` to its name.
 
 ## Usage
 
@@ -34,7 +36,7 @@ Put one finger in an edge strip of the trackpad and move along it.
 - Corners: double tap for the action set per corner (Mute, Screenshot or Off).
 - A second finger cancels a slide; lifting commits it.
 
-Open Settings from the menu bar icon. General covers haptics, Precision Control, Freeze Cursor, launch at login and Reset to Defaults. Edges covers the top and bottom actions, strip width and Bottom Quarter Only (side edges respond only in their lower quarter). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
+Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Precision Control, Freeze Cursor, launch at login and Reset to Defaults. Edges covers the top and bottom actions, strip width and Bottom Quarter Only (side edges respond only in their lower quarter). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
 
 ## Performance
 
@@ -50,7 +52,7 @@ Measured with `make perf` on the installed 0.1.0 build after 30 s idle: 0.0 % CP
 | `make lint` | Check formatting and lint rules |
 | `make check` | Run tests and lint |
 | `make hooks` | Install local git hooks |
-| `make app` | Package `dist/trrek.app` |
+| `make app` | Package `dist/trrek.app` (version from `Version.swift` unless `VERSION=X.Y.Z` is given) |
 | `make install` | Install into `~/Applications` |
 | `make perf` | Idle check: fails above 15 MB physical footprint or 1% CPU |
 | `make clean` | Remove build output |

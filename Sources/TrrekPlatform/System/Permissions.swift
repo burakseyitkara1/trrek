@@ -18,6 +18,10 @@ public enum Permissions {
     /// The trust database can lag behind the notification, so trust is read again once after this delay.
     private static let recheckDelay: TimeInterval = 0.5
 
+    /// The Accessibility pane of System Settings.
+    public static let accessibilityPaneURL =
+        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+
     public static var isTrusted: Bool {
         AXIsProcessTrusted()
     }

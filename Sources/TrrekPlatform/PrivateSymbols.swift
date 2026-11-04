@@ -17,6 +17,15 @@ public struct MultitouchSymbols: Sendable {
     public let start: @convention(c) (MTDeviceRef, Int32) -> Int32
     public let stop: @convention(c) (MTDeviceRef) -> Int32
     public let release: @convention(c) (MTDeviceRef) -> Void
+    /// The device's multitouch ID (the registry's "Multitouch ID"); optional, since only device matching uses it.
+    public let deviceID: (@convention(c) (MTDeviceRef, UnsafeMutablePointer<UInt64>) -> Int32)?
+}
+
+/// Names in the I/O Registry entries of the system multitouch driver.
+enum MultitouchRegistryKeys {
+    static let deviceClass = "AppleMultitouchDevice"
+    static let multitouchID = "Multitouch ID"
+    static let builtIn = "MT Built-In"
 }
 
 /// Function pointers for the trackpad haptic actuator.
@@ -91,7 +100,11 @@ public enum PrivateSymbols {
             unregisterFrameCallback: unregister,
             start: start,
             stop: stop,
-            release: release
+            release: release,
+            deviceID: resolve(
+                "MTDeviceGetDeviceID",
+                as: (@convention(c) (MTDeviceRef, UnsafeMutablePointer<UInt64>) -> Int32).self
+            )
         )
     }()
 

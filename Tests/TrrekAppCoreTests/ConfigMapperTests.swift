@@ -96,28 +96,56 @@ import TrrekPlatform
 @Test func untrustedDisablesAccessibilityFeatures() {
     var settings = Settings()
     settings.topEdge = .switchApps
-    settings.bottomEdge = .switchApps
+    settings.bottomEdge = .media
     settings.middleClick = true
     settings.freezeCursor = true
     settings.topLeft = .mute
+    settings.topRight = .screenshot
+    settings.bottomLeft = .mute
+    settings.bottomRight = .screenshot
 
+    // Everything that posts synthetic events is off: every edge but the keyboard backlight, every corner, middle
+    // click and cursor freezing.
     let untrusted = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: false)
+    #expect(untrusted.left == .off)
+    #expect(untrusted.right == .off)
     #expect(untrusted.top == .off)
     #expect(untrusted.bottom == .off)
+    #expect(untrusted.topLeft == .off)
+    #expect(untrusted.topRight == .off)
+    #expect(untrusted.bottomLeft == .off)
+    #expect(untrusted.bottomRight == .off)
     #expect(!untrusted.middleClickEnabled)
     #expect(!untrusted.freezeCursor)
-    // Features that do not need Accessibility stay as configured.
-    #expect(untrusted.left == .brightness)
-    #expect(untrusted.right == .volume)
-    #expect(untrusted.topLeft == .mute)
 
     let trusted = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: true)
+    #expect(trusted.left == .brightness)
+    #expect(trusted.right == .volume)
     #expect(trusted.top == .switchApps)
-    #expect(trusted.bottom == .switchApps)
+    #expect(trusted.bottom == .media)
+    #expect(trusted.topLeft == .mute)
+    #expect(trusted.bottomRight == .screenshot)
     #expect(trusted.middleClickEnabled)
     #expect(trusted.freezeCursor)
+}
 
-    var media = Settings()
-    media.topEdge = .media
-    #expect(ConfigMapper.engineConfig(from: media, backlightAvailable: true, accessibilityTrusted: false).top == .media)
+@Test func untrustedKeepsOnlyTheKeyboardBacklight() {
+    var settings = Settings()
+    settings.topEdge = .keyboardBacklight
+    settings.bottomEdge = .keyboardBacklight
+    let untrusted = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: false)
+    #expect(untrusted.top == .keyboardBacklight)
+    #expect(untrusted.bottom == .keyboardBacklight)
+
+    // Without the backlight bridge the edge runs media control, which posts events and is gated.
+    let noBridge = ConfigMapper.engineConfig(from: settings, backlightAvailable: false, accessibilityTrusted: false)
+    #expect(noBridge.bottom == .off)
+
+    for action in EdgeAction.allCases where action != .keyboardBacklight {
+        #expect(ConfigMapper.gated(action, accessibilityTrusted: false) == .off)
+        #expect(ConfigMapper.gated(action, accessibilityTrusted: true) == action)
+    }
+    #expect(ConfigMapper.gated(.keyboardBacklight, accessibilityTrusted: false) == .keyboardBacklight)
+    #expect(ConfigMapper.gated(CornerAction.mute, accessibilityTrusted: false) == .off)
+    #expect(ConfigMapper.gated(CornerAction.mute, accessibilityTrusted: true) == .mute)
 }

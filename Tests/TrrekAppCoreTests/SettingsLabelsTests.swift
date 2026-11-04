@@ -55,17 +55,27 @@ import TrrekPlatform
 
 @Test func diagramEdgesFollowSettings() {
     var settings = Settings()
-    var edges = DiagramEdges(settings: settings, backlightAvailable: true)
+    var edges = DiagramEdges(settings: settings, backlightAvailable: true, accessibilityTrusted: true)
     #expect(edges == DiagramEdges(left: .brightness, right: .volume, top: .switchApps, bottom: .keyboardBacklight))
 
-    edges = DiagramEdges(settings: settings, backlightAvailable: false)
+    edges = DiagramEdges(settings: settings, backlightAvailable: false, accessibilityTrusted: true)
     #expect(edges.bottom == .media)
 
     settings.swapSides = true
     settings.topEdge = .scrubVideo
     settings.bottomEdge = .off
-    edges = DiagramEdges(settings: settings, backlightAvailable: true)
+    edges = DiagramEdges(settings: settings, backlightAvailable: true, accessibilityTrusted: true)
     #expect(edges == DiagramEdges(left: .volume, right: .brightness, top: .off, bottom: .off))
+}
+
+@Test func diagramEdgesShowTheGatedActions() {
+    let edges = DiagramEdges(settings: Settings(), backlightAvailable: true, accessibilityTrusted: false)
+    #expect(edges == DiagramEdges(left: .off, right: .off, top: .off, bottom: .keyboardBacklight))
+}
+
+@Test func accessibilityNeededNamesTheControls() {
+    #expect(SettingsLabels.accessibilityNeeded
+        == "trrek needs Accessibility access to change volume, brightness and the other controls.")
 }
 
 @Test func cornerSubscriptReadsAndWritesEachCorner() {

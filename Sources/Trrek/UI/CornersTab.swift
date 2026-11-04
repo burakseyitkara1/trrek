@@ -20,13 +20,14 @@ struct CornersTab: View {
                 TrackpadDiagram(
                     settings: model.settings,
                     backlightAvailable: model.backlightAvailable,
+                    accessibilityGranted: model.accessibilityGranted,
                     interactive: true,
                     onChange: { model.settings = $0 }
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 8)
             } footer: {
-                Text("Double-tap a corner to run its action. Click a corner in the diagram to change it.")
+                Text(footer)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -38,6 +39,12 @@ struct CornersTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var footer: String {
+        model.accessibilityGranted
+            ? "Double-tap a corner to run its action. Click a corner in the diagram to change it."
+            : "Double-tap a corner to run its action once Accessibility access is granted."
     }
 
     private func binding(for corner: Corner) -> Binding<CornerAction> {

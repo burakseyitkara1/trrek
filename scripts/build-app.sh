@@ -38,13 +38,20 @@ if [[ -d Sources/Trrek/Resources ]]; then
 fi
 
 # A stable identity keeps the Accessibility grant across rebuilds; ad-hoc signing changes the
-# code hash on every build. See scripts/make-signing-identity.sh.
+# code hash on every build. See scripts/make-signing-identity.sh. When signing with the identity
+# fails (for example the keychain prompt was denied or timed out), the build falls back to ad-hoc.
 IDENTITIES="$(security find-identity -v -p codesigning || true)"
+IDENTITY=""
 if [[ -n "${TRREK_SIGN_IDENTITY:-}" ]]; then
-    codesign --force --deep --sign "$TRREK_SIGN_IDENTITY" "$APP"
+    IDENTITY="$TRREK_SIGN_IDENTITY"
 elif grep -q "trrek Local Signing" <<<"$IDENTITIES"; then
-    codesign --force --deep --sign "trrek Local Signing" "$APP"
-else
+    IDENTITY="trrek Local Signing"
+fi
+if [[ -n "$IDENTITY" ]] && ! codesign --force --deep --sign "$IDENTITY" "$APP"; then
+    echo "warning: signing with '$IDENTITY' failed; signing ad-hoc instead (Accessibility must be granted again)" >&2
+    IDENTITY=""
+fi
+if [[ -z "$IDENTITY" ]]; then
     codesign --force --sign - --deep "$APP"
 fi
 codesign -dv "$APP"

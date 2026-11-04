@@ -49,13 +49,25 @@ func runKeys(_ options: [String]) {
             + "System Settings > Privacy & Security > Accessibility")
         exit(1)
     }
-    // Event times are seconds of system uptime; the uptime when the line is printed is shown for comparison.
+    // The callbacks run on the main thread, where the monitor lives.
+    nonisolated(unsafe) let events = monitor
+    // `arrival` is the system uptime when the event reached the tap, which is what trrek uses; `event` is the
+    // timestamp the event carries, shown for comparison only.
     monitor.onKeyDown = { time in
-        output(String(format: "t=%.4f uptime=%.4f keyDown", time, ProcessInfo.processInfo.systemUptime))
+        MainActor.assumeIsolated {
+            output(String(format: "arrival=%.4f event=%.4f keyDown", time, events.lastEventTimestamp))
+        }
     }
     monitor.onFlagsChanged = { flags, time in
-        output(String(format: "t=%.4f uptime=%.4f flagsChanged ", time, ProcessInfo.processInfo.systemUptime)
-            + String(format: "0x%llx ", flags.rawValue) + modifierDescription(flags))
+        MainActor.assumeIsolated {
+            output(String(format: "arrival=%.4f event=%.4f flagsChanged ", time, events.lastEventTimestamp)
+                + String(format: "0x%llx ", flags.rawValue) + modifierDescription(flags))
+        }
+    }
+    monitor.onMouseDown = { time in
+        MainActor.assumeIsolated {
+            output(String(format: "arrival=%.4f event=%.4f mouseDown", time, events.lastEventTimestamp))
+        }
     }
     monitor.start()
     output("listening for \(seconds) s; events posted by trrek are not shown")
