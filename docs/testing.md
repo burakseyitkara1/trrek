@@ -198,6 +198,22 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Nasıl:** Birkaç ayarı değiştir; General sekmesinde Reset to Defaults…'a bas.
 - **Beklenen:** Onay uyarısı çıkar; iptal edince değişiklik olmaz, onaylayınca tüm ayarlar varsayılana döner.
 
+### 7.4 Ayarları dışa aktarma
+- **Nasıl:** General sekmesinde Export Settings…'e bas; trrek arka plandayken de dene.
+- **Beklenen:** Kaydetme paneli ayarlar penceresine sheet olarak bağlanır, önerilen ad "trrek Settings.trrek"tir. Kaydedilen dosya girintili JSON'dur; `format`, `formatVersion`, `appVersion` ve `settings` anahtarları vardır, `launchAtLogin` ve `welcomeShown` yoktur.
+
+### 7.5 Ayarları içe aktarma
+- **Nasıl:** Dışa aktardıktan sonra birkaç ayarı değiştir; Import Settings…'e bas ve dosyayı seç. Bir kez Cancel, bir kez Replace de.
+- **Beklenen:** Açma paneli sheet olarak gelir ve yalnızca `.trrek` dosyaları seçilebilir. "Replace your current settings with the ones in “…”?" onayı çıkar; Cancel hiçbir şeyi değiştirmez, Replace dışa aktarılan ayarları geri getirir ve kenarlar hemen yeni ayarlarla çalışır. Launch at Login değişmez.
+
+### 7.6 Geçersiz dosyayı içe aktarma
+- **Nasıl:** Boş bir dosyayı, rastgele metni, 1 MB'tan büyük bir dosyayı, `"format"` değeri farklı bir JSON'u ve `"formatVersion": 2` yazılmış bir dosyayı `.trrek` uzantısıyla kaydedip sırayla içe aktar.
+- **Beklenen:** Uygulama çökmez; "“…” could not be imported." uyarısı nedenini söyler (bozuk/başka dosya ya da daha yeni sürüm) ve ayarlar değişmez.
+
+### 7.7 Finder'dan çift tıklama
+- **Nasıl:** trrek çalışırken ve kapalıyken Finder'da bir `.trrek` dosyasına çift tıkla; ayarlar penceresi Edges sekmesindeyken de dene.
+- **Beklenen:** Dosyanın türü "trrek Settings" görünür; trrek açılır ya da öne gelir, ayarlar penceresi General sekmesinde açılır ve aynı onay çıkar. Kapalıyken açılışta karşılama penceresi gerekiyorsa o da çıkar, onay ayarlar penceresindedir. Onay açıkken ikinci bir `.trrek` dosyasına çift tıklamak onayı değiştirmez (yok sayılır); Replace ilk dosyayı uygular.
+
 ## 8. Araçlar
 
 ### 8.1 TrrekProbe tuş zamanı

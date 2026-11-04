@@ -29,6 +29,15 @@ final class SettingsModel {
     var confirmingReset = false
     /// The bundle ID of the selected row in the paused apps list.
     var selectedPausedApp: String?
+    /// Settings read from a `.trrek` file for the import confirmation. Kept after the alert closes, so its title
+    /// does not change while it animates out; the next import replaces it.
+    var pendingImport: PendingImport?
+    var isConfirmingImport = false
+    /// The last import or export failure, kept after its alert closes for the same reason.
+    var transferFailure: TransferFailure?
+    var isShowingTransferFailure = false
+    /// Whether a settings file is being read.
+    var isReadingImport = false
 
     /// Looks up an app's name and icon; replaced in tests.
     @ObservationIgnored var appInfoResolver: (String) -> PausedAppInfo = PausedAppInfo.init(bundleID:)

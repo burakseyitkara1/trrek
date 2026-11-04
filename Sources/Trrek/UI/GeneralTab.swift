@@ -2,7 +2,7 @@ import SwiftUI
 import TrrekAppCore
 import TrrekPlatform
 
-/// Feedback, slide behaviour, login item and reset.
+/// Feedback, slide behaviour, login item, export and import, and reset.
 struct GeneralTab: View {
     @Bindable var model: SettingsModel
 
@@ -37,6 +37,11 @@ struct GeneralTab: View {
             }
             Section {
                 Toggle("Launch at Login", isOn: $model.settings.launchAtLogin)
+            }
+            Section {
+                SettingsTransferButtons(model: model)
+            } footer: {
+                Text("Settings are saved as a .trrek file. Launch at Login is not included.")
             }
             Section {
                 HStack {

@@ -403,6 +403,10 @@ struct Settings: Codable, Equatable {
 
 `UserDefaults.standard` içinde `settings` anahtarında JSON. `schemaVersion` ileride göç için. Reset to Defaults: onay; `launchAtLogin` ve `welcomeShown` korunur.
 
+#### 7.4a Dışa ve içe aktarma (Aşama 3)
+
+`TrrekAppCore.SettingsDocument` ayarları `.trrek` dosyasına yazar ve okur: girintili, anahtarları sıralı JSON, `{"appVersion", "format": "trrek-settings", "formatVersion": 1, "settings": {…}}`. `launchAtLogin` ve `welcomeShown` bu Mac'e aittir; dışa aktarılmaz, içe aktarmada mevcut değerleri korunur. `settings` forgiving decoder ile okunur. 1 MB'tan büyük, JSON olmayan, `format` farklı ya da `formatVersion` < 1 olan dosya `notSettingsFile`, `formatVersion` > 1 ya da `settings.schemaVersion` bu derlemeden yeni olan dosya `newerFormat` hatasıdır; ikisinde de ayarlar değişmez ve uyarı çıkar. General sekmesindeki Export/Import düğmeleri panelleri ayarlar penceresine sheet olarak açar; içe aktarma onaydan sonra `SettingsModel` → `onChange` → `Coordinator.apply` yolundan geçer. `Info.plist` `com.burakseyitkara.trrek.settings` türünü dışa aktarır (`public.json`'a uyar, uzantı `trrek`) ve onu Viewer rolüyle açar; Finder'dan açılan dosya `application(_:open:)` ile ayarlar penceresini General sekmesinde açıp aynı onayı gösterir (karar 43).
+
 ### 7.5 OverlayPanel
 
 - `NSPanel(styleMask: [.borderless, .nonactivatingPanel])`, `level = .statusBar`, `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]`, `ignoresMouseEvents = true`, `hasShadow = false`.

@@ -15,6 +15,7 @@ A menu bar app for macOS that turns trackpad edges into single-finger controls f
 - Haptic feedback, and a level overlay for the keyboard backlight, external monitor brightness and the scrub distance, on the screen with the pointer (volume and built-in brightness use the system indicator)
 - Only trackpads drive gestures; touches on a mouse with a touch surface are ignored
 - Liquid Glass settings window, launch at login
+- Export and import settings as a `.trrek` file; double-clicking a `.trrek` file in Finder offers to import it
 
 ## Requirements
 
@@ -42,7 +43,11 @@ Put one finger in an edge strip of the trackpad and move along it.
 - Corners: double tap for the action set per corner (Mute, Screenshot or Off).
 - A second finger cancels a slide; lifting commits it.
 
-Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Precision Control, Freeze Cursor, launch at login and Reset to Defaults. Edges covers the top and bottom actions, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
+Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Precision Control, Freeze Cursor, launch at login, Export Settings…/Import Settings… and Reset to Defaults. Edges covers the top and bottom actions, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
+
+### Moving settings to another Mac
+
+Export Settings… in the General tab saves every setting except Launch at Login to a `.trrek` file (indented JSON). Import Settings…, or double-clicking the file in Finder, asks before replacing the current settings; Launch at Login keeps its current value. A file that is damaged, not a trrek settings file or exported by a newer trrek is refused with an explanation, and the settings stay as they were.
 
 ## Performance
 

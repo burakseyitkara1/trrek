@@ -209,6 +209,16 @@ final class Coordinator {
         settingsWindowController.show(model: model)
     }
 
+    /// Opens the settings window and asks whether to import the settings file at `url` (opened from Finder). While
+    /// the window already shows an alert, a sheet or is reading another file, the window comes to the front and the
+    /// file is ignored (see `SettingsModel.openedFile(at:)`).
+    func openSettingsFile(at url: URL) {
+        let busy = windows.settingsModel?.isBusyForOpenedFile ?? false
+        openSettings(tab: busy ? nil : SettingsTab.general.rawValue)
+        guard let model = windows.settingsModel else { return }
+        Task { await model.openedFile(at: url) }
+    }
+
     /// Opens the welcome window, or brings it to the front.
     func showWelcome() {
         let model = windows.welcomeModel ?? WelcomeModel(

@@ -6,6 +6,8 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+- Export Settings… and Import Settings… in the General tab save the settings to a `.trrek` file and load them back after a confirmation; opening a `.trrek` file from Finder offers the same import
+
 ## [0.2.2] - 2026-11-04
 
 - The line trrek logs when a signal makes it quit is kept in the system log, so a signal quit can be checked afterwards

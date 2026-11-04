@@ -21,5 +21,6 @@ struct SettingsView: View {
             }
         }
         .frame(width: SettingsWindowController.contentSize.width, height: SettingsWindowController.contentSize.height)
+        .modifier(SettingsTransferAlerts(model: model))
     }
 }
