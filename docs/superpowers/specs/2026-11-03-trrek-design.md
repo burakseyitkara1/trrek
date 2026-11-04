@@ -154,7 +154,7 @@ public struct EngineConfig {
 }
 ```
 
-Swap Sides, uygulama katmanında `left`/`right` eylemlerini değiştirerek uygulanır; Engine ayrı bir bayrak tutmaz.
+Swap Sides, uygulama katmanında `left`/`right` eylemlerini değiştirerek uygulanır; Engine ayrı bir bayrak tutmaz. (Aşama 3'te Swap Sides kalktı ve eylem listeleri genişledi; bkz. 5.9.)
 
 ### 5.3 Geometri
 
@@ -162,7 +162,7 @@ Swap Sides, uygulama katmanında `left`/`right` eylemlerini değiştirerek uygul
 - Kenar şeritleri: `left: x·W < w`, `right: (1−x)·W < w`, `bottom: y·H < w`, `top: (1−y)·H < w` (w = edgeWidthMM).
 - Köşe: iki şeridin kesişimi; her zaman `corner` bölgesidir. Köşede başlayan parmak hareket eksenine göre komşu kenara bağlanır (5.4); köşe eylemi Off ise çift dokunma hiçbir şey yapmaz.
 - `bottomQuarterOnly` açıkken sol/sağ şeritleri yalnızca `y < 0.25` iken kenar bölgesi üretir. Seçenek yalnızca dikey kenar slide'larını kısıtlar, köşe algılamayı değil: `y ≥ 0.25`'te dikey şerit yatay şeritle yine köşe oluşturur. Böyle bir köşe adayı dikey kenara bağlanırsa (`y0 ≥ 0.25`) slide başlamaz, aday `spent`'e gider; yatay kenara bağlanma etkilenmez.
-- Eylemi `off` olan kenarlar bölge sayılmaz.
+- Eylemi `off` olan kenarlar düz kenar bölgesi sayılmaz. Şeritler geometriyle belirlenir; iki şeridin kesişimi, kenarlarından biri ya da ikisi `off` olsa da köşe kalır (çift dokunması çalışır, `off` kenara doğru slide başlamaz; karar 48).
 - Kenar ekseni ve yön: left/right → y ekseni, yukarı = +1. top/bottom → x ekseni, sağa = +1.
 
 ### 5.4 Durum makinesi
@@ -258,6 +258,23 @@ public final class GestureEngine {
 ```
 
 `reset()` iptal anlamı taşır: `switchApps` → `appSwitchCancel`, `scrubVideo` → `scrubCancel`, ardından imleç dondurulmuşsa `freezeCursor(false)`, sonra `idle`; bekleyen çift dokunma kaydı silinir. `update(config:)` ise commit anlamını korur; o sırada `candidate` olan parmak `spent`'e düşer ve kalkana kadar jest üretmez. Çift dokunma kaydı Engine `spent` ya da `threeFinger` durumuna her girişte silinir.
+
+### 5.9 Kenar ve köşe eylemleri, hassasiyet (Aşama 3)
+
+Dört kenar aynı listeyi sunar: `volume`, `brightness`, `keyboardBacklight`, `switchApps`, `switchTabs`, `switchDesktops`, `scrubVideo`, `media`, `zoom`, `undoRedo`, `off`. `Settings` sol ve sağ kenar için `leftEdge` (varsayılan `brightness`) ve `rightEdge` (varsayılan `volume`) tutar; Swap Sides kalktı. Eski `swapSides: true`, `leftEdge`/`rightEdge` yoksa sol=`volume`, sağ=`brightness` olarak okunur ve bir daha yazılmaz (karar 44). Klavye ışığı köprüsü yokken `keyboardBacklight` her kenarda `media`'ya düşer.
+
+| EdgeAction | Adım mesafesi | +1 komutu (gönderilen) | −1 komutu (gönderilen) | Bırakınca |
+|---|---|---|---|---|
+| switchTabs | tabSwitchStepMM = 12 | tabSwitchStep(+1) (⌃⇥) | tabSwitchStep(−1) (⌃⇧⇥) | — |
+| switchDesktops | desktopSwitchStepMM = 20 | desktopSwitchStep(+1) (⌃→) | desktopSwitchStep(−1) (⌃←) | — |
+| zoom | zoomStepMM = 8 | zoomStep(+1) (⌘=) | zoomStep(−1) (⌘−) | — |
+| undoRedo | undoRedoStepMM = 10 | undoRedoStep(+1) (⇧⌘Z) | undoRedoStep(−1) (⌘Z) | — |
+
++1 yönü 5.3'teki eksen kuralıdır: yatay kenarda sağa, dikey kenarda yukarı. trrek'in kendi penceresi öndeyken `switchTabs`, `zoom` ve `undoRedo` adımları (scrub gibi) gönderilmez; `switchDesktops` sistem genelidir ve çalışır. `switchApps` ve `keyboardBacklight` hangi kenara atanırsa atansın aynı davranır (⌘ basılı tutma, commit/cancel; overlay ve sınır haptiği dağıtıcıdadır).
+
+`CornerAction`: `off`, `mute`, `screenshot`, `playPause` (`mediaPlayPause`), `missionControl`, `appWindows`, `showDesktop`, `spotlight` (⌘Space), `lockScreen` (⌃⌘Q), `screenshotArea` (⇧⌘4). Mission Control, uygulama pencereleri ve masaüstünü göster, sistemin Mission Control uygulamasını `MissionControlOpening` portu üzerinden argümansız, `2` ve `1` argümanıyla açar; uygulama bulunamazsa hata günlüğe yazılır (karar 46).
+
+**Hassasiyet:** `Settings.slideSensitivity` (`veryLow` 1,6 · `low` 1,25 · `standard` 1,0 · `high` 0,8 · `veryHigh` 0,6). `ConfigMapper` bütün adım mesafelerini bu çarpanla ölçekler; diğer eşikler değişmez (karar 47). Ayar General sekmesinde "Slide Sensitivity" seçicisidir. Accessibility izni yokken yeni eylemlerin hepsi kapalıdır (karar 27).
 
 ## 6. TrrekPlatform
 
@@ -375,9 +392,9 @@ Menü `menuNeedsUpdate` ile açılırken tazelenir. İkon: `MenuIcon.pdf` şablo
 
 - Açılış: menüden "Settings…" ya da ⌘,. `NSWindow` + `NSHostingController<SettingsView>`; `titlebarAppearsTransparent`, araç çubuğu stili `.unified`; pencere kapanınca serbest bırakılır, bir sonraki açılışta yeniden kurulur.
 - Yerleşim: `TabView` ile dört sekme; her sekme `Form` + `.formStyle(.grouped)`. macOS 26'da araç çubuğu ve sekmeler sistemin Liquid Glass görünümünü alır; özel öğeler `.glassEffect(.regular, in: .rect(cornerRadius: 12))` ile camlaştırılır. Sabit boyut 640×480 pt.
-- **General:** Haptic Feedback (segment: Off/Light/Medium/Strong), Precision Control, Freeze Cursor, Launch at Login, Reset to Defaults… butonu.
-- **Edges:** Üstte etkileşimli `TrackpadDiagram` (cam yüzeyli trackpad silueti; dört kenar renkli şeritlerle etiketli: sağ ses, sol parlaklık, üst ve alt seçili eylem). Altında: Swap Sides, Top Edge (Picker), Bottom Edge (Picker), Edge Width (segment), Bottom Quarter Only, External Monitor Brightness (köprü yoksa devre dışı ve açıklama).
-- **Corners & Taps:** Dört köşe için Picker (Off/Mute/Screenshot) diyagram üzerinde köşe rozetleriyle; 3-Finger Tap Middle Click anahtarı ve "Look up & data detectors" ayarına dair ipucu metni.
+- **General:** Haptic Feedback (segment: Off/Light/Medium/Strong), Slide Sensitivity (Aşama 3), Precision Control, Freeze Cursor, Launch at Login, Reset to Defaults… butonu.
+- **Edges:** Üstte etkileşimli `TrackpadDiagram` (cam yüzeyli trackpad silueti; dört kenar renkli şeritlerle seçili eylemleriyle etiketli; Aşama 3'te Edges sekmesinde 150 pt yüksekliğinde). Altında: Left Edge, Right Edge (Aşama 3'te Swap Sides'ın yerine), Top Edge, Bottom Edge (Picker), Edge Width (segment), Bottom Quarter Only, External Monitor Brightness (köprü yoksa devre dışı ve açıklama).
+- **Corners & Taps:** Dört köşe için Picker (Off/Mute/Screenshot; Aşama 3'te 5.9'daki eylemler eklendi) diyagram üzerinde köşe rozetleriyle; 3-Finger Tap Middle Click anahtarı ve "Look up & data detectors" ayarına dair ipucu metni.
 - **Advanced:** Hold-to-Slide Key (Picker: None/Shift/Control/Option/Command) ve mod (Hold/Toggle); Paused Apps listesi (satır başına uygulama ikonu + ad, "−" ile kaldır, "+" ile `NSOpenPanel`'dan uygulama seç); Accessibility durumu ve "Open System Settings" butonu; sürüm bilgisi.
 - Veri akışı: `SettingsView` `@Observable` bir `SettingsModel`'i gözler; her değişiklik `SettingsStore`'a yazılır ve `Coordinator` yeni `EngineConfig` uygular. Pencere açık değilken model bellekte değildir.
 
@@ -388,8 +405,11 @@ struct Settings: Codable, Equatable {
   var schemaVersion = 1
   var hapticStrength: HapticStrength = .medium
   var edgeWidth: EdgeWidth = .standard
-  var precision = false, freezeCursor = true, bottomQuarterOnly = false, swapSides = false
+  var precision = false, freezeCursor = true, bottomQuarterOnly = false
+  var slideSensitivity: SlideSensitivity = .standard   // Aşama 3
   var externalMonitorBrightness = false
+  var leftEdge: EdgeAction = .brightness              // Aşama 3; eski swapSides yalnızca okunur
+  var rightEdge: EdgeAction = .volume
   var topEdge: EdgeAction = .switchApps
   var bottomEdge: EdgeAction = .keyboardBacklight     // köprü yoksa ilk çalıştırmada .media
   var corners: [Corner: CornerAction] = tümü .off

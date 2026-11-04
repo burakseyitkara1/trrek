@@ -1,13 +1,16 @@
 # trrek
 
-A menu bar app for macOS that turns trackpad edges into single-finger controls for volume, brightness, keyboard backlight, app switching, video scrubbing and media.
+A menu bar app for macOS that turns trackpad edges into single-finger controls for volume, brightness, keyboard backlight, app, tab and desktop switching, zoom, undo, video scrubbing and media.
 
 ## Features
 
-- Right edge controls volume, left edge brightness; the top and bottom edges run a configurable action (app switching, video scrubbing, keyboard backlight, media)
-- Scrub Video: a slide on the top or bottom edge sends ← and → to the front app; most video players and browsers step 5 s per key
+- Every edge runs the action you pick: volume, brightness, keyboard backlight, app switching, tab switching, desktop switching, video scrubbing, media, zoom, undo and redo, or off. By default the right edge controls volume, the left edge brightness, the top edge switches apps and the bottom edge sets the keyboard backlight
+- Forward is rightward on the top and bottom edges and upward on the side edges: the next app, tab or desktop, zoom in, redo
+- Scrub Video: a slide sends ← and → to the front app; most video players and browsers step 5 s per key
+- Switch Tabs sends ⌃⇥ and ⌃⇧⇥, Zoom ⌘= and ⌘−, Undo & Redo ⌘Z and ⇧⌘Z to the front app; Switch Desktops sends ⌃← and ⌃→
+- Slide Sensitivity setting: how far a finger slides for each step, from Very Low to Very High
 - External Monitor Brightness setting: on an external display that supports DDC/CI, the brightness edge sets the display's own brightness (best effort; some displays and connections do not answer). The brightness edge follows the screen with the pointer; the built-in display and displays without DDC/CI use the system brightness keys
-- Corner double taps mute or take a screenshot; a double tap on a media edge plays or pauses
+- Corner double taps: Mute, Screenshot, Screenshot Area, Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight or Lock Screen. Mission Control, App Windows and Show Desktop open the system Mission Control app, so they work whatever its keyboard shortcuts are; a double tap on a media edge plays or pauses
 - Optional three-finger tap sends a middle click
 - Precision Control setting: each step changes the level by a quarter as much (sent as an Option+Shift step)
 - Freeze Cursor setting: the pointer stays still and scrolling is suppressed while sliding
@@ -38,12 +41,12 @@ Releases are built, signed with Developer ID and the hardened runtime, notarized
 
 Put one finger in an edge strip of the trackpad and move along it.
 
-- Right edge: volume. Left edge: brightness.
-- Top and bottom edges: the action set in Settings (Switch Apps, Scrub Video, Keyboard Backlight, Media or Off). Scrub Video sends nothing while a trrek window is in front.
-- Corners: double tap for the action set per corner (Mute, Screenshot or Off).
+- Each edge runs the action set in Settings: Volume, Brightness, Keyboard Backlight, Switch Apps, Switch Tabs, Switch Desktops, Scrub Video, Media, Zoom, Undo & Redo or Off. By default the right edge is volume, the left edge brightness, the top edge Switch Apps and the bottom edge Keyboard Backlight (Media on a Mac without keyboard backlight support).
+- Slide right on the top or bottom edge, or up on a side edge, to go forward. Switch Apps holds the app switcher open until you lift. Scrub Video, Switch Tabs, Zoom and Undo & Redo send nothing while a trrek window is in front.
+- Corners: double tap for the action set per corner (Mute, Screenshot, Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen, Screenshot Area or Off). A corner keeps its action when one or both of its edges are Off.
 - A second finger cancels a slide; lifting commits it.
 
-Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Precision Control, Freeze Cursor, launch at login, Export Settings…/Import Settings… and Reset to Defaults. Edges covers the top and bottom actions, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
+Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, Export Settings…/Import Settings… and Reset to Defaults. Edges covers the action of each edge, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
 
 ### Moving settings to another Mac
 
@@ -71,7 +74,7 @@ Measured with `make perf` on the installed 0.1.0 build after 30 s idle: 0.0 % CP
 
 ## Engine
 
-`TrrekEngine` turns raw multitouch frames into commands and has no system dependencies. A single finger that lands in an edge strip and moves along it starts a slide: the right edge steps volume, the left edge brightness, and the top and bottom edges run their configured action (app switching, video scrubbing, keyboard backlight or media), one step per fixed distance of travel. A second finger cancels the slide, lifting commits it, and a finger that disappears briefly can return and continue. A quick double tap on a corner mutes or takes a screenshot, a double tap on a media edge plays or pauses, and an optional three-finger tap sends a middle click. Before any of this, contacts larger than a fingertip are dropped as palms, no new gesture starts shortly after a key press or while a required hold key is up, and a paused engine ignores every frame. All distances and timings live in `Thresholds`. Run the engine tests with `make test`: on hosts with only the Command Line Tools it passes the testing macro plugin path that a plain `swift test` can miss.
+`TrrekEngine` turns raw multitouch frames into commands and has no system dependencies. A single finger that lands in an edge strip and moves along it starts a slide: each edge runs its configured action (a level, app, tab or desktop switching, video scrubbing, media, zoom or undo), one step per fixed distance of travel. A second finger cancels the slide, lifting commits it, and a finger that disappears briefly can return and continue. A quick double tap on a corner fires that corner's action, a double tap on a media edge plays or pauses, and an optional three-finger tap sends a middle click. Before any of this, contacts larger than a fingertip are dropped as palms, no new gesture starts shortly after a key press or while a required hold key is up, and a paused engine ignores every frame. All distances and timings live in `Thresholds`. Run the engine tests with `make test`: on hosts with only the Command Line Tools it passes the testing macro plugin path that a plain `swift test` can miss.
 
 ## Development
 

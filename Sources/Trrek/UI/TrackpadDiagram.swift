@@ -9,6 +9,8 @@ import TrrekEngine
 /// its next action and passes the updated settings to `onChange`.
 struct TrackpadDiagram: View {
     static let size = CGSize(width: 270, height: 180)
+    /// The height on the Edges tab, where four edge pickers share the window's 480 pt with the diagram.
+    static let compactHeight: CGFloat = 150
     private static let cornerRadius: CGFloat = 12
     private static let stripThickness: CGFloat = 5
     private static let inset: CGFloat = 8
@@ -18,6 +20,7 @@ struct TrackpadDiagram: View {
     let accessibilityGranted: Bool
     let interactive: Bool
     var onChange: ((AppSettings) -> Void)?
+    var height: CGFloat = TrackpadDiagram.size.height
 
     var body: some View {
         let edges = DiagramEdges(
@@ -37,7 +40,7 @@ struct TrackpadDiagram: View {
                 }
             }
             .padding(Self.inset)
-            .frame(width: Self.size.width, height: Self.size.height)
+            .frame(width: Self.size.width, height: height)
             .glassEffect(.regular, in: .rect(cornerRadius: Self.cornerRadius))
         }
         .accessibilityElement(children: .contain)
@@ -71,7 +74,7 @@ struct TrackpadDiagram: View {
             }
             Capsule()
                 .fill(Self.color(for: action))
-                .frame(width: Self.stripThickness, height: Self.size.height * 0.45)
+                .frame(width: Self.stripThickness, height: height * 0.45)
             if edge == .leading {
                 EdgeLabel(action: action)
                 Spacer(minLength: 0)
@@ -80,14 +83,20 @@ struct TrackpadDiagram: View {
         .padding(.horizontal, 2)
     }
 
+    // A flat, exhaustive mapping reads best as one switch.
+    // swiftlint:disable:next cyclomatic_complexity
     static func color(for action: EdgeAction) -> Color {
         switch action {
         case .volume: .blue
         case .brightness: .yellow
-        case .switchApps: .purple
         case .keyboardBacklight: .orange
-        case .media: .green
+        case .switchApps: .purple
+        case .switchTabs: .indigo
+        case .switchDesktops: .cyan
         case .scrubVideo: .teal
+        case .media: .green
+        case .zoom: .pink
+        case .undoRedo: .brown
         case .off: .gray
         }
     }

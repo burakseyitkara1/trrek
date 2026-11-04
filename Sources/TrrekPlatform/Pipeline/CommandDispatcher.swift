@@ -21,15 +21,6 @@ import TrrekEngine
 /// dropped. Step haptics resume when the direction reverses or a new slide starts. An external display's level is
 /// only known on the display queue, so its limit haptic plays there, at the first result at a bound.
 public final class CommandDispatcher: CommandSink, @unchecked Sendable {
-    private enum KeyCode {
-        static let command: CGKeyCode = 55
-        static let tab: CGKeyCode = 48
-        static let escape: CGKeyCode = 53
-        static let five: CGKeyCode = 23
-        static let leftArrow: CGKeyCode = 123
-        static let rightArrow: CGKeyCode = 124
-    }
-
     /// A level a slide can run into the end of.
     private enum LevelKind: Equatable {
         case volume, brightness, keyboardBacklight
@@ -70,7 +61,8 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     }
 
     private let mediaKeys: any MediaKeyPosting
-    private let keys: any KeyPosting
+    /// Internal so the shortcut presses in `CommandDispatcher+Shortcuts.swift` reach it.
+    let keys: any KeyPosting
     private let mouse: any MousePosting
     private let haptics: any HapticPerforming
     private let freezer: any CursorFreezing
@@ -79,6 +71,8 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     private let externalBrightness: (any ExternalBrightnessControlling)?
     private let volumeLevel: (any LevelReading)?
     private let brightnessLevel: (any LevelReading)?
+    /// Internal so `CommandDispatcher+Shortcuts.swift` reaches it.
+    let missionControl: (any MissionControlOpening)?
     private let displayLocator: @Sendable () -> CGDirectDisplayID?
     /// Where DDC/CI steps run, in order, off the frame thread.
     private let displayQueue: DispatchQueue
@@ -113,6 +107,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         displayLocator: @escaping @Sendable () -> CGDirectDisplayID? = { nil },
         volumeLevel: (any LevelReading)? = nil,
         brightnessLevel: (any LevelReading)? = nil,
+        missionControl: (any MissionControlOpening)? = nil,
         displayQueue: DispatchQueue = DispatchQueue(label: "com.burakseyitkara.trrek.ddc", qos: .userInitiated)
     ) {
         self.mediaKeys = mediaKeys
@@ -126,6 +121,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         self.displayLocator = displayLocator
         self.volumeLevel = volumeLevel
         self.brightnessLevel = brightnessLevel
+        self.missionControl = missionControl
         self.displayQueue = displayQueue
     }
 
@@ -140,8 +136,9 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         set { state.withLock { $0.externalBrightnessEnabled = newValue } }
     }
 
-    /// Whether trrek itself is frontmost. Scrub steps are dropped meanwhile: arrow keys would move the selection in
-    /// trrek's own window (a picker, the paused apps list) instead of a player.
+    /// Whether trrek itself is frontmost. Scrub, tab switch, zoom and undo/redo steps are dropped meanwhile: their keys
+    /// would move the selection or focus in trrek's own window (a picker, the paused apps list) instead of reaching
+    /// another app. Desktop switching is system-wide and still runs.
     public var ownAppFrontmost: Bool {
         get { state.withLock { $0.ownAppFrontmost } }
         set { state.withLock { $0.ownAppFrontmost = newValue } }
@@ -197,6 +194,11 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         case .scrubCommit, .scrubCancel:
             state.atLimit = nil
             state.scrubSteps = 0
+        case .tabSwitchStep, .zoomStep, .undoRedoStep, .desktopSwitchStep, .screenshot, .screenshotArea, .spotlight,
+             .lockScreen:
+            pressShortcut(for: command, ownAppFrontmost: state.ownAppFrontmost)
+        case .missionControl, .appWindows, .showDesktop:
+            openMissionControl(for: command)
         case .mediaPlayPause:
             mediaKeys.post(.play, fine: false)
         case .mediaNext:
@@ -205,8 +207,6 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
             mediaKeys.post(.previous, fine: false)
         case .mute:
             mediaKeys.post(.mute, fine: false)
-        case .screenshot:
-            keys.press(keyCode: KeyCode.five, flags: [.maskCommand, .maskShift])
         case .middleClick:
             mouse.middleClick()
         case let .haptic(event):

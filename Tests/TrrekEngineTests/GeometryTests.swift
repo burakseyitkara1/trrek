@@ -91,3 +91,14 @@ private func touch(_ xMM: Float, _ yMM: Float) -> Touch {
     #expect(Corner.allCases.allSatisfy { cfg.action(for: $0) == .off })
     #expect(cfg.freezeCursor && !cfg.precision && !cfg.bottomQuarterOnly)
 }
+
+@Test func cornerIgnoresWhetherItsEdgesAreOff() {
+    var cfg = EngineConfig()
+    cfg.left = .off
+    #expect(Geometry.zone(of: touch(5, 78), in: pad, config: cfg) == .corner(.topLeft))
+    cfg.top = .off
+    #expect(Geometry.zone(of: touch(5, 78), in: pad, config: cfg) == .corner(.topLeft))
+    // The plain edges stay off.
+    #expect(Geometry.zone(of: touch(5, 40), in: pad, config: cfg) == .none)
+    #expect(Geometry.zone(of: touch(60, 78), in: pad, config: cfg) == .none)
+}

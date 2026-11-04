@@ -81,3 +81,28 @@ public protocol ExternalBrightnessControlling: Sendable {
     /// level in 0...1, or `nil` when the display could not be read or written.
     func step(display: CGDirectDisplayID, direction: Int, fine: Bool) -> Float?
 }
+
+/// A view of the system Mission Control app.
+public enum MissionControlView: Sendable, Equatable, CaseIterable {
+    /// Every window on every desktop.
+    case all
+    /// The windows of the front app.
+    case appWindows
+    /// The windows moved aside to show the desktop.
+    case desktop
+
+    /// The launch arguments that make the system Mission Control app open this view.
+    public var arguments: [String] {
+        switch self {
+        case .all: []
+        case .appWindows: ["2"]
+        case .desktop: ["1"]
+        }
+    }
+}
+
+/// Opens Mission Control views without depending on the user's keyboard shortcut settings. Called on the frame thread
+/// for a corner double tap; implementations hop off it without waiting.
+public protocol MissionControlOpening: Sendable {
+    func open(_ view: MissionControlView)
+}

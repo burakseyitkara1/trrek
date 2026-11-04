@@ -75,10 +75,35 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 ### 2.8 Video sarma, trrek penceresi öndeyken
 - **Nasıl:** Top Edge Scrub Video; trrek'in ayar penceresini öne getir (Edges sekmesinde bir seçici odaktayken) ve üst kenarda kaydır.
 - **Beklenen:** Hiç ok tuşu gitmez (seçici değeri ya da liste seçimi değişmez), overlay görünmez. Başka bir uygulama öne gelince sarma yeniden çalışır.
+- **Ek:** Top Edge'i sırayla Switch Tabs, Zoom ve Undo & Redo yapıp ayar penceresi öndeyken kaydır: klavye odağı kontroller arasında dolaşmaz, hiçbir ayar geri alınmaz. Switch Desktops ise pencere öndeyken de masaüstünü değiştirir.
 
 ### 2.9 Medya kenarı: oynat/duraklat
-- **Nasıl:** Bir kenarın eylemini Media yap; o kenarda çift dokun.
+- **Nasıl:** Bir kenarın eylemini Media yap; o kenarda çift dokun. Sol ya da sağ kenarda da dene.
 - **Beklenen:** Çalan medya oynar/duraklar.
+
+### 2.10 Sol ve sağ kenar seçicileri
+- **Nasıl:** Edges sekmesinde Left Edge ve Right Edge seçicilerini aç; sonra Left Edge'i Switch Apps, Right Edge'i Keyboard Backlight yap. Sol kenarda yukarı kaydır, sonra aşağı, parmağı kaldır; bir kez de parmak kalkmadan ikinci parmağı koy. Sağ kenarda klavye ışığını en üste çıkar ve itmeye devam et.
+- **Beklenen:** İki seçici de dört kenardaki aynı listeyi (Volume, Brightness, Keyboard Backlight, Switch Apps, Switch Tabs, Switch Desktops, Scrub Video, Media, Zoom, Undo & Redo, Off) gösterir; Swap Sides anahtarı yoktur. Diyagram dört kenarın eylemini gösterir. Sol kenarda yukarı = sonraki uygulama, aşağı = önceki; kalkınca seçilen uygulamaya geçilir, ikinci parmak değiştiriciyi iptal eder, ⌘ basılı kalmaz. Sağ kenarda overlay klavye ışığı seviyesini gösterir ve sınırda tek sınır haptiği gelir (2.5 gibi).
+
+### 2.11 Switch Tabs
+- **Nasıl:** Top Edge'i Switch Tabs yap; birkaç sekmeli bir tarayıcı penceresinde üst kenarda sağa, sonra sola kaydır. Sonra Right Edge'i Switch Tabs yapıp yukarı/aşağı kaydır.
+- **Beklenen:** Yaklaşık her 12 mm'de bir sekme: yatay kenarda sağa ve dikey kenarda yukarı sonraki sekme, ters yönde önceki sekme. Parmak kalkınca ek bir şey olmaz.
+
+### 2.12 Switch Desktops
+- **Nasıl:** Mission Control'de en az iki masaüstü oluştur; Sistem Ayarları › Klavye › Klavye Kısayolları › Mission Control'de "Bir alan sola taşı" ve "Bir alan sağa taşı" açık olsun. Bottom Edge'i Switch Desktops yap; alt kenarda sağa, sonra sola kaydır. Sonra Left Edge'i Switch Desktops yapıp yukarı/aşağı kaydır.
+- **Beklenen:** Yaklaşık her 20 mm'de bir masaüstü: sağa/yukarı sağdaki masaüstü, sola/aşağı soldaki masaüstü.
+
+### 2.13 Zoom
+- **Nasıl:** Top Edge'i Zoom yap; tarayıcıda bir sayfa açıkken üst kenarda sağa, sonra sola kaydır.
+- **Beklenen:** Yaklaşık her 8 mm'de sayfa bir kademe yakınlaşır (sağa/yukarı) ya da uzaklaşır (sola/aşağı).
+
+### 2.14 Undo & Redo
+- **Nasıl:** Bir metin düzenleyicide birkaç ayrı değişiklik yap. Top Edge'i Undo & Redo yap; üst kenarda sola kaydır, sonra sağa kaydır.
+- **Beklenen:** Yaklaşık her 10 mm'de sola/aşağı bir geri alma (⌘Z), sağa/yukarı bir yineleme (⇧⌘Z).
+
+### 2.15 Eski ayarların taşınması (Swap Sides)
+- **Nasıl:** trrek'i kapat (`osascript -e 'quit app "trrek"'`); `defaults write com.burakseyitkara.trrek settings -data "$(printf '{"schemaVersion":1,"swapSides":true}' | xxd -p | tr -d '\n')"` çalıştır; trrek'i aç ve Edges sekmesine bak; sağ ve sol kenarda kaydır.
+- **Beklenen:** Left Edge Volume, Right Edge Brightness gösterir; sol kenar sesi, sağ kenar parlaklığı değiştirir. Bir ayar değiştirildikten sonra `defaults read com.burakseyitkara.trrek settings` çıktısının çözülmüş JSON'unda `swapSides` yoktur, `leftEdge` ve `rightEdge` vardır.
 
 ## 3. Köşeler
 
@@ -86,9 +111,17 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Nasıl:** Ayarlarda bir köşeye Mute, diğerine Screenshot ata; her köşede çift dokun.
 - **Beklenen:** Mute ses kapatır/açar; Screenshot ekran görüntüsü arayüzünü açar. Köşeye tek dokunma bir şey yapmaz.
 
+### 3.1a Yeni köşe eylemleri
+- **Nasıl:** Köşelere sırayla Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen ve Screenshot Area ata ve her birinde çift dokun. Mission Control ile ilgili üçünü Sistem Ayarları › Klavye › Klavye Kısayolları › Mission Control'deki kısayollar kapalıyken de dene.
+- **Beklenen:** Play/Pause çalan medyayı oynatır/duraklatır. Mission Control bütün pencereleri, App Windows öndeki uygulamanın pencerelerini gösterir, Show Desktop masaüstünü açar (her biri kısayollar kapalıyken de çalışır; tekrar çift dokunmak ya da Esc görünümü kapatır). Spotlight arama alanını açar. Lock Screen ekranı kilitler. Screenshot Area alan seçme imlecini açar. Hata olursa trrek çökmez; `/usr/bin/log show --last 5m --predicate 'subsystem == "com.burakseyitkara.trrek"'` çıktısında "mission control" satırı görünür.
+
+### 3.1b Kenarı Off olan köşe
+- **Nasıl:** Edges sekmesinde Left Edge'i Off yap; Corners & Taps'ta Top Left'e Mission Control ata ve sol üst köşede çift dokun. Aynı köşeden aşağı (sol kenar boyunca) ve sağa (üst kenar boyunca) kaydır. Sonra Top Edge'i de Off yapıp çift dokunmayı tekrarla.
+- **Beklenen:** Çift dokunma her iki durumda da Mission Control'ü açar. Aşağı kaydırma hiçbir şey yapmaz (imleç donmaz, haptik yok); sağa kaydırma üst kenarın eylemini (Switch Apps) çalıştırır. Sol kenarın ortasında kaydırma hiçbir şey yapmaz.
+
 ### 3.2 Köşe rozeti tıklaması eylemi döndürür
 - **Nasıl:** Corners & Taps sekmesinde bir köşenin rozetine tıkla.
-- **Beklenen:** Eylem her tıklamada Off → Mute → Screenshot → Off sırasıyla döner; rozetin simgesi eylemi gösterir.
+- **Beklenen:** Eylem her tıklamada seçicideki sırayla ilerler (Off → Mute → Screenshot → Play/Pause → Mission Control → App Windows → Show Desktop → Spotlight → Lock Screen → Screenshot Area → Off); rozetin simgesi eylemi gösterir.
 
 ### 3.3 Bottom Quarter Only yan kenarları alt çeyreğe sınırlar
 - **Nasıl:** Edges sekmesinde Bottom Quarter Only'yi aç; sağ kenarın üst yarısında kaydırmayı dene, sonra alt çeyreğinde dene; üst köşeye çift dokun.
@@ -103,6 +136,10 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 ### 4.2 Precision Control ince adımlar (⌥⇧)
 - **Nasıl:** Menüden ya da General sekmesinden Precision Control'ü aç; sağ kenarda kaydır, sonra kapat ve tekrar kaydır.
 - **Beklenen:** Açıkken her adım seviyeyi çeyrek adım değiştirir (sistem, ses/parlaklık tuşunu ⌥⇧ ile gönderilmiş gibi işler); kapalıyken normal adımlar.
+
+### 4.2a Slide Sensitivity
+- **Nasıl:** General sekmesinde Slide Sensitivity'yi sırayla Very Low, Standard ve Very High yap; her birinde sağ kenarda (Volume) aynı mesafeyi (ör. alttan ortaya) kaydır ve adım sayısını say. Very High'da sesi en üste çıkarıp itmeye devam et; Switch Apps kenarında da dene.
+- **Beklenen:** Very Low'da en az adım, Very High'da en çok adım (Standard'a göre yaklaşık 0,6 ve 1,6 kat mesafe başına adım farkı). Slide'ın başlaması için gereken mesafe değişmez. Very High'da da sınırda tek sınır haptiği gelir, sonra sessizlik (2.5). Seçim pencere kapanıp açılınca korunur.
 
 ### 4.3 İmleç slide sırasında donar
 - **Nasıl:** Kenarda kaydırırken parmağın imleci de oynattığını gözle.
@@ -183,11 +220,11 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Beklenen:** Değişiklikler anında etki eder, pencere kapanıp açılınca korunur.
 
 ### 7.2 Seçeneklerin notları ve devre dışı olanlar
-- **Nasıl:** Edges sekmesinde Top Edge ve Bottom Edge seçicilerini aç.
-- **Beklenen:** Seçenek adının yanında not belirtilir: "Scrub Video — Uses ← and → in the front app" seçilebilir. Klavye arka ışığı olmayan Mac'te "Keyboard Backlight — Not available on this Mac" devre dışıdır ve seçili değer Media olarak gösterilir.
+- **Nasıl:** Edges sekmesinde Left, Right, Top ve Bottom Edge seçicilerini aç.
+- **Beklenen:** Dört seçici de aynı listeyi gösterir. Seçenek adının yanında not belirtilir: "Scrub Video — Uses ← and → in the front app", "Switch Tabs — Uses ⌃⇥ and ⌃⇧⇥ in the front app", "Switch Desktops — Uses ⌃← and ⌃→", "Zoom — Uses ⌘= and ⌘− in the front app", "Undo & Redo — Uses ⌘Z and ⇧⌘Z in the front app"; hepsi seçilebilir. Klavye arka ışığı olmayan Mac'te "Keyboard Backlight — Not available on this Mac" her seçicide devre dışıdır ve seçili değer Media olarak gösterilir.
 
 ### 7.2a Accessibility gerektiren kenar notu
-- **Nasıl:** Accessibility iznini kaldır; Edges sekmesinde Top Edge'i Switch Apps ya da Scrub Video yap.
+- **Nasıl:** Accessibility iznini kaldır; Edges sekmesinde Top Edge'i Switch Apps ya da Scrub Video, Left Edge'i Switch Tabs, Zoom ya da Undo & Redo yap.
 - **Beklenen:** Seçicinin başlığı altında "Needs Accessibility access" notu görünür; Keyboard Backlight seçiliyken görünmez. İzin verilince not kaybolur.
 
 ### 7.2b External Monitor Brightness kullanılamıyor

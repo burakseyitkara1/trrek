@@ -7,6 +7,11 @@ Each release lists its changes under its version and date; changes not yet relea
 ## [Unreleased]
 
 - Export Settings… and Import Settings… in the General tab save the settings to a `.trrek` file and load them back after a confirmation; opening a `.trrek` file from Finder offers the same import
+- Every edge offers every action: the left and right edges get their own pickers in place of Swap Sides (a stored Swap Sides setting carries over), and the trackpad diagram shows them
+- New edge actions: Switch Tabs, Switch Desktops, Zoom and Undo & Redo (forward is rightward on the top and bottom edges, upward on the side edges)
+- New corner actions: Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen and Screenshot Area
+- Slide Sensitivity setting in General: how far a finger slides for each step, from Very Low to Very High
+- A corner's double tap keeps working when an edge next to it is set to Off
 
 ## [0.2.2] - 2026-11-04
 

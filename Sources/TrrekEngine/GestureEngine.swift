@@ -209,7 +209,7 @@ public final class GestureEngine: @unchecked Sendable {
         for _ in 0 ..< Self.maxStepsPerFrame {
             guard abs(slide.accumulatedMM) >= threshold else { break }
             let sign = slide.accumulatedMM > 0 ? 1 : -1
-            emit(stepCommand(for: slide.action, sign: sign))
+            emit(Geometry.stepCommand(for: slide.action, sign: sign, fine: config.precision))
             emit(.haptic(.step))
             slide.accumulatedMM -= Float(sign) * step
             slide.stepsEmitted += 1
@@ -225,18 +225,6 @@ public final class GestureEngine: @unchecked Sendable {
     private func abandon(_ slide: SlideData, _ frame: Frame) {
         finish(slide, .cancel)
         spend(firstDownTime: slide.firstDownTime, origin: slide.origin, frame)
-    }
-
-    private func stepCommand(for action: EdgeAction, sign: Int) -> GestureCommand {
-        let fine = config.precision
-        switch action {
-        case .volume: return .stepVolume(sign, fine: fine)
-        case .brightness: return .stepBrightness(sign, fine: fine)
-        case .keyboardBacklight: return .stepKeyboardBacklight(sign, fine: fine)
-        case .switchApps: return .appSwitchStep(sign)
-        case .scrubVideo: return .scrubStep(sign)
-        case .media, .off: return sign > 0 ? .mediaNext : .mediaPrevious
-        }
     }
 
     /// Ends a slide: the action's commit or cancel command, then the cursor release. The caller sets the state.

@@ -141,3 +141,12 @@ final class FakeLevel: LevelReading, @unchecked Sendable {
         current
     }
 }
+
+/// Records the Mission Control views it is asked to open.
+final class FakeMissionControl: MissionControlOpening, @unchecked Sendable {
+    private(set) var opened: [MissionControlView] = []
+
+    func open(_ view: MissionControlView) {
+        opened.append(view)
+    }
+}

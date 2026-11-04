@@ -29,14 +29,16 @@ struct SettingsStoreTests {
         settings.precision = true
         settings.freezeCursor = false
         settings.bottomQuarterOnly = true
-        settings.swapSides = true
+        settings.slideSensitivity = .veryHigh
         settings.externalMonitorBrightness = true
-        settings.topEdge = .media
-        settings.bottomEdge = .scrubVideo
-        settings.topLeft = .mute
-        settings.topRight = .screenshot
-        settings.bottomLeft = .screenshot
-        settings.bottomRight = .mute
+        settings.leftEdge = .zoom
+        settings.rightEdge = .switchDesktops
+        settings.topEdge = .switchTabs
+        settings.bottomEdge = .undoRedo
+        settings.topLeft = .missionControl
+        settings.topRight = .appWindows
+        settings.bottomLeft = .lockScreen
+        settings.bottomRight = .screenshotArea
         settings.middleClick = true
         settings.holdKey = .option
         settings.holdKeyMode = .toggle
@@ -98,10 +100,54 @@ struct SettingsStoreTests {
         let defaults = try Self.freshDefaults()
         defer { Self.wipe(defaults) }
 
-        defaults.set(Data(#"{"swapSides": true}"#.utf8), forKey: "settings")
+        defaults.set(Data(#"{"precision": true}"#.utf8), forKey: "settings")
         let loaded = SettingsStore(defaults: defaults).load()
-        #expect(loaded.swapSides)
+        #expect(loaded.precision)
         #expect(loaded.schemaVersion == Settings.currentSchemaVersion)
+    }
+
+    @Test func swapSidesMigratesToSideEdgeActions() throws {
+        let defaults = try Self.freshDefaults()
+        defer { Self.wipe(defaults) }
+
+        // Settings from 0.2: Swap Sides on.
+        defaults.set(Data(#"{"schemaVersion": 1, "swapSides": true, "precision": true}"#.utf8), forKey: "settings")
+        let swapped = SettingsStore(defaults: defaults).load()
+        #expect(swapped.leftEdge == .volume)
+        #expect(swapped.rightEdge == .brightness)
+        #expect(swapped.precision)
+
+        defaults.set(Data(#"{"schemaVersion": 1, "swapSides": false}"#.utf8), forKey: "settings")
+        let unswapped = SettingsStore(defaults: defaults).load()
+        #expect(unswapped.leftEdge == .brightness)
+        #expect(unswapped.rightEdge == .volume)
+
+        // Saving writes the side edges and no longer writes `swapSides`.
+        SettingsStore(defaults: defaults).save(swapped)
+        let data = try #require(defaults.data(forKey: "settings"))
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(object["swapSides"] == nil)
+        #expect(object["leftEdge"] as? String == "volume")
+        #expect(object["rightEdge"] as? String == "brightness")
+        #expect(SettingsStore(defaults: defaults).load() == swapped)
+    }
+
+    @Test func storedSideEdgesWinOverSwapSides() throws {
+        let defaults = try Self.freshDefaults()
+        defer { Self.wipe(defaults) }
+
+        let json = #"{"schemaVersion": 1, "swapSides": true, "leftEdge": "zoom", "rightEdge": "undoRedo"}"#
+        defaults.set(Data(json.utf8), forKey: "settings")
+        let loaded = SettingsStore(defaults: defaults).load()
+        #expect(loaded.leftEdge == .zoom)
+        #expect(loaded.rightEdge == .undoRedo)
+
+        // An unreadable side edge falls back to what Swap Sides meant, the other keeps its stored value.
+        let partial = #"{"swapSides": true, "leftEdge": "teleport", "rightEdge": "media"}"#
+        defaults.set(Data(partial.utf8), forKey: "settings")
+        let mixed = SettingsStore(defaults: defaults).load()
+        #expect(mixed.leftEdge == .volume)
+        #expect(mixed.rightEdge == .media)
     }
 
     @Test func newerSchemaFallsBackToDefaults() throws {
@@ -148,8 +194,10 @@ struct SettingsStoreTests {
         #expect(!settings.precision)
         #expect(settings.freezeCursor)
         #expect(!settings.bottomQuarterOnly)
-        #expect(!settings.swapSides)
+        #expect(settings.slideSensitivity == .standard)
         #expect(!settings.externalMonitorBrightness)
+        #expect(settings.leftEdge == .brightness)
+        #expect(settings.rightEdge == .volume)
         #expect(settings.topEdge == .switchApps)
         #expect(settings.bottomEdge == .keyboardBacklight)
         let corners = [settings.topLeft, settings.topRight, settings.bottomLeft, settings.bottomRight]

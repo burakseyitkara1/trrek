@@ -50,11 +50,11 @@ struct SettingsModelTests {
         var calls = 0
         let model = SettingsModel(settings: AppSettings(), backlightAvailable: true) { _ in calls += 1 }
         var outside = AppSettings()
-        outside.swapSides = true
+        outside.leftEdge = .volume
         model.refresh(from: outside)
-        #expect(model.settings.swapSides)
+        #expect(model.settings.leftEdge == .volume)
         #expect(calls == 0)
-        model.settings.swapSides = false
+        model.settings.leftEdge = .brightness
         #expect(calls == 1)
     }
 

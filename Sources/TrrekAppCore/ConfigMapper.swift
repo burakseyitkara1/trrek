@@ -12,15 +12,10 @@ public enum ConfigMapper {
         accessibilityTrusted: Bool = true
     ) -> EngineConfig {
         var config = EngineConfig()
-        if settings.swapSides {
-            config.left = .volume
-            config.right = .brightness
-        } else {
-            config.left = .brightness
-            config.right = .volume
-        }
+        config.left = effective(settings.leftEdge, backlightAvailable: backlightAvailable)
+        config.right = effective(settings.rightEdge, backlightAvailable: backlightAvailable)
         config.top = effective(settings.topEdge, backlightAvailable: backlightAvailable)
-        config.bottom = effectiveBottomEdge(settings, backlightAvailable: backlightAvailable)
+        config.bottom = effective(settings.bottomEdge, backlightAvailable: backlightAvailable)
         config.topLeft = settings.topLeft
         config.topRight = settings.topRight
         config.bottomLeft = settings.bottomLeft
@@ -31,6 +26,7 @@ public enum ConfigMapper {
         config.middleClickEnabled = settings.middleClick
         config.holdKeyRequired = settings.holdKey != .none
         config.thresholds.edgeWidthMM = settings.edgeWidth.millimetres
+        config.thresholds = scaled(config.thresholds, by: settings.slideSensitivity.multiplier)
         if !accessibilityTrusted {
             config.left = gated(config.left, accessibilityTrusted: false)
             config.right = gated(config.right, accessibilityTrusted: false)
@@ -56,17 +52,27 @@ public enum ConfigMapper {
         accessibilityTrusted ? action : .off
     }
 
-    /// The action the bottom edge actually runs: the keyboard backlight becomes media control while its
-    /// bridge is unavailable.
-    public static func effectiveBottomEdge(_ settings: Settings, backlightAvailable: Bool) -> EdgeAction {
-        effective(settings.bottomEdge, backlightAvailable: backlightAvailable)
-    }
-
-    /// The keyboard backlight becomes media control while its bridge is unavailable.
-    private static func effective(_ action: EdgeAction, backlightAvailable: Bool) -> EdgeAction {
+    /// The action an edge actually runs: on any edge, the keyboard backlight becomes media control while its bridge
+    /// is unavailable.
+    public static func effective(_ action: EdgeAction, backlightAvailable: Bool) -> EdgeAction {
         switch action {
         case .keyboardBacklight where !backlightAvailable: .media
         default: action
         }
+    }
+
+    /// `thresholds` with every step distance multiplied by `multiplier` (the slide sensitivity). The other
+    /// distances, such as the slide start and the strip width, keep their values.
+    static func scaled(_ thresholds: Thresholds, by multiplier: Float) -> Thresholds {
+        var scaled = thresholds
+        scaled.stepMM *= multiplier
+        scaled.appSwitchStepMM *= multiplier
+        scaled.scrubStepMM *= multiplier
+        scaled.mediaSkipStepMM *= multiplier
+        scaled.tabSwitchStepMM *= multiplier
+        scaled.desktopSwitchStepMM *= multiplier
+        scaled.zoomStepMM *= multiplier
+        scaled.undoRedoStepMM *= multiplier
+        return scaled
     }
 }

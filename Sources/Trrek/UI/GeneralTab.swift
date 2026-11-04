@@ -26,6 +26,14 @@ struct GeneralTab: View {
                 .pickerStyle(.segmented)
             }
             Section {
+                Picker(selection: $model.settings.slideSensitivity) {
+                    ForEach(SlideSensitivity.allCases, id: \.self) { sensitivity in
+                        Text(SettingsLabels.title(for: sensitivity)).tag(sensitivity)
+                    }
+                } label: {
+                    Text("Slide Sensitivity")
+                    Text("Higher sensitivity takes a shorter slide for each step.")
+                }
                 Toggle(isOn: $model.settings.precision) {
                     Text("Precision Control")
                     Text("Each step changes the level by a quarter as much.")

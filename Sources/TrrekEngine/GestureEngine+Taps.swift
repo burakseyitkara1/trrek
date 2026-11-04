@@ -31,15 +31,28 @@ extension GestureEngine {
             return
         }
         if let corner {
-            switch config.action(for: corner) {
-            case .mute: emit(.mute)
-            case .screenshot: emit(.screenshot)
-            case .off: return
-            }
+            guard let command = Self.command(for: config.action(for: corner)) else { return }
+            emit(command)
         } else {
             emit(.mediaPlayPause)
         }
         emit(.haptic(.tap))
+    }
+
+    /// The command a corner action fires; `nil` for `.off`.
+    static func command(for action: CornerAction) -> GestureCommand? {
+        switch action {
+        case .off: nil
+        case .mute: .mute
+        case .screenshot: .screenshot
+        case .playPause: .mediaPlayPause
+        case .missionControl: .missionControl
+        case .appWindows: .appWindows
+        case .showDesktop: .showDesktop
+        case .spotlight: .spotlight
+        case .lockScreen: .lockScreen
+        case .screenshotArea: .screenshotArea
+        }
     }
 
     /// Sets the state to `spent`. Fingers in `spent` break a double-tap pair, so the pending tap is dropped.

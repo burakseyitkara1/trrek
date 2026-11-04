@@ -16,27 +16,38 @@ public enum SettingsLabels {
         available ? externalBrightnessCaption : "Not available on this Mac"
     }
 
+    // The label functions below are flat, exhaustive mappings that read best as one switch each.
+
+    // swiftlint:disable:next cyclomatic_complexity
     public static func title(for action: EdgeAction) -> String {
         switch action {
         case .volume: "Volume"
         case .brightness: "Brightness"
-        case .switchApps: "Switch Apps"
-        case .scrubVideo: "Scrub Video"
         case .keyboardBacklight: "Keyboard Backlight"
+        case .switchApps: "Switch Apps"
+        case .switchTabs: "Switch Tabs"
+        case .switchDesktops: "Switch Desktops"
+        case .scrubVideo: "Scrub Video"
         case .media: "Media"
+        case .zoom: "Zoom"
+        case .undoRedo: "Undo & Redo"
         case .off: "Off"
         }
     }
 
     /// `nil` for `.off`, which shows text only.
-    public static func symbol(for action: EdgeAction) -> String? {
+    public static func symbol(for action: EdgeAction) -> String? { // swiftlint:disable:this cyclomatic_complexity
         switch action {
         case .volume: "speaker.wave.2"
         case .brightness: "sun.max"
-        case .switchApps: "rectangle.on.rectangle"
-        case .scrubVideo: "film"
         case .keyboardBacklight: "keyboard"
+        case .switchApps: "rectangle.on.rectangle"
+        case .switchTabs: "rectangle.topthird.inset.filled"
+        case .switchDesktops: "rectangle.split.3x1"
+        case .scrubVideo: "film"
         case .media: "play"
+        case .zoom: "plus.magnifyingglass"
+        case .undoRedo: "arrow.uturn.backward"
         case .off: nil
         }
     }
@@ -46,6 +57,13 @@ public enum SettingsLabels {
         case .off: "Off"
         case .mute: "Mute"
         case .screenshot: "Screenshot"
+        case .playPause: "Play/Pause"
+        case .missionControl: "Mission Control"
+        case .appWindows: "App Windows"
+        case .showDesktop: "Show Desktop"
+        case .spotlight: "Spotlight"
+        case .lockScreen: "Lock Screen"
+        case .screenshotArea: "Screenshot Area"
         }
     }
 
@@ -55,10 +73,18 @@ public enum SettingsLabels {
         case .off: nil
         case .mute: "speaker.slash"
         case .screenshot: "camera.viewfinder"
+        case .playPause: "playpause"
+        case .missionControl: "rectangle.3.group"
+        case .appWindows: "macwindow.on.rectangle"
+        case .showDesktop: "menubar.dock.rectangle"
+        case .spotlight: "magnifyingglass"
+        case .lockScreen: "lock"
+        case .screenshotArea: "rectangle.dashed"
         }
     }
 
-    /// The action a click on a corner badge moves to: Off, Mute, Screenshot, then Off again.
+    /// The action a click on a corner badge moves to: the next one in the order the pickers list them, and after the
+    /// last one Off again.
     public static func next(after action: CornerAction) -> CornerAction {
         let all = CornerAction.allCases
         let index = all.firstIndex(of: action) ?? all.startIndex
@@ -92,6 +118,16 @@ public enum SettingsLabels {
         }
     }
 
+    public static func title(for sensitivity: SlideSensitivity) -> String {
+        switch sensitivity {
+        case .veryLow: "Very Low"
+        case .low: "Low"
+        case .standard: "Standard"
+        case .high: "High"
+        case .veryHigh: "Very High"
+        }
+    }
+
     public static func title(for key: HoldKey) -> String {
         switch key {
         case .none: "None"
@@ -110,9 +146,10 @@ public enum SettingsLabels {
     }
 }
 
-/// The options offered for the top and bottom edges, and which of them can be picked on this Mac.
+/// The options offered for every edge, and which of them can be picked on this Mac.
 public enum EdgeChoices {
-    public static let topAndBottom: [EdgeAction] = [.switchApps, .scrubVideo, .keyboardBacklight, .media, .off]
+    /// Every edge offers the same actions, in this order.
+    public static let all: [EdgeAction] = EdgeAction.allCases
 
     /// Only the keyboard backlight can be unavailable: it needs its bridge.
     public static func isSelectable(_ action: EdgeAction, backlightAvailable: Bool) -> Bool {
@@ -123,6 +160,10 @@ public enum EdgeChoices {
     public static func caption(for action: EdgeAction, backlightAvailable: Bool) -> String? {
         switch action {
         case .scrubVideo: "Uses ← and → in the front app"
+        case .switchTabs: "Uses ⌃⇥ and ⌃⇧⇥ in the front app"
+        case .switchDesktops: "Uses ⌃← and ⌃→"
+        case .zoom: "Uses ⌘= and ⌘− in the front app"
+        case .undoRedo: "Uses ⌘Z and ⇧⌘Z in the front app"
         case .keyboardBacklight where !backlightAvailable: "Not available on this Mac"
         default: nil
         }

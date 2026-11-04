@@ -22,8 +22,8 @@ public struct WelcomeCard: Equatable, Sendable {
 
 /// What the welcome window says about each edge.
 public enum WelcomeContent {
-    /// The right, left, top and bottom edge cards for `settings`: Swap Sides moves volume to the left, and the
-    /// bottom edge shows media control while the keyboard backlight bridge is unavailable. Without Accessibility,
+    /// The right, left, top and bottom edge cards for `settings`: each names the edge's action, and an edge set to
+    /// the keyboard backlight shows media control while the backlight bridge is unavailable. Without Accessibility,
     /// a card still names the configured action but says it needs the permission (the diagram shows it off).
     public static func cards(
         for settings: Settings,
@@ -59,14 +59,20 @@ public enum WelcomeContent {
         }
     }
 
+    // A flat, exhaustive mapping reads best as one switch.
+    // swiftlint:disable:next cyclomatic_complexity
     private static func detail(for action: EdgeAction) -> String {
         switch action {
         case .volume: "Slide to turn the sound up or down."
         case .brightness: "Slide to brighten or dim the display."
-        case .switchApps: "Slide to pick an app, lift to switch."
-        case .scrubVideo: "Slide to step through a video."
         case .keyboardBacklight: "Slide to brighten or dim the keys."
+        case .switchApps: "Slide to pick an app, lift to switch."
+        case .switchTabs: "Slide to move to the next or previous tab."
+        case .switchDesktops: "Slide to move to the next or previous desktop."
+        case .scrubVideo: "Slide to step through a video."
         case .media: "Slide to skip, double-tap to play."
+        case .zoom: "Slide to zoom in or out."
+        case .undoRedo: "Slide back to undo, forward to redo."
         case .off: "Does nothing."
         }
     }

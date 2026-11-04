@@ -17,6 +17,11 @@ import TrrekPlatform
     #expect(SettingsLabels.symbol(for: EdgeAction.switchApps) == "rectangle.on.rectangle")
     #expect(SettingsLabels.symbol(for: EdgeAction.media) == "play")
     #expect(SettingsLabels.symbol(for: EdgeAction.off) == nil)
+    #expect(EdgeAction.allCases.map(SettingsLabels.title(for:)) == [
+        "Volume", "Brightness", "Keyboard Backlight", "Switch Apps", "Switch Tabs", "Switch Desktops", "Scrub Video",
+        "Media", "Zoom", "Undo & Redo", "Off"
+    ])
+    #expect(EdgeAction.allCases.filter { $0 != .off }.allSatisfy { SettingsLabels.symbol(for: $0) != nil })
 }
 
 @Test func cornerLabelsSymbolsAndCycle() {
@@ -26,9 +31,17 @@ import TrrekPlatform
     #expect(SettingsLabels.symbol(for: CornerAction.off) == nil)
     #expect(SettingsLabels.symbol(for: CornerAction.mute) == "speaker.slash")
     #expect(SettingsLabels.symbol(for: CornerAction.screenshot) == "camera.viewfinder")
-    #expect(SettingsLabels.next(after: .off) == .mute)
-    #expect(SettingsLabels.next(after: .mute) == .screenshot)
-    #expect(SettingsLabels.next(after: .screenshot) == .off)
+    #expect(CornerAction.allCases.map(SettingsLabels.title(for:)) == [
+        "Off", "Mute", "Screenshot", "Play/Pause", "Mission Control", "App Windows", "Show Desktop", "Spotlight",
+        "Lock Screen", "Screenshot Area"
+    ])
+    #expect(CornerAction.allCases.filter { $0 != .off }.allSatisfy { SettingsLabels.symbol(for: $0) != nil })
+    // A badge click moves through every action in order and wraps around to Off.
+    var cycled: [CornerAction] = [.off]
+    while cycled.count <= CornerAction.allCases.count {
+        cycled.append(SettingsLabels.next(after: cycled[cycled.count - 1]))
+    }
+    #expect(cycled == CornerAction.allCases + [.off])
 }
 
 @Test func optionTitles() {
@@ -37,10 +50,23 @@ import TrrekPlatform
     #expect(HoldKey.allCases.map(SettingsLabels.title(for:)) == ["None", "Shift", "Control", "Option", "Command"])
     #expect(HoldKeyMode.allCases.map(SettingsLabels.title(for:)) == ["Hold", "Toggle"])
     #expect(Corner.allCases.map(SettingsLabels.title(for:)) == ["Top Left", "Top Right", "Bottom Left", "Bottom Right"])
+    #expect(SlideSensitivity.allCases.map(SettingsLabels.title(for:)) == [
+        "Very Low", "Low", "Standard", "High", "Very High"
+    ])
 }
 
-@Test func topAndBottomChoicesMatchSpec() {
-    #expect(EdgeChoices.topAndBottom == [.switchApps, .scrubVideo, .keyboardBacklight, .media, .off])
+@Test func everyEdgeOffersTheSameChoices() {
+    #expect(EdgeChoices.all == [
+        .volume, .brightness, .keyboardBacklight, .switchApps, .switchTabs, .switchDesktops, .scrubVideo, .media,
+        .zoom, .undoRedo, .off
+    ])
+    #expect(EdgeChoices.caption(for: .switchTabs, backlightAvailable: true) == "Uses ⌃⇥ and ⌃⇧⇥ in the front app")
+    #expect(EdgeChoices.caption(for: .switchDesktops, backlightAvailable: true) == "Uses ⌃← and ⌃→")
+    #expect(EdgeChoices.caption(for: .zoom, backlightAvailable: true) == "Uses ⌘= and ⌘− in the front app")
+    #expect(EdgeChoices.caption(for: .undoRedo, backlightAvailable: true) == "Uses ⌘Z and ⇧⌘Z in the front app")
+    #expect(EdgeChoices.all.filter { $0 != .keyboardBacklight }.allSatisfy {
+        EdgeChoices.isSelectable($0, backlightAvailable: false)
+    })
     #expect(EdgeChoices.isSelectable(.scrubVideo, backlightAvailable: true))
     #expect(EdgeChoices.isSelectable(.keyboardBacklight, backlightAvailable: true))
     #expect(!EdgeChoices.isSelectable(.keyboardBacklight, backlightAvailable: false))
@@ -61,11 +87,31 @@ import TrrekPlatform
     edges = DiagramEdges(settings: settings, backlightAvailable: false, accessibilityTrusted: true)
     #expect(edges.bottom == .media)
 
-    settings.swapSides = true
+    settings.leftEdge = .volume
+    settings.rightEdge = .brightness
     settings.topEdge = .scrubVideo
     settings.bottomEdge = .off
     edges = DiagramEdges(settings: settings, backlightAvailable: true, accessibilityTrusted: true)
     #expect(edges == DiagramEdges(left: .volume, right: .brightness, top: .scrubVideo, bottom: .off))
+
+    settings.leftEdge = .keyboardBacklight
+    settings.rightEdge = .switchDesktops
+    edges = DiagramEdges(settings: settings, backlightAvailable: false, accessibilityTrusted: true)
+    #expect(edges.left == .media)
+    #expect(edges.right == .switchDesktops)
+}
+
+@Test func edgeSubscriptReadsAndWritesEachEdge() {
+    var settings = Settings()
+    settings[edge: .left] = .zoom
+    settings[edge: .right] = .undoRedo
+    settings[edge: .top] = .switchTabs
+    settings[edge: .bottom] = .switchDesktops
+    #expect(settings.leftEdge == .zoom)
+    #expect(settings.rightEdge == .undoRedo)
+    #expect(settings.topEdge == .switchTabs)
+    #expect(settings.bottomEdge == .switchDesktops)
+    #expect(Edge.allCases.map { settings[edge: $0] } == [.zoom, .undoRedo, .switchTabs, .switchDesktops])
 }
 
 @Test func diagramEdgesShowTheGatedActions() {

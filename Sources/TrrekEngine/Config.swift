@@ -1,11 +1,15 @@
 import Foundation
 
+/// What a slide along an edge does. Every edge offers the same actions; the order is the order the settings list them.
 public enum EdgeAction: String, Sendable, Equatable, Hashable, CaseIterable, Codable {
-    case volume, brightness, switchApps, scrubVideo, keyboardBacklight, media, off
+    case volume, brightness, keyboardBacklight, switchApps, switchTabs, switchDesktops, scrubVideo, media, zoom
+    case undoRedo, off
 }
 
+/// What a double tap on a corner does. The order is the order the settings list them and a badge click cycles them.
 public enum CornerAction: String, Sendable, Equatable, Hashable, CaseIterable, Codable {
-    case off, mute, screenshot
+    case off, mute, screenshot, playPause, missionControl, appWindows, showDesktop, spotlight, lockScreen
+    case screenshotArea
 }
 
 public struct Thresholds: Sendable, Equatable, Hashable {
@@ -16,6 +20,10 @@ public struct Thresholds: Sendable, Equatable, Hashable {
     public var appSwitchStepMM: Float = 12
     public var scrubStepMM: Float = 6
     public var mediaSkipStepMM: Float = 20
+    public var tabSwitchStepMM: Float = 12
+    public var desktopSwitchStepMM: Float = 20
+    public var zoomStepMM: Float = 8
+    public var undoRedoStepMM: Float = 10
     public var tapMaxDuration: TimeInterval = 0.25
     public var tapMaxMoveMM: Float = 2
     public var doubleTapWindow: TimeInterval = 0.35

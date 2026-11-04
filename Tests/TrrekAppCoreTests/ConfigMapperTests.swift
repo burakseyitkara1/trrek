@@ -19,12 +19,24 @@ import TrrekPlatform
     #expect(config == EngineConfig())
 }
 
-@Test func swapSidesSwapsLeftRight() {
+@Test func sideEdgesMapTheirOwnActions() {
     var settings = Settings()
-    settings.swapSides = true
+    settings.leftEdge = .volume
+    settings.rightEdge = .switchTabs
     let config = ConfigMapper.engineConfig(from: settings, backlightAvailable: true)
     #expect(config.left == .volume)
-    #expect(config.right == .brightness)
+    #expect(config.right == .switchTabs)
+}
+
+@Test func everyEdgeMapsEveryAction() {
+    for action in EdgeAction.allCases {
+        for edge in Edge.allCases {
+            var settings = Settings()
+            settings[edge: edge] = action
+            let config = ConfigMapper.engineConfig(from: settings, backlightAvailable: true)
+            #expect(config.action(for: edge) == action)
+        }
+    }
 }
 
 @Test func edgeWidthMapsToMillimetres() {
@@ -40,14 +52,77 @@ import TrrekPlatform
 
 @Test func bottomEdgeFallsBackToMediaWithoutBacklight() {
     let settings = Settings()
-    #expect(ConfigMapper.effectiveBottomEdge(settings, backlightAvailable: false) == .media)
+    #expect(ConfigMapper.effective(settings.bottomEdge, backlightAvailable: false) == .media)
     #expect(ConfigMapper.engineConfig(from: settings, backlightAvailable: false).bottom == .media)
-    #expect(ConfigMapper.effectiveBottomEdge(settings, backlightAvailable: true) == .keyboardBacklight)
+    #expect(ConfigMapper.effective(settings.bottomEdge, backlightAvailable: true) == .keyboardBacklight)
     #expect(ConfigMapper.engineConfig(from: settings, backlightAvailable: true).bottom == .keyboardBacklight)
+    #expect(ConfigMapper.effective(.volume, backlightAvailable: false) == .volume)
+}
 
-    var media = Settings()
-    media.bottomEdge = .volume
-    #expect(ConfigMapper.effectiveBottomEdge(media, backlightAvailable: false) == .volume)
+@Test func keyboardBacklightFallsBackToMediaOnEveryEdge() {
+    for edge in Edge.allCases {
+        var settings = Settings()
+        settings[edge: edge] = .keyboardBacklight
+        #expect(ConfigMapper.engineConfig(from: settings, backlightAvailable: false).action(for: edge) == .media)
+        let available = ConfigMapper.engineConfig(from: settings, backlightAvailable: true)
+        #expect(available.action(for: edge) == .keyboardBacklight)
+    }
+}
+
+@Test func sensitivityScalesEveryStepDistance() {
+    let expected: [(SlideSensitivity, Float)] = [
+        (.veryLow, 1.6), (.low, 1.25), (.standard, 1.0), (.high, 0.8), (.veryHigh, 0.6)
+    ]
+    #expect(expected.map(\.0) == SlideSensitivity.allCases)
+    #expect(Settings().slideSensitivity == .standard)
+    let base = Thresholds()
+    var settings = Settings()
+    settings.edgeWidth = .wide
+    for (sensitivity, multiplier) in expected {
+        #expect(sensitivity.multiplier == multiplier)
+        settings.slideSensitivity = sensitivity
+        let scaled = ConfigMapper.engineConfig(from: settings, backlightAvailable: true).thresholds
+        #expect(scaled.stepMM == base.stepMM * multiplier)
+        #expect(scaled.appSwitchStepMM == base.appSwitchStepMM * multiplier)
+        #expect(scaled.scrubStepMM == base.scrubStepMM * multiplier)
+        #expect(scaled.mediaSkipStepMM == base.mediaSkipStepMM * multiplier)
+        #expect(scaled.tabSwitchStepMM == base.tabSwitchStepMM * multiplier)
+        #expect(scaled.desktopSwitchStepMM == base.desktopSwitchStepMM * multiplier)
+        #expect(scaled.zoomStepMM == base.zoomStepMM * multiplier)
+        #expect(scaled.undoRedoStepMM == base.undoRedoStepMM * multiplier)
+        // Only step distances scale: the slide start, the strip width and the timings keep their values.
+        var unscaled = scaled
+        unscaled.stepMM = base.stepMM
+        unscaled.appSwitchStepMM = base.appSwitchStepMM
+        unscaled.scrubStepMM = base.scrubStepMM
+        unscaled.mediaSkipStepMM = base.mediaSkipStepMM
+        unscaled.tabSwitchStepMM = base.tabSwitchStepMM
+        unscaled.desktopSwitchStepMM = base.desktopSwitchStepMM
+        unscaled.zoomStepMM = base.zoomStepMM
+        unscaled.undoRedoStepMM = base.undoRedoStepMM
+        var reference = base
+        reference.edgeWidthMM = EdgeWidth.wide.millimetres
+        #expect(unscaled == reference)
+    }
+}
+
+@Test func newActionStepDistancesMatchSpec() {
+    let thresholds = Thresholds()
+    #expect(Geometry.stepMM(for: .switchTabs, thresholds: thresholds) == 12)
+    #expect(Geometry.stepMM(for: .switchDesktops, thresholds: thresholds) == 20)
+    #expect(Geometry.stepMM(for: .zoom, thresholds: thresholds) == 8)
+    #expect(Geometry.stepMM(for: .undoRedo, thresholds: thresholds) == 10)
+}
+
+@Test func shortestScaledStepStaysWellAboveTheEngineTolerance() {
+    // The engine treats a step at or below 0.001 mm as no step; the most sensitive setting must stay far above it.
+    var settings = Settings()
+    settings.slideSensitivity = .veryHigh
+    let thresholds = ConfigMapper.engineConfig(from: settings, backlightAvailable: true).thresholds
+    let shortest = EdgeAction.allCases.filter { $0 != .off }.map { Geometry.stepMM(for: $0, thresholds: thresholds) }
+        .min() ?? 0
+    #expect(shortest == Thresholds().stepMM * 0.6)
+    #expect(shortest > 2)
 }
 
 @Test func holdKeyNoneDoesNotRequireKey() {
@@ -156,4 +231,38 @@ import TrrekPlatform
     #expect(ConfigMapper.gated(.keyboardBacklight, accessibilityTrusted: false) == .keyboardBacklight)
     #expect(ConfigMapper.gated(CornerAction.mute, accessibilityTrusted: false) == .off)
     #expect(ConfigMapper.gated(CornerAction.mute, accessibilityTrusted: true) == .mute)
+}
+
+@Test func untrustedTurnsOffNewActionsOnEveryEdgeAndCorner() {
+    let newEdgeActions: [EdgeAction] = [.switchTabs, .switchDesktops, .zoom, .undoRedo]
+    for action in newEdgeActions {
+        var settings = Settings()
+        for edge in Edge.allCases {
+            settings[edge: edge] = action
+        }
+        let untrusted = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: false)
+        #expect(Edge.allCases.allSatisfy { untrusted.action(for: $0) == .off })
+        let trusted = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: true)
+        #expect(Edge.allCases.allSatisfy { trusted.action(for: $0) == action })
+    }
+    // The keyboard backlight on a side edge still works without Accessibility.
+    var backlight = Settings()
+    backlight.leftEdge = .keyboardBacklight
+    let gatedBacklight = ConfigMapper.engineConfig(
+        from: backlight,
+        backlightAvailable: true,
+        accessibilityTrusted: false
+    )
+    #expect(gatedBacklight.left == .keyboardBacklight)
+
+    for action in CornerAction.allCases {
+        var settings = Settings()
+        for corner in Corner.allCases {
+            settings[corner: corner] = action
+        }
+        let untrusted = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: false)
+        #expect(Corner.allCases.allSatisfy { untrusted.action(for: $0) == .off })
+        let trusted = ConfigMapper.engineConfig(from: settings, backlightAvailable: true, accessibilityTrusted: true)
+        #expect(Corner.allCases.allSatisfy { trusted.action(for: $0) == action })
+    }
 }

@@ -15,11 +15,22 @@ import TrrekEngine
     #expect(cards.allSatisfy { !$0.detail.isEmpty && !$0.needsAccessibility })
 }
 
-@Test func welcomeCardsFollowSwapSides() {
+@Test func welcomeCardsFollowTheSideEdges() {
     var settings = Settings()
-    settings.swapSides = true
+    settings.leftEdge = .volume
+    settings.rightEdge = .brightness
     let cards = WelcomeContent.cards(for: settings, backlightAvailable: true, accessibilityTrusted: true)
     #expect(cards.map(\.title).prefix(2) == ["Right edge — Brightness", "Left edge — Volume"])
+}
+
+@Test func welcomeCardsDescribeEveryAction() {
+    for action in EdgeAction.allCases {
+        var settings = Settings()
+        settings.rightEdge = action
+        let card = WelcomeContent.cards(for: settings, backlightAvailable: true, accessibilityTrusted: true)[0]
+        #expect(card.title == "Right edge — \(SettingsLabels.title(for: action))")
+        #expect(!card.detail.isEmpty)
+    }
 }
 
 @Test func welcomeCardsWithoutBacklightShowMedia() {

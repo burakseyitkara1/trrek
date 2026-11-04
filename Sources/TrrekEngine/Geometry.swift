@@ -3,8 +3,11 @@ public enum Geometry {
     static let bottomQuarter: Float = 0.25
 
     /// Classifies a touch (normalized, origin bottom-left) into an edge strip, a corner or nothing.
-    /// With `bottomQuarterOnly`, a vertical strip at or above the bottom quarter is not an edge zone but still
-    /// forms corners with a horizontal strip; the engine then lets such a corner slide only horizontally.
+    /// Strips are found by geometry alone, so where two strips meet is always a corner, also when one or both of
+    /// its edges are off: a corner's double tap does not depend on its edges, and a slide from it toward an edge
+    /// that is off never starts (the engine spends the finger). An edge that is off only stops being a plain
+    /// edge zone. With `bottomQuarterOnly`, a vertical strip at or above the bottom quarter is not an edge zone but
+    /// still forms corners with a horizontal strip; the engine then lets such a corner slide only horizontally.
     public static func zone(of touch: Touch, in geometry: DeviceGeometry, config: EngineConfig) -> Zone {
         guard geometry.isValid else { return .none }
         let width = config.thresholds.edgeWidthMM
@@ -12,24 +15,28 @@ public enum Geometry {
         let padHeight = geometry.heightMM
 
         var vertical: Edge?
-        if touch.x * padWidth < width, config.left != .off {
+        if touch.x * padWidth < width {
             vertical = .left
-        } else if (1 - touch.x) * padWidth < width, config.right != .off {
+        } else if (1 - touch.x) * padWidth < width {
             vertical = .right
         }
         var horizontal: Edge?
-        if touch.y * padHeight < width, config.bottom != .off {
+        if touch.y * padHeight < width {
             horizontal = .bottom
-        } else if (1 - touch.y) * padHeight < width, config.top != .off {
+        } else if (1 - touch.y) * padHeight < width {
             horizontal = .top
         }
 
         let verticalEdgeAllowed = !(config.bottomQuarterOnly && touch.y >= bottomQuarter)
         switch (vertical, horizontal) {
-        case let (.some(vert), .some(hz)): return .corner(corner(vertical: vert, horizontal: hz))
-        case let (.some(vert), nil): return verticalEdgeAllowed ? .edge(vert) : .none
-        case let (nil, .some(hz)): return .edge(hz)
-        case (nil, nil): return .none
+        case let (.some(vert), .some(hz)):
+            return .corner(corner(vertical: vert, horizontal: hz))
+        case let (.some(vert), nil):
+            return verticalEdgeAllowed && config.action(for: vert) != .off ? .edge(vert) : .none
+        case let (nil, .some(hz)):
+            return config.action(for: hz) != .off ? .edge(hz) : .none
+        case (nil, nil):
+            return .none
         }
     }
 
@@ -54,7 +61,28 @@ public enum Geometry {
         case .switchApps: thresholds.appSwitchStepMM
         case .scrubVideo: thresholds.scrubStepMM
         case .media: thresholds.mediaSkipStepMM
+        case .switchTabs: thresholds.tabSwitchStepMM
+        case .switchDesktops: thresholds.desktopSwitchStepMM
+        case .zoom: thresholds.zoomStepMM
+        case .undoRedo: thresholds.undoRedoStepMM
         case .off: .infinity
+        }
+    }
+
+    /// The command for one step of `action`: `sign` +1 is forward (rightward on a horizontal edge, upward on a
+    /// vertical one), -1 back. `fine` is the Precision Control flag of the level steps.
+    static func stepCommand(for action: EdgeAction, sign: Int, fine: Bool) -> GestureCommand {
+        switch action {
+        case .volume: .stepVolume(sign, fine: fine)
+        case .brightness: .stepBrightness(sign, fine: fine)
+        case .keyboardBacklight: .stepKeyboardBacklight(sign, fine: fine)
+        case .switchApps: .appSwitchStep(sign)
+        case .switchTabs: .tabSwitchStep(sign)
+        case .switchDesktops: .desktopSwitchStep(sign)
+        case .scrubVideo: .scrubStep(sign)
+        case .media, .off: sign > 0 ? .mediaNext : .mediaPrevious
+        case .zoom: .zoomStep(sign)
+        case .undoRedo: .undoRedoStep(sign)
         }
     }
 

@@ -307,7 +307,8 @@ final class Coordinator {
             externalBrightness: externalBrightness,
             displayLocator: { DisplayLocator.displayUnderPointer() },
             volumeLevel: OutputVolumeReader(),
-            brightnessLevel: BuiltInBrightnessReader()
+            brightnessLevel: BuiltInBrightnessReader(),
+            missionControl: SystemMissionControl()
         )
         dispatcher.hapticStrength = settings.hapticStrength
         dispatcher.externalBrightnessEnabled = settings.externalMonitorBrightness
