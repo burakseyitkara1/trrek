@@ -170,7 +170,7 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 
 ### 6.6a Sinyalle çıkış (SIGTERM/SIGINT)
 - **Nasıl:** Terminalde `sleep 3; pkill -TERM -x trrek` çalıştır; hemen üst kenarda Switch Apps slide'ı başlat ve parmağı trackpad'de tut. Aynısını `pkill -INT -x trrek` ile tekrarla.
-- **Beklenen:** trrek kapanır, uygulama değiştirici kapanır, ⌘ basılı kalmaz. `log show --last 1m --predicate 'subsystem == "com.burakseyitkara.trrek"'` çıktısında "signal 15; quitting" (INT için 2) satırı görünür.
+- **Beklenen:** trrek kapanır, uygulama değiştirici kapanır, ⌘ basılı kalmaz. `/usr/bin/log show --last 1m --predicate 'subsystem == "com.burakseyitkara.trrek"'` çıktısında "signal 15; quitting" (INT için 2) satırı görünür. Komutu tam yoluyla yaz: zsh'in kendi `log` komutu sistem aracını gölgeler. trrek açıldıktan sonra birkaç saniye bekle; sinyal işleyicisi kurulmadan gelen SIGTERM uygulamayı kayıt yazmadan kapatır.
 
 ### 6.7 Dokunmatik yüzeyli fare bağlı
 - **Nasıl:** Dokunmatik yüzeyli bir fare bağla; `swift run TrrekProbe devices` çıktısına bak; farenin yüzeyinde kenar boyunca kaydır ve köşelere çift dokun; sonra trackpad'de kaydır.

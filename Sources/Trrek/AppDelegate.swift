@@ -14,7 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         coordinator.start(skipFirstRun: launchOptions.skipFirstRun)
         terminationSignals = TerminationSignals { [coordinator] number in
             MainActor.assumeIsolated {
-                appLogger.info("signal \(number, privacy: .public); quitting")
+                appLogger.notice("signal \(number, privacy: .public); quitting")
                 coordinator.terminate()
             }
             exit(0)
