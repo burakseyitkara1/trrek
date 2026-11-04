@@ -43,7 +43,7 @@ install: app
 icon:
 	scripts/make-icon.sh dist/AppIcon.icns
 
-# Idle CPU/memory check of the installed (or dist) app; fails above 15 MB RSS.
+# Idle check of the installed (or dist) app: fails above 15 MB physical footprint or 1% CPU.
 perf:
 	scripts/perf.sh
 

@@ -14,6 +14,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "invalid --version '$VERSION' (expected X.Y.Z)" >&2; exit 2; }
+[[ "$BUILD" =~ ^[0-9]+$ ]] || { echo "invalid --build '$BUILD' (expected digits)" >&2; exit 2; }
+
 APP="dist/trrek.app"
 
 swift build -c release --arch arm64 --product Trrek
@@ -34,6 +37,15 @@ if [[ -d Sources/Trrek/Resources ]]; then
     cp -R Sources/Trrek/Resources/. "$APP/Contents/Resources/"
 fi
 
-codesign --force --sign - --deep "$APP"
+# A stable identity keeps the Accessibility grant across rebuilds; ad-hoc signing changes the
+# code hash on every build. See scripts/make-signing-identity.sh.
+IDENTITIES="$(security find-identity -v -p codesigning || true)"
+if [[ -n "${TRREK_SIGN_IDENTITY:-}" ]]; then
+    codesign --force --deep --sign "$TRREK_SIGN_IDENTITY" "$APP"
+elif grep -q "trrek Local Signing" <<<"$IDENTITIES"; then
+    codesign --force --deep --sign "trrek Local Signing" "$APP"
+else
+    codesign --force --sign - --deep "$APP"
+fi
 codesign -dv "$APP"
 echo "built $APP ($VERSION, build $BUILD)"
