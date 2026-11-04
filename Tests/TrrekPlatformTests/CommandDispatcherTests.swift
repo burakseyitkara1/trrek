@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import Testing
 import TrrekEngine
 import TrrekPlatform
@@ -209,4 +210,167 @@ private let escape: CGKeyCode = 53
     #expect(rig.keys.calls.isEmpty)
     rig.send(.scrubStep(1))
     #expect(rig.overlay.calls.last?.label == "+5 s")
+}
+
+// MARK: - External brightness
+
+private let builtIn: CGDirectDisplayID = 1
+private let external: CGDirectDisplayID = 2
+
+/// A dispatcher with an external brightness port, a movable pointer and its own display queue.
+private struct BrightnessRig {
+    let media = FakeMediaKeys()
+    let overlay = FakeOverlay()
+    let port: FakeExternalBrightness
+    let locator: FakeDisplayLocator
+    let queue = DispatchQueue(label: "test.ddc")
+    let dispatcher: CommandDispatcher
+
+    init(
+        pointerOn display: CGDirectDisplayID?,
+        enabled: Bool,
+        level: Float = 0.5,
+        delay: TimeInterval = 0,
+        failing: Bool = false
+    ) {
+        port = FakeExternalBrightness(externals: [external], level: level, delay: delay, failing: failing)
+        locator = FakeDisplayLocator(display)
+        queue.setSpecific(key: port.queueKey, value: true)
+        let locator = locator
+        dispatcher = CommandDispatcher(
+            mediaKeys: media,
+            keys: FakeKeys(),
+            mouse: FakeMouse(),
+            haptics: FakeHaptics(),
+            freezer: FakeFreezer(),
+            backlight: nil,
+            overlay: overlay,
+            externalBrightness: port,
+            displayLocator: { locator.locate() },
+            displayQueue: queue
+        )
+        dispatcher.externalBrightnessEnabled = enabled
+    }
+
+    /// Sends `commands` and waits until the display queue has run the work they queued.
+    func send(_ commands: GestureCommand...) {
+        for command in commands {
+            dispatcher.handle(command, device: 1)
+        }
+        queue.sync {}
+    }
+}
+
+@Test func builtInScreenUsesMediaKeys() {
+    let rig = BrightnessRig(pointerOn: builtIn, enabled: true)
+    rig.send(.stepBrightness(1, fine: false), .stepBrightness(-1, fine: true))
+    #expect(rig.media.calls == [
+        FakeMediaKeys.Call(key: .brightnessUp, fine: false),
+        FakeMediaKeys.Call(key: .brightnessDown, fine: true)
+    ])
+    #expect(rig.port.steps.isEmpty)
+    #expect(rig.overlay.calls.isEmpty)
+
+    // Without a display under the pointer the media key is the fallback too.
+    let nowhere = BrightnessRig(pointerOn: nil, enabled: true)
+    nowhere.send(.stepBrightness(1, fine: false))
+    #expect(nowhere.media.calls == [FakeMediaKeys.Call(key: .brightnessUp, fine: false)])
+    #expect(nowhere.port.steps.isEmpty)
+}
+
+@Test func externalScreenUsesDDCWhenEnabled() {
+    let rig = BrightnessRig(pointerOn: external, enabled: true)
+    rig.send(.stepBrightness(1, fine: false), .stepBrightness(-1, fine: true))
+    #expect(rig.port.steps == [
+        FakeExternalBrightness.Step(display: external, direction: 1, fine: false),
+        FakeExternalBrightness.Step(display: external, direction: -1, fine: true)
+    ])
+    #expect(rig.port.stepsOnMarkedQueue == [true, true])
+    #expect(rig.overlay.calls == [
+        FakeOverlay.Call(kind: .externalBrightness, level: 0.5625, label: nil),
+        FakeOverlay.Call(kind: .externalBrightness, level: 0.546875, label: nil)
+    ])
+    #expect(rig.media.calls.isEmpty)
+
+    // The step follows the pointer: back on the built-in screen, the media key is used again.
+    rig.locator.display = builtIn
+    rig.send(.stepBrightness(1, fine: false))
+    #expect(rig.port.steps.count == 2)
+    #expect(rig.media.calls == [FakeMediaKeys.Call(key: .brightnessUp, fine: false)])
+}
+
+@Test func externalDisabledUsesMediaKeys() {
+    let rig = BrightnessRig(pointerOn: external, enabled: false)
+    rig.send(.stepBrightness(-1, fine: false))
+    #expect(rig.media.calls == [FakeMediaKeys.Call(key: .brightnessDown, fine: false)])
+    #expect(rig.port.steps.isEmpty)
+    #expect(rig.overlay.calls.isEmpty)
+
+    // Turning the setting on takes effect for the next step.
+    rig.dispatcher.externalBrightnessEnabled = true
+    #expect(rig.dispatcher.externalBrightnessEnabled)
+    rig.send(.stepBrightness(-1, fine: false))
+    #expect(rig.port.steps == [FakeExternalBrightness.Step(display: external, direction: -1, fine: false)])
+    #expect(rig.media.calls.count == 1)
+}
+
+@Test func failedDDCShowsNoDDC() {
+    let rig = BrightnessRig(pointerOn: external, enabled: true, failing: true)
+    rig.send(.stepBrightness(1, fine: false))
+    #expect(rig.port.steps.count == 1)
+    #expect(rig.overlay.calls == [FakeOverlay.Call(kind: .externalBrightness, level: 0, label: "No DDC")])
+    // A failed DDC step does not fall back to the media key, which would change the built-in display instead.
+    #expect(rig.media.calls.isEmpty)
+}
+
+@Test func ddcWorkRunsOffTheFrameThread() {
+    let rig = BrightnessRig(pointerOn: external, enabled: true, delay: 0.3)
+    let clock = ContinuousClock()
+    let start = clock.now
+    rig.dispatcher.handle(.stepBrightness(1, fine: false), device: 1)
+    rig.dispatcher.handle(.haptic(.step), device: 1)
+    let elapsed = clock.now - start
+    #expect(elapsed < .milliseconds(100))
+    // The slow step is still running; nothing has been shown yet.
+    #expect(rig.overlay.calls.isEmpty)
+
+    rig.queue.sync {}
+    #expect(rig.port.steps.count == 1)
+    #expect(rig.port.stepsOnMarkedQueue == [true])
+    #expect(rig.overlay.calls == [FakeOverlay.Call(kind: .externalBrightness, level: 0.5625, label: nil)])
+}
+
+@Test func fastStepsAreMergedWhileTheDisplayIsBusy() {
+    let rig = BrightnessRig(pointerOn: external, enabled: true, level: 0, delay: 0.2)
+    for _ in 0 ..< 10 {
+        rig.dispatcher.handle(.stepBrightness(1, fine: false), device: 1)
+    }
+    rig.queue.sync {}
+    let steps = rig.port.steps
+    #expect(steps.count <= 2)
+    #expect(steps.map(\.direction).reduce(0, +) == 10)
+    #expect(steps.allSatisfy { $0.display == external && !$0.fine })
+    #expect(rig.overlay.calls.last == FakeOverlay.Call(kind: .externalBrightness, level: 0.625, label: nil))
+    #expect(rig.overlay.calls.count == steps.count)
+    #expect(rig.media.calls.isEmpty)
+}
+
+@Test func mergedStepsKeepDirectionAndPrecisionApart() {
+    let rig = BrightnessRig(pointerOn: external, enabled: true, level: 0.5, delay: 0.2)
+    // The first step occupies the display; the rest wait and are merged while they keep their precision.
+    rig.dispatcher.handle(.stepBrightness(1, fine: false), device: 1)
+    Thread.sleep(forTimeInterval: 0.05)
+    for direction in [1, 1, -1, -1, -1] {
+        rig.dispatcher.handle(.stepBrightness(direction, fine: false), device: 1)
+    }
+    rig.dispatcher.handle(.stepBrightness(1, fine: true), device: 1)
+    rig.dispatcher.handle(.stepBrightness(1, fine: true), device: 1)
+    rig.queue.sync {}
+    #expect(rig.port.steps == [
+        FakeExternalBrightness.Step(display: external, direction: 1, fine: false),
+        // Reversing within the merged step nets out instead of moving on the old way.
+        FakeExternalBrightness.Step(display: external, direction: -1, fine: false),
+        FakeExternalBrightness.Step(display: external, direction: 2, fine: true)
+    ])
+    #expect(rig.overlay.calls.last?.level == 0.53125)
 }

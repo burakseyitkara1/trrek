@@ -39,12 +39,10 @@ struct EdgesTab: View {
                     Text("Bottom Quarter Only")
                     Text("The side edges respond only in their lower quarter.")
                 }
-                // Not built yet: shown off and disabled whatever the stored value says.
-                Toggle(isOn: .constant(false)) {
+                Toggle(isOn: $model.settings.externalMonitorBrightness) {
                     Text("External Monitor Brightness")
-                    Text("Coming later")
+                    Text(SettingsLabels.externalBrightnessCaption)
                 }
-                .disabled(true)
             }
         }
         .formStyle(.grouped)

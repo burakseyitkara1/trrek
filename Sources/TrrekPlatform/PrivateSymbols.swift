@@ -1,6 +1,7 @@
 import CMultitouch
 import CoreFoundation
 import Darwin
+import IOKit
 import os
 
 let platformLogger = Logger(subsystem: "com.burakseyitkara.trrek", category: "platform")
@@ -46,6 +47,28 @@ public struct CoreBrightnessSymbols: Sendable {
     public let brightnessSelector: String
     /// `- (BOOL)…:(float)level …:(int)fadeSpeed …:(BOOL)commit …:(unsigned long long)keyboardID`.
     public let setBrightnessSelector: String
+}
+
+/// Function pointers for the display audio/video service, which carries I2C transfers to an external display.
+public struct AVServiceSymbols: Sendable {
+    /// Creates the service object for an I/O Registry entry (returned retained).
+    public let createWithService: @convention(c) (CFAllocator?, io_service_t) -> Unmanaged<CFTypeRef>?
+    /// `(service, chipAddress, offset, buffer, length)`: reads `length` bytes from the I2C device.
+    public let readI2C: @convention(c) (CFTypeRef, UInt32, UInt32, UnsafeMutableRawPointer, UInt32) -> IOReturn
+    /// `(service, chipAddress, dataAddress, buffer, length)`: writes `dataAddress` followed by `length` bytes.
+    public let writeI2C: @convention(c) (CFTypeRef, UInt32, UInt32, UnsafeMutableRawPointer, UInt32) -> IOReturn
+}
+
+/// Names in the I/O Registry entries of external displays.
+enum DisplayRegistryKeys {
+    static let avServiceClass = "DCPAVServiceProxy"
+    static let location = "Location"
+    static let external = "External"
+    static let displayAttributes = "DisplayAttributes"
+    static let productAttributes = "ProductAttributes"
+    static let manufacturerID = "ManufacturerID"
+    static let productID = "ProductID"
+    static let serialNumber = "SerialNumber"
 }
 
 /// The only place where private framework symbols are resolved. A group whose symbols
@@ -144,7 +167,39 @@ public enum PrivateSymbols {
         )
     }()
 
+    private static let ioKitPath = "/System/Library/Frameworks/IOKit.framework/IOKit"
+
+    private static let ioKitHandle: Handle = {
+        let raw = dlopen(ioKitPath, RTLD_NOW)
+        if raw == nil {
+            let reason = dlerror().map { String(cString: $0) } ?? "unknown error"
+            platformLogger.error("dlopen failed: \(reason, privacy: .public)")
+        }
+        return Handle(raw: raw)
+    }()
+
+    public static let avService: AVServiceSymbols? = {
+        typealias Transfer = @convention(c) (CFTypeRef, UInt32, UInt32, UnsafeMutableRawPointer, UInt32) -> IOReturn
+        guard
+            let create = resolve(
+                "IOAVServiceCreateWithService",
+                as: (@convention(c) (CFAllocator?, io_service_t) -> Unmanaged<CFTypeRef>?).self,
+                in: ioKitHandle
+            ),
+            let read = resolve("IOAVServiceReadI2C", as: Transfer.self, in: ioKitHandle),
+            let write = resolve("IOAVServiceWriteI2C", as: Transfer.self, in: ioKitHandle)
+        else {
+            platformLogger.error("display service symbols unavailable; external brightness disabled")
+            return nil
+        }
+        return AVServiceSymbols(createWithService: create, readI2C: read, writeI2C: write)
+    }()
+
     private static func resolve<T>(_ name: String, as type: T.Type) -> T? {
+        resolve(name, as: type, in: handle)
+    }
+
+    private static func resolve<T>(_ name: String, as type: T.Type, in handle: Handle) -> T? {
         guard let raw = handle.raw else { return nil }
         guard let symbol = dlsym(raw, name) else {
             platformLogger.error("missing symbol \(name, privacy: .public)")

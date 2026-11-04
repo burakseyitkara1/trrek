@@ -1,4 +1,5 @@
 import CoreGraphics
+import Dispatch
 import Synchronization
 import TrrekEngine
 
@@ -8,6 +9,11 @@ import TrrekEngine
 /// calls it makes, runs under one mutex, so a `releaseAll()` can never interleave with a command half-way
 /// (for example posting Command-up between a switcher's Command-down and its Tab). Ports must therefore never
 /// call back into the dispatcher.
+///
+/// External display brightness is the exception to running on the caller's thread: DDC/CI transfers wait on the
+/// bus, so `handle` only decides on the frame thread whether the pointer's display is external and hands the step
+/// to a serial queue, which talks to the display and updates the overlay. Steps that arrive while the queue is
+/// busy are merged into one pending step per display and precision, so a fast slide neither lags nor overshoots.
 public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     private enum KeyCode {
         static let command: CGKeyCode = 55
@@ -24,6 +30,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         var switcherHeld = false
         /// Net arrow-key steps of the current scrub slide.
         var scrubSteps = 0
+        var externalBrightnessEnabled = false
     }
 
     private let mediaKeys: any MediaKeyPosting
@@ -33,7 +40,28 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
     private let freezer: any CursorFreezing
     private let backlight: (any KeyboardBacklightControlling)?
     private let overlay: (any LevelOverlayPresenting)?
+    private let externalBrightness: (any ExternalBrightnessControlling)?
+    private let displayLocator: @Sendable () -> CGDirectDisplayID?
+    /// Where DDC/CI steps run, in order, off the frame thread.
+    private let displayQueue: DispatchQueue
     private let state = Mutex(State())
+    /// DDC steps waiting for the display queue, oldest first; each has exactly one queued block that takes it.
+    private let pendingSteps = Mutex(PendingSteps())
+
+    /// A merged DDC step: `steps` is the net step count for `display` at one precision.
+    private struct PendingStep {
+        let display: CGDirectDisplayID
+        let fine: Bool
+        var steps: Int
+    }
+
+    private struct PendingSteps {
+        var queue: [PendingStep] = []
+
+        init() {
+            queue.reserveCapacity(4)
+        }
+    }
 
     public init(
         mediaKeys: any MediaKeyPosting,
@@ -42,7 +70,10 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         haptics: any HapticPerforming,
         freezer: any CursorFreezing,
         backlight: (any KeyboardBacklightControlling)?,
-        overlay: (any LevelOverlayPresenting)?
+        overlay: (any LevelOverlayPresenting)?,
+        externalBrightness: (any ExternalBrightnessControlling)? = nil,
+        displayLocator: @escaping @Sendable () -> CGDirectDisplayID? = { nil },
+        displayQueue: DispatchQueue = DispatchQueue(label: "com.burakseyitkara.trrek.ddc", qos: .userInitiated)
     ) {
         self.mediaKeys = mediaKeys
         self.keys = keys
@@ -51,11 +82,20 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         self.freezer = freezer
         self.backlight = backlight
         self.overlay = overlay
+        self.externalBrightness = externalBrightness
+        self.displayLocator = displayLocator
+        self.displayQueue = displayQueue
     }
 
     public var hapticStrength: HapticStrength {
         get { state.withLock { $0.hapticStrength } }
         set { state.withLock { $0.hapticStrength = newValue } }
+    }
+
+    /// Whether brightness steps go to an external display under the pointer over DDC/CI.
+    public var externalBrightnessEnabled: Bool {
+        get { state.withLock { $0.externalBrightnessEnabled } }
+        set { state.withLock { $0.externalBrightnessEnabled = newValue } }
     }
 
     public func handle(_ command: GestureCommand, device _: UInt64) {
@@ -80,7 +120,7 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
         case let .stepVolume(direction, fine):
             mediaKeys.post(direction > 0 ? .soundUp : .soundDown, fine: fine)
         case let .stepBrightness(direction, fine):
-            mediaKeys.post(direction > 0 ? .brightnessUp : .brightnessDown, fine: fine)
+            stepBrightness(direction, fine: fine, externalEnabled: state.externalBrightnessEnabled)
         case let .stepKeyboardBacklight(direction, fine):
             stepBacklight(direction, fine: fine, hapticStrength: state.hapticStrength)
         case let .appSwitchStep(direction):
@@ -130,6 +170,34 @@ public final class CommandDispatcher: CommandSink, @unchecked Sendable {
             haptics.perform(.limit, strength: hapticStrength)
         }
         overlay?.show(kind: .keyboardBacklight, level: level, label: nil)
+    }
+
+    /// Steps the external display under the pointer over DDC/CI when that is enabled, otherwise posts the
+    /// brightness media key (the built-in display, or DDC turned off). The DDC step runs on `displayQueue`; the
+    /// overlay shows the new level, or "No DDC" when the display could not be reached.
+    private func stepBrightness(_ direction: Int, fine: Bool, externalEnabled: Bool) {
+        guard externalEnabled, let externalBrightness, let display = displayLocator(),
+              externalBrightness.isExternal(display: display)
+        else {
+            mediaKeys.post(direction > 0 ? .brightnessUp : .brightnessDown, fine: fine)
+            return
+        }
+        // Joins the newest pending step when it is for the same display and precision (its block has not run
+        // yet); otherwise adds a step and queues the one block that will take it.
+        let schedule = pendingSteps.withLock { pending in
+            if let last = pending.queue.last, last.display == display, last.fine == fine {
+                pending.queue[pending.queue.count - 1].steps += direction
+                return false
+            }
+            pending.queue.append(PendingStep(display: display, fine: fine, steps: direction))
+            return true
+        }
+        guard schedule else { return }
+        displayQueue.async { [self] in
+            let step = pendingSteps.withLock { $0.queue.removeFirst() }
+            let level = externalBrightness.step(display: step.display, direction: step.steps, fine: step.fine)
+            overlay?.show(kind: .externalBrightness, level: level ?? 0, label: level == nil ? "No DDC" : nil)
+        }
     }
 
     private func switcherEnd(cancel: Bool, _ state: inout State) {

@@ -7,6 +7,10 @@ public enum SettingsLabels {
     public static let accessibilityNeeded =
         "trrek needs Accessibility access to change volume, brightness and the other controls."
 
+    /// The caption under the External Monitor Brightness setting.
+    public static let externalBrightnessCaption =
+        "Monitors that support DDC/CI; the brightness edge follows the screen with the pointer"
+
     public static func title(for action: EdgeAction) -> String {
         switch action {
         case .volume: "Volume"

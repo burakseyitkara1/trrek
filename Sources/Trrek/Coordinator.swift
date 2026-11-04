@@ -67,16 +67,7 @@ final class Coordinator {
         self.backlight = backlight
         appLogger.info("keyboard backlight available: \(backlight != nil, privacy: .public)")
         freezer.replace(with: EventTapGuard())
-        let dispatcher = CommandDispatcher(
-            mediaKeys: SystemMediaKeys(),
-            keys: SystemKeys(),
-            mouse: SystemMouse(),
-            haptics: haptics,
-            freezer: freezer,
-            backlight: backlight,
-            overlay: overlay
-        )
-        dispatcher.hapticStrength = settings.hapticStrength
+        let dispatcher = makeDispatcher(haptics: haptics, backlight: backlight)
         let config = engineConfig()
         let engine = GestureEngine(config: config, sink: dispatcher)
         self.dispatcher = dispatcher
@@ -131,6 +122,7 @@ final class Coordinator {
         let config = engineConfig()
         pipeline?.withEngine { $0.update(config: config) }
         dispatcher?.hapticStrength = newSettings.hapticStrength
+        dispatcher?.externalBrightnessEnabled = newSettings.externalMonitorBrightness
         if previous.holdKey != newSettings.holdKey || previous.holdKeyMode != newSettings.holdKeyMode {
             rebuildHoldKeyTracker()
         }
@@ -285,6 +277,24 @@ final class Coordinator {
         } catch {
             appLogger.error("launch at login change failed: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    /// The dispatcher with the system ports, set up from the current settings.
+    private func makeDispatcher(haptics: any HapticPerforming, backlight: KeyboardBacklight?) -> CommandDispatcher {
+        let dispatcher = CommandDispatcher(
+            mediaKeys: SystemMediaKeys(),
+            keys: SystemKeys(),
+            mouse: SystemMouse(),
+            haptics: haptics,
+            freezer: freezer,
+            backlight: backlight,
+            overlay: overlay,
+            externalBrightness: ExternalBrightness(),
+            displayLocator: { DisplayLocator.displayUnderPointer() }
+        )
+        dispatcher.hapticStrength = settings.hapticStrength
+        dispatcher.externalBrightnessEnabled = settings.externalMonitorBrightness
+        return dispatcher
     }
 
     private static func makeHaptics() -> any HapticPerforming {

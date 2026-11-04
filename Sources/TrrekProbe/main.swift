@@ -32,6 +32,8 @@ case "backlight":
     runBacklight(options)
 case "keys":
     runKeys(options)
+case "ddc":
+    runDDC(options)
 case "help", "-h", "--help":
     printUsage()
 default:

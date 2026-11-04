@@ -28,6 +28,7 @@ func printUsage() {
       pipeline [seconds]      print every engine command from live frames; sends nothing (default 20 s)
       backlight get|up|down   read or step the keyboard backlight level (0...1)
       keys [seconds]          print user key-down and modifier events (default 10 s; needs Accessibility)
+      ddc list                list external displays, their DDC services and brightness (current/max)
     """)
 }
 

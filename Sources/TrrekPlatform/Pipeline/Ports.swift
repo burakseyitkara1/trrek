@@ -51,7 +51,20 @@ public protocol KeyboardBacklightControlling: Sendable {
     func step(_ direction: Int, fine: Bool) -> Float?
 }
 
-/// Shows a transient level indicator. Called on the frame thread; implementations hop to the main thread.
+/// Shows a transient level indicator. Called on the frame thread, or on the dispatcher's display queue for external
+/// brightness; implementations hop to the main thread without waiting.
 public protocol LevelOverlayPresenting: Sendable {
     func show(kind: OverlayKind, level: Float, label: String?)
+}
+
+/// Adjusts the brightness of external displays over DDC/CI.
+///
+/// `isExternal` is called on the frame thread and must be cheap. `step` talks to the display and waits on the
+/// bus, so the dispatcher calls it only on its own serial queue, never on the frame thread.
+public protocol ExternalBrightnessControlling: Sendable {
+    /// Whether `display` is an external display (one that DDC/CI may reach).
+    func isExternal(display: CGDirectDisplayID) -> Bool
+    /// Moves `display`'s brightness `direction` steps (positive brighter, negative dimmer) and returns the new
+    /// level in 0...1, or `nil` when the display could not be read or written.
+    func step(display: CGDirectDisplayID, direction: Int, fine: Bool) -> Float?
 }

@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## [Unreleased]
 
 - Scrub Video: slide the top or bottom edge to step through the video in the front app
+- External monitor brightness over DDC/CI: the brightness edge follows the screen with the pointer
 
 ## [0.1.1] - 2026-11-04
 

@@ -32,6 +32,14 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 - **Nasıl:** Sol kenarda yukarı/aşağı kaydır.
 - **Beklenen:** Ekran parlaklığı adım adım değişir ve sistemin kendi parlaklık göstergesi görünür; trrek'in overlay'i görünmez.
 
+### 2.2a Harici monitör parlaklığı (DDC/CI destekli monitör)
+- **Nasıl:** DDC/CI destekleyen bir monitör bağla (monitörün kendi menüsünde DDC/CI açık olmalı). Edges sekmesinde External Monitor Brightness'ı aç. İmleci harici ekrana götür ve parlaklık kenarında yukarı/aşağı kaydır; sonra imleci dahili ekrana götürüp tekrarla. `swift run TrrekProbe ddc list` çıktısını not et (ekran, eşlenen servis, `brightness: <mevcut>/<maks>`).
+- **Beklenen:** İmleç harici ekrandayken o monitörün parlaklığı adım adım değişir (⌥⇧ ile ince adım); harici ekranın sağ üstünde trrek overlay'i yeni yüzdeyi gösterir; kaydırma takılmaz, diğer kenarlar gecikmeden çalışır. Monitörün kendi düğmeleriyle parlaklık değiştirilip birkaç saniye sonra tekrar kaydırılınca yeni değerden devam eder. İmleç dahili ekrandayken dahili ekranın parlaklığı sistem göstergesiyle değişir. Ayar kapalıyken harici ekranda da medya tuşu yolu kullanılır. Birden çok harici monitörde her biri yalnızca imleç üzerindeyken değişir.
+
+### 2.2b Harici monitör parlaklığı (DDC/CI desteklemeyen monitör)
+- **Nasıl:** DDC/CI desteklemeyen (ya da DDC/CI'ı menüsünden kapatılmış) bir monitör veya yayın/sanal ekran bağla, External Monitor Brightness açık; imleç o ekrandayken parlaklık kenarında kaydır. `swift run TrrekProbe ddc list` çıktısını not et.
+- **Beklenen:** Overlay "No DDC" gösterir; trrek donmaz, çökmez, dahili ekranın parlaklığı değişmez. Probe o ekran için bir hata (`no valid reply`, `I2C write failed …` ya da `service: none`) yazdırır.
+
 ### 2.3 Üst kenar: uygulama değiştirme
 - **Nasıl:** Üst kenarda sağa kaydır; kaydırma sürerken ⌘-Tab uygulama değiştiricisinin açıldığını ve seçimin ilerlediğini izle; parmağı kaldır.
 - **Beklenen:** Uygulama değiştirici açılır, kaydırma seçimi ilerletir, parmak kalkınca seçilen uygulamaya geçilir. Parmak kalkmadan ikinci parmak konursa değiştirici iptal olur ve ⌘ basılı kalmaz.
