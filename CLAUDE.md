@@ -4,6 +4,7 @@ trrek, macOS'ta trackpad kenarlarını tek parmaklı kontrollere (ses, parlaklı
 
 ## Dil ve adlandırma
 - Belgeler ve PR gövdeleri Türkçe; kod, yorumlar, commit mesajları ve kullanıcı arayüzü İngilizce.
+- Arayüz İngilizce yazılır, Türkçe çevirisi `tr.lproj` ile gelir: `Sources/Trrek/Resources/{en,tr}.lproj/Localizable.strings`, anahtar İngilizce kaynak metindir. Yeni bir arayüz metni iki dosyaya da eklenir; `LocalizationTests` eksik anahtarı, fazla anahtarı ve farklı biçim belirtecini yakalar.
 - Uygulama adı her yerde küçük harf: `trrek`. Bundle ID `com.burakseyitkara.trrek`.
 - Projede başka bir uygulamanın, kütüphanenin ya da projenin adı geçmez: ne kodda, ne yorumda, ne belgede, ne commit ya da PR metninde. "Referans", "esinlenildi", "uyarlandı" gibi atıflar yazılmaz. Tüm kod bu depoda sıfırdan yazılır; dış koddan kopyalama yapılmaz.
 

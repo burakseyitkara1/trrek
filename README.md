@@ -19,6 +19,7 @@ A menu bar app for macOS that turns trackpad edges into single-finger controls f
 - Only trackpads drive gestures; touches on a mouse with a touch surface are ignored
 - Liquid Glass settings window, launch at login
 - Export and import settings as a `.trrek` file; double-clicking a `.trrek` file in Finder offers to import it
+- English and Turkish interface: the Language setting follows the system or picks one of them
 
 ## Requirements
 
@@ -46,11 +47,15 @@ Put one finger in an edge strip of the trackpad and move along it.
 - Corners: double tap for the action set per corner (Mute, Screenshot, Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen, Screenshot Area or Off). A corner keeps its action when one or both of its edges are Off.
 - A second finger cancels a slide; lifting commits it.
 
-Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, Export Settings…/Import Settings… and Reset to Defaults. Edges covers the action of each edge, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
+Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, Language, Export Settings…/Import Settings… and Reset to Defaults. Edges covers the action of each edge, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
+
+### Language
+
+trrek's interface is in English and Turkish. The Language setting in General is System by default: trrek uses the first of the languages set in System Settings › General › Language & Region that it has, and English otherwise. Choosing English or Türkçe sets trrek's own language preference (`AppleLanguages` in its defaults); System removes it. The new language applies after a relaunch, which the Relaunch button next to the setting offers whenever the choice shows a different language from the one on screen. The language belongs to this Mac's user: it is not part of an exported `.trrek` file, an import keeps it, and so does Reset to Defaults.
 
 ### Moving settings to another Mac
 
-Export Settings… in the General tab saves every setting except Launch at Login to a `.trrek` file (indented JSON). Import Settings…, or double-clicking the file in Finder, asks before replacing the current settings; Launch at Login keeps its current value. A file that is damaged, not a trrek settings file or exported by a newer trrek is refused with an explanation, and the settings stay as they were.
+Export Settings… in the General tab saves every setting except Launch at Login and the language to a `.trrek` file (indented JSON). Import Settings…, or double-clicking the file in Finder, asks before replacing the current settings; Launch at Login and the language keep their current values. A file that is damaged, not a trrek settings file or exported by a newer trrek is refused with an explanation, and the settings stay as they were.
 
 ## Performance
 

@@ -233,15 +233,15 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 
 ### 7.3 Reset to Defaults
 - **Nasıl:** Birkaç ayarı değiştir; General sekmesinde Reset to Defaults…'a bas.
-- **Beklenen:** Onay uyarısı çıkar; iptal edince değişiklik olmaz, onaylayınca tüm ayarlar varsayılana döner.
+- **Beklenen:** Onay uyarısı çıkar; iptal edince değişiklik olmaz, onaylayınca tüm ayarlar varsayılana döner. Launch at Login ve Language değişmez.
 
 ### 7.4 Ayarları dışa aktarma
 - **Nasıl:** General sekmesinde Export Settings…'e bas; trrek arka plandayken de dene.
-- **Beklenen:** Kaydetme paneli ayarlar penceresine sheet olarak bağlanır, önerilen ad "trrek Settings.trrek"tir. Kaydedilen dosya girintili JSON'dur; `format`, `formatVersion`, `appVersion` ve `settings` anahtarları vardır, `launchAtLogin` ve `welcomeShown` yoktur.
+- **Beklenen:** Kaydetme paneli ayarlar penceresine sheet olarak bağlanır, önerilen ad "trrek Settings.trrek"tir (Türkçe arayüzde "trrek Ayarları.trrek"). Kaydedilen dosya girintili JSON'dur; `format`, `formatVersion`, `appVersion` ve `settings` anahtarları vardır, `launchAtLogin` ve `welcomeShown` yoktur.
 
 ### 7.5 Ayarları içe aktarma
 - **Nasıl:** Dışa aktardıktan sonra birkaç ayarı değiştir; Import Settings…'e bas ve dosyayı seç. Bir kez Cancel, bir kez Replace de.
-- **Beklenen:** Açma paneli sheet olarak gelir ve yalnızca `.trrek` dosyaları seçilebilir. "Replace your current settings with the ones in “…”?" onayı çıkar; Cancel hiçbir şeyi değiştirmez, Replace dışa aktarılan ayarları geri getirir ve kenarlar hemen yeni ayarlarla çalışır. Launch at Login değişmez.
+- **Beklenen:** Açma paneli sheet olarak gelir ve yalnızca `.trrek` dosyaları seçilebilir. "Replace your current settings with the ones in “…”?" onayı çıkar; Cancel hiçbir şeyi değiştirmez, Replace dışa aktarılan ayarları geri getirir ve kenarlar hemen yeni ayarlarla çalışır. Launch at Login ve Language değişmez.
 
 ### 7.6 Geçersiz dosyayı içe aktarma
 - **Nasıl:** Boş bir dosyayı, rastgele metni, 1 MB'tan büyük bir dosyayı, `"format"` değeri farklı bir JSON'u ve `"formatVersion": 2` yazılmış bir dosyayı `.trrek` uzantısıyla kaydedip sırayla içe aktar.
@@ -250,6 +250,18 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 ### 7.7 Finder'dan çift tıklama
 - **Nasıl:** trrek çalışırken ve kapalıyken Finder'da bir `.trrek` dosyasına çift tıkla; ayarlar penceresi Edges sekmesindeyken de dene.
 - **Beklenen:** Dosyanın türü "trrek Settings" görünür; trrek açılır ya da öne gelir, ayarlar penceresi General sekmesinde açılır ve aynı onay çıkar. Kapalıyken açılışta karşılama penceresi gerekiyorsa o da çıkar, onay ayarlar penceresindedir. Onay açıkken ikinci bir `.trrek` dosyasına çift tıklamak onayı değiştirmez (yok sayılır); Replace ilk dosyayı uygular.
+
+### 7.8 Türkçe arayüz
+- **Nasıl:** General sekmesinde Language'ı Türkçe yap. "Relaunch trrek to use the new language." satırındaki Relaunch'a bas.
+- **Beklenen:** trrek kapanıp birkaç saniye içinde yeniden açılır (menü çubuğunda tek simge kalır, ikinci bir örnek açılmaz). Şunların hepsi Türkçedir, İngilizce metin kalmaz: menü (durum satırı, "Hassas Denetim", "İmleci Dondur", bir uygulama öndeyken "… İçin Duraklat"/"… İçin Sürdür", "Ayarlar…", "Karşılamayı Göster", izin yokken "Erişilebilirlik İzni Ver…", "trrek Hakkında", "trrek’ten Çık"); ayarlar penceresinin başlığı ("trrek Ayarları") ve dört sekmesi (Genel, Kenarlar, Köşeler ve Dokunmalar, Gelişmiş) bütün seçici, seçenek, not ve alt yazılarıyla; diyagramdaki kenar adları; Reset onayı; Export/Import panellerinin başlık ve düğmeleri; içe aktarma onayı ve geçersiz dosya uyarısı (7.6); Paused Apps listesi ve "+" paneli; karşılama penceresi (başlık, kenar kartları, izin satırı, düğmeler); klavye ışığı overlay'inde yüzde "%50" biçiminde, harici ekranda hata "DDC yok"; About penceresi. Tuş simgeleri (⌘ ⌃ ⇧ ⇥ ← →) aynı kalır; Basılı Tutarak Kaydırma Tuşu seçicisinde Kontrol ve Komut, Shift ve Option görünür; scrub overlay'i "+15 sn" gösterir. Köşeler ve Dokunmalar'daki ipucu, İzleme Dörtgeni ayarlarındaki "Araştırma ve veri algılayıcıları" ve "Tek Parmakla Kuvvetli Tıklayın" adlarıyla aynıdır. Finder'da `.trrek` dosyasının türü "trrek Ayarları" görünür. Hiçbir metin kesilmez ya da taşmaz (özellikle karşılama kartları ve segmentli seçiciler).
+
+### 7.9 Dili sisteme döndürme
+- **Nasıl:** Türkçe arayüzde Dil'i Sistem yap ve Yeniden Başlat'a bas. Sonra Language'ı English yap, bu kez yeniden başlatmadan Sistem'e geri al.
+- **Beklenen:** Yeniden açılınca arayüz sistem dilini izler (sistem dili Türkçe değilse İngilizce). `defaults read com.burakseyitkara.trrek AppleLanguages` anahtarın olmadığını söyler. Seçim açılıştaki dile geri dönünce yeniden başlatma satırı kaybolur. Sistem dili Türkçeyken Sistem seçiliyken Türkçe'yi seçmek yeniden başlatma satırı çıkarmaz (görünen dil değişmez).
+
+### 7.10 İçe aktarma dili değiştirmez
+- **Nasıl:** Language English iken ayarları dışa aktar, Language'ı Türkçe yapıp yeniden başlat, sonra dosyayı içe aktar.
+- **Beklenen:** Onay "Oturum Açıldığında Başlat ve dil ayarları değişmez." der; içe aktarmadan sonra seçici Türkçe kalır, yeniden başlatma satırı çıkmaz. Dışa aktarılan dosyada `language` anahtarı yoktur.
 
 ## 8. Araçlar
 

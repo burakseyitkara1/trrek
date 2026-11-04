@@ -33,7 +33,7 @@ extension SettingsModel {
         } catch {
             appLogger.error("settings export failed: \(String(describing: error), privacy: .public)")
             showFailure(TransferFailure(
-                title: "The settings could not be exported.",
+                title: String(localized: "The settings could not be exported.", bundle: .main),
                 message: error.localizedDescription
             ))
         }
@@ -64,7 +64,10 @@ extension SettingsModel {
             pendingImport = PendingImport(fileName: fileName, settings: settings)
             isConfirmingImport = true
         case let .failure(failure):
-            showFailure(TransferFailure(title: "“\(fileName)” could not be imported.", message: failure.text))
+            showFailure(TransferFailure(
+                title: String(localized: "“\(fileName)” could not be imported.", bundle: .main),
+                message: failure.text
+            ))
         }
     }
 
@@ -92,7 +95,9 @@ extension SettingsModel {
             return .failure(ImportFailureMessage(error.message))
         } catch {
             appLogger.error("settings file unreadable: \(String(describing: error), privacy: .public)")
-            return .failure(ImportFailureMessage("The file could not be read. Your settings were not changed."))
+            return .failure(ImportFailureMessage(
+                String(localized: "The file could not be read. Your settings were not changed.", bundle: .main)
+            ))
         }
     }
 }

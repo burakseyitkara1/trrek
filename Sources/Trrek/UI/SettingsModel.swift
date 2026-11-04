@@ -19,6 +19,13 @@ final class SettingsModel {
     }
 
     let backlightAvailable: Bool
+    /// The localization this launch shows (`"en"`, `"tr"`); when the chosen language resolves to another one, the
+    /// General tab offers to relaunch.
+    let launchLocalization: String
+    /// The localization a language setting resolves to on this Mac.
+    @ObservationIgnored let localization: (AppLanguage) -> String
+    /// Whether the app can reopen itself (it runs from an app bundle).
+    let canRelaunch: Bool
     /// Whether the DDC/CI bridge exists on this Mac; without it the External Monitor Brightness toggle is disabled.
     let externalBrightnessAvailable: Bool
     var accessibilityGranted: Bool
@@ -48,6 +55,8 @@ final class SettingsModel {
     @ObservationIgnored weak var window: NSWindow?
 
     @ObservationIgnored private let onChange: (AppSettings) -> Void
+    /// Quits and reopens the app.
+    @ObservationIgnored let relaunch: () -> Void
     @ObservationIgnored private var isRefreshing = false
 
     init(
@@ -55,13 +64,27 @@ final class SettingsModel {
         backlightAvailable: Bool,
         externalBrightnessAvailable: Bool = true,
         accessibilityGranted: Bool = false,
+        launchLocalization: String = "en",
+        localization: @escaping (AppLanguage) -> String = { $0 == .turkish ? "tr" : "en" },
+        canRelaunch: Bool = false,
+        relaunch: @escaping () -> Void = {},
         onChange: @escaping (AppSettings) -> Void
     ) {
         self.settings = settings
         self.backlightAvailable = backlightAvailable
+        self.launchLocalization = launchLocalization
+        self.localization = localization
+        self.canRelaunch = canRelaunch
+        self.relaunch = relaunch
         self.externalBrightnessAvailable = externalBrightnessAvailable
         self.accessibilityGranted = accessibilityGranted
         self.onChange = onChange
+    }
+
+    /// Whether the chosen language shows a different localization from the one this launch uses, so it takes effect
+    /// only after a relaunch. Choosing Türkçe while System already shows Turkish needs none.
+    var needsRelaunch: Bool {
+        localization(settings.language) != launchLocalization
     }
 
     /// Shows settings changed elsewhere (the menu bar menu) without passing them back to `onChange`.
@@ -96,7 +119,7 @@ final class SettingsModel {
         settings.pausedBundleIDs = updated
     }
 
-    /// Restores the defaults, keeping Launch at Login and whether the welcome window was shown.
+    /// Restores the defaults, keeping Launch at Login, the language and whether the welcome window was shown.
     func resetToDefaults() {
         settings = settings.resetToDefaults(backlightAvailable: backlightAvailable)
     }

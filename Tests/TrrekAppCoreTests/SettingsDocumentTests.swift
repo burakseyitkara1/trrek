@@ -29,6 +29,7 @@ struct SettingsDocumentTests {
         settings.pausedBundleIDs = ["com.example.one", "com.example/two"]
         settings.launchAtLogin = false
         settings.welcomeShown = true
+        settings.language = .turkish
         return settings
     }
 
@@ -47,6 +48,7 @@ struct SettingsDocumentTests {
         var expected = original
         expected.launchAtLogin = Settings().launchAtLogin
         expected.welcomeShown = Settings().welcomeShown
+        expected.language = Settings().language
         #expect(decoded == expected)
     }
 
@@ -55,12 +57,18 @@ struct SettingsDocumentTests {
         var current = Settings()
         current.launchAtLogin = false
         current.welcomeShown = true
+        current.language = .turkish
 
         let applied = SettingsDocument.imported(decoded, into: current)
 
         #expect(applied == Self.customized)
         #expect(!applied.launchAtLogin)
         #expect(applied.welcomeShown)
+        #expect(applied.language == .turkish)
+
+        // The language is this user's: importing never changes it.
+        current.language = .english
+        #expect(SettingsDocument.imported(decoded, into: current).language == .english)
     }
 
     @Test func fileHasHeaderSortedKeysAndNoLocalFields() throws {
@@ -74,6 +82,7 @@ struct SettingsDocumentTests {
         #expect(settings["launchAtLogin"] == nil)
         #expect(settings["welcomeShown"] == nil)
         #expect(settings["topEdge"] as? String == "media")
+        #expect(settings["language"] == nil)
 
         let text = try #require(String(data: data, encoding: .utf8))
         #expect(text.contains("\n  \"appVersion\""))

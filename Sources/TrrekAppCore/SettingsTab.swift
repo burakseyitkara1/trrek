@@ -10,10 +10,10 @@ public enum SettingsTab: String, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .general: "General"
-        case .edges: "Edges"
-        case .corners: "Corners & Taps"
-        case .advanced: "Advanced"
+        case .general: String(localized: "General", bundle: .main)
+        case .edges: String(localized: "Edges", bundle: .main)
+        case .corners: String(localized: "Corners & Taps", bundle: .main)
+        case .advanced: String(localized: "Advanced", bundle: .main)
         }
     }
 

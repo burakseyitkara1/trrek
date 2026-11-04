@@ -44,6 +44,8 @@ final class Coordinator {
     var statusMenu: StatusMenu?
     /// Whether the system Accessibility prompt was requested during this session.
     private var accessibilityPrompted = false
+    /// trrek's `AppleLanguages` preference.
+    let languagePreference = LanguagePreferenceStore()
 
     init(store: SettingsStore) {
         self.store = store
@@ -55,6 +57,7 @@ final class Coordinator {
     /// welcome window at launch (for screenshots and footprint checks).
     func start(skipFirstRun: Bool = false) {
         settings = store.load()
+        reconcileLanguage()
         let trusted = Permissions.isTrusted
         isTrusted = trusted
         appLogger.info("accessibility trusted: \(trusted, privacy: .public)")
@@ -136,6 +139,9 @@ final class Coordinator {
         if previous.launchAtLogin != newSettings.launchAtLogin {
             setLaunchAtLogin(newSettings.launchAtLogin)
         }
+        if previous.language != newSettings.language {
+            languageChanged(to: newSettings.language)
+        }
         updatePause()
         statusMenu?.refresh()
         windows.settingsModel?.refresh(from: newSettings)
@@ -201,6 +207,16 @@ final class Coordinator {
             backlightAvailable: backlight?.isAvailable ?? false,
             externalBrightnessAvailable: externalBrightnessAvailable,
             accessibilityGranted: isTrusted,
+            launchLocalization: Self.launchLocalization,
+            localization: { [languagePreference] language in
+                LanguagePreference.localization(
+                    for: language,
+                    available: Bundle.main.localizations,
+                    systemLanguages: languagePreference.systemLanguages
+                )
+            },
+            canRelaunch: Relauncher.canRelaunch,
+            relaunch: { Relauncher.relaunch() },
             onChange: { [weak self] in self?.apply($0) }
         )
         if let tab = SettingsTab(argument: tab) {

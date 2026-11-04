@@ -1,19 +1,28 @@
 import TrrekEngine
 import TrrekPlatform
 
-/// The English titles and SF Symbol names the settings and welcome windows show for each option.
+/// The titles and SF Symbol names the settings and welcome windows show for each option. Titles are looked up in the
+/// app bundle's `Localizable.strings`; the English source text is the key.
 public enum SettingsLabels {
     /// Why trrek asks for Accessibility; shown wherever the permission is missing.
-    public static let accessibilityNeeded =
-        "trrek needs Accessibility access to change volume, brightness and the other controls."
+    public static var accessibilityNeeded: String {
+        String(
+            localized: "trrek needs Accessibility access to change volume, brightness and the other controls.",
+            bundle: .main
+        )
+    }
 
     /// The caption under the External Monitor Brightness setting.
-    public static let externalBrightnessCaption =
-        "Monitors that support DDC/CI; the brightness edge follows the screen with the pointer"
+    public static var externalBrightnessCaption: String {
+        String(
+            localized: "Monitors that support DDC/CI; the brightness edge follows the screen with the pointer",
+            bundle: .main
+        )
+    }
 
     /// The caption under External Monitor Brightness: what it does, or that this Mac lacks the DDC/CI bridge.
     public static func externalBrightnessCaption(available: Bool) -> String {
-        available ? externalBrightnessCaption : "Not available on this Mac"
+        available ? externalBrightnessCaption : String(localized: "Not available on this Mac", bundle: .main)
     }
 
     // The label functions below are flat, exhaustive mappings that read best as one switch each.
@@ -21,17 +30,17 @@ public enum SettingsLabels {
     // swiftlint:disable:next cyclomatic_complexity
     public static func title(for action: EdgeAction) -> String {
         switch action {
-        case .volume: "Volume"
-        case .brightness: "Brightness"
-        case .keyboardBacklight: "Keyboard Backlight"
-        case .switchApps: "Switch Apps"
-        case .switchTabs: "Switch Tabs"
-        case .switchDesktops: "Switch Desktops"
-        case .scrubVideo: "Scrub Video"
-        case .media: "Media"
-        case .zoom: "Zoom"
-        case .undoRedo: "Undo & Redo"
-        case .off: "Off"
+        case .volume: String(localized: "Volume", bundle: .main)
+        case .brightness: String(localized: "Brightness", bundle: .main)
+        case .keyboardBacklight: String(localized: "Keyboard Backlight", bundle: .main)
+        case .switchApps: String(localized: "Switch Apps", bundle: .main)
+        case .switchTabs: String(localized: "Switch Tabs", bundle: .main)
+        case .switchDesktops: String(localized: "Switch Desktops", bundle: .main)
+        case .scrubVideo: String(localized: "Scrub Video", bundle: .main)
+        case .media: String(localized: "Media", bundle: .main)
+        case .zoom: String(localized: "Zoom", bundle: .main)
+        case .undoRedo: String(localized: "Undo & Redo", bundle: .main)
+        case .off: String(localized: "Off", bundle: .main)
         }
     }
 
@@ -54,16 +63,16 @@ public enum SettingsLabels {
 
     public static func title(for action: CornerAction) -> String {
         switch action {
-        case .off: "Off"
-        case .mute: "Mute"
-        case .screenshot: "Screenshot"
-        case .playPause: "Play/Pause"
-        case .missionControl: "Mission Control"
-        case .appWindows: "App Windows"
-        case .showDesktop: "Show Desktop"
-        case .spotlight: "Spotlight"
-        case .lockScreen: "Lock Screen"
-        case .screenshotArea: "Screenshot Area"
+        case .off: String(localized: "Off", bundle: .main)
+        case .mute: String(localized: "Mute", bundle: .main)
+        case .screenshot: String(localized: "Screenshot", bundle: .main)
+        case .playPause: String(localized: "Play/Pause", bundle: .main)
+        case .missionControl: String(localized: "Mission Control", bundle: .main)
+        case .appWindows: String(localized: "App Windows", bundle: .main)
+        case .showDesktop: String(localized: "Show Desktop", bundle: .main)
+        case .spotlight: String(localized: "Spotlight", bundle: .main)
+        case .lockScreen: String(localized: "Lock Screen", bundle: .main)
+        case .screenshotArea: String(localized: "Screenshot Area", bundle: .main)
         }
     }
 
@@ -94,54 +103,54 @@ public enum SettingsLabels {
 
     public static func title(for corner: Corner) -> String {
         switch corner {
-        case .topLeft: "Top Left"
-        case .topRight: "Top Right"
-        case .bottomLeft: "Bottom Left"
-        case .bottomRight: "Bottom Right"
+        case .topLeft: String(localized: "Top Left", bundle: .main)
+        case .topRight: String(localized: "Top Right", bundle: .main)
+        case .bottomLeft: String(localized: "Bottom Left", bundle: .main)
+        case .bottomRight: String(localized: "Bottom Right", bundle: .main)
         }
     }
 
     public static func title(for strength: HapticStrength) -> String {
         switch strength {
-        case .off: "Off"
-        case .light: "Light"
-        case .medium: "Medium"
-        case .strong: "Strong"
+        case .off: String(localized: "Off", bundle: .main)
+        case .light: String(localized: "Light", bundle: .main)
+        case .medium: String(localized: "Medium", bundle: .main)
+        case .strong: String(localized: "Strong", bundle: .main)
         }
     }
 
     public static func title(for width: EdgeWidth) -> String {
         switch width {
-        case .narrow: "Narrow"
-        case .standard: "Standard"
-        case .wide: "Wide"
+        case .narrow: String(localized: "Narrow", bundle: .main)
+        case .standard: String(localized: "Standard", bundle: .main)
+        case .wide: String(localized: "Wide", bundle: .main)
         }
     }
 
     public static func title(for sensitivity: SlideSensitivity) -> String {
         switch sensitivity {
-        case .veryLow: "Very Low"
-        case .low: "Low"
-        case .standard: "Standard"
-        case .high: "High"
-        case .veryHigh: "Very High"
+        case .veryLow: String(localized: "Very Low", bundle: .main)
+        case .low: String(localized: "Low", bundle: .main)
+        case .standard: String(localized: "Standard", bundle: .main)
+        case .high: String(localized: "High", bundle: .main)
+        case .veryHigh: String(localized: "Very High", bundle: .main)
         }
     }
 
     public static func title(for key: HoldKey) -> String {
         switch key {
-        case .none: "None"
-        case .shift: "Shift"
-        case .control: "Control"
-        case .option: "Option"
-        case .command: "Command"
+        case .none: String(localized: "None", bundle: .main)
+        case .shift: String(localized: "Shift", bundle: .main)
+        case .control: String(localized: "Control", bundle: .main)
+        case .option: String(localized: "Option", bundle: .main)
+        case .command: String(localized: "Command", bundle: .main)
         }
     }
 
     public static func title(for mode: HoldKeyMode) -> String {
         switch mode {
-        case .hold: "Hold"
-        case .toggle: "Toggle"
+        case .hold: String(localized: "Hold", bundle: .main)
+        case .toggle: String(localized: "Toggle", bundle: .main)
         }
     }
 }
@@ -159,12 +168,12 @@ public enum EdgeChoices {
     /// A note shown beside an option (why it cannot be picked, or what it does), or `nil` when there is none.
     public static func caption(for action: EdgeAction, backlightAvailable: Bool) -> String? {
         switch action {
-        case .scrubVideo: "Uses ← and → in the front app"
-        case .switchTabs: "Uses ⌃⇥ and ⌃⇧⇥ in the front app"
-        case .switchDesktops: "Uses ⌃← and ⌃→"
-        case .zoom: "Uses ⌘= and ⌘− in the front app"
-        case .undoRedo: "Uses ⌘Z and ⇧⌘Z in the front app"
-        case .keyboardBacklight where !backlightAvailable: "Not available on this Mac"
+        case .scrubVideo: String(localized: "Uses ← and → in the front app", bundle: .main)
+        case .switchTabs: String(localized: "Uses ⌃⇥ and ⌃⇧⇥ in the front app", bundle: .main)
+        case .switchDesktops: String(localized: "Uses ⌃← and ⌃→", bundle: .main)
+        case .zoom: String(localized: "Uses ⌘= and ⌘− in the front app", bundle: .main)
+        case .undoRedo: String(localized: "Uses ⌘Z and ⇧⌘Z in the front app", bundle: .main)
+        case .keyboardBacklight where !backlightAvailable: String(localized: "Not available on this Mac", bundle: .main)
         default: nil
         }
     }

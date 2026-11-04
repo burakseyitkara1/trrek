@@ -44,18 +44,19 @@ public enum WelcomeContent {
         return WelcomeCard(
             edge: edge,
             action: action,
-            title: "\(name(of: edge)) edge — \(SettingsLabels.title(for: action))",
-            detail: gated ? "Needs Accessibility access." : detail(for: action),
+            title: title(of: edge, action: SettingsLabels.title(for: action)),
+            detail: gated ? String(localized: "Needs Accessibility access.", bundle: .main) : detail(for: action),
             needsAccessibility: gated
         )
     }
 
-    private static func name(of edge: Edge) -> String {
+    /// "Right edge — Volume"; a whole phrase per edge, so a translation can order and inflect it freely.
+    private static func title(of edge: Edge, action: String) -> String {
         switch edge {
-        case .left: "Left"
-        case .right: "Right"
-        case .top: "Top"
-        case .bottom: "Bottom"
+        case .left: String(localized: "Left edge — \(action)", bundle: .main)
+        case .right: String(localized: "Right edge — \(action)", bundle: .main)
+        case .top: String(localized: "Top edge — \(action)", bundle: .main)
+        case .bottom: String(localized: "Bottom edge — \(action)", bundle: .main)
         }
     }
 
@@ -63,17 +64,17 @@ public enum WelcomeContent {
     // swiftlint:disable:next cyclomatic_complexity
     private static func detail(for action: EdgeAction) -> String {
         switch action {
-        case .volume: "Slide to turn the sound up or down."
-        case .brightness: "Slide to brighten or dim the display."
-        case .keyboardBacklight: "Slide to brighten or dim the keys."
-        case .switchApps: "Slide to pick an app, lift to switch."
-        case .switchTabs: "Slide to move to the next or previous tab."
-        case .switchDesktops: "Slide to move to the next or previous desktop."
-        case .scrubVideo: "Slide to step through a video."
-        case .media: "Slide to skip, double-tap to play."
-        case .zoom: "Slide to zoom in or out."
-        case .undoRedo: "Slide back to undo, forward to redo."
-        case .off: "Does nothing."
+        case .volume: String(localized: "Slide to turn the sound up or down.", bundle: .main)
+        case .brightness: String(localized: "Slide to brighten or dim the display.", bundle: .main)
+        case .keyboardBacklight: String(localized: "Slide to brighten or dim the keys.", bundle: .main)
+        case .switchApps: String(localized: "Slide to pick an app, lift to switch.", bundle: .main)
+        case .switchTabs: String(localized: "Slide to move to the next or previous tab.", bundle: .main)
+        case .switchDesktops: String(localized: "Slide to move to the next or previous desktop.", bundle: .main)
+        case .scrubVideo: String(localized: "Slide to step through a video.", bundle: .main)
+        case .media: String(localized: "Slide to skip, double-tap to play.", bundle: .main)
+        case .zoom: String(localized: "Slide to zoom in or out.", bundle: .main)
+        case .undoRedo: String(localized: "Slide back to undo, forward to redo.", bundle: .main)
+        case .off: String(localized: "Does nothing.", bundle: .main)
         }
     }
 }

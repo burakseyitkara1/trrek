@@ -61,6 +61,8 @@ public struct Settings: Codable, Equatable, Sendable {
     public var pausedBundleIDs: [String] = []
     public var launchAtLogin = true
     public var welcomeShown = false
+    /// The interface language; it takes effect at the next launch (see `LanguagePreference`).
+    public var language: AppLanguage = .system
 
     public init() {}
 }
@@ -113,6 +115,7 @@ extension Settings {
         pausedBundleIDs = Self.field(container, .pausedBundleIDs) ?? pausedBundleIDs
         launchAtLogin = Self.field(container, .launchAtLogin) ?? launchAtLogin
         welcomeShown = Self.field(container, .welcomeShown) ?? welcomeShown
+        language = Self.field(container, .language) ?? language
     }
 
     /// The stored value of `key`, or `nil` when it is missing or unreadable.
@@ -163,12 +166,13 @@ public extension Settings {
         }
     }
 
-    /// The defaults, keeping `launchAtLogin` and `welcomeShown`. Without the keyboard backlight bridge the bottom
-    /// edge starts on media control.
+    /// The defaults, keeping `launchAtLogin`, `welcomeShown` and `language`. Without the keyboard backlight bridge the
+    /// bottom edge starts on media control.
     func resetToDefaults(backlightAvailable: Bool) -> Settings {
         var reset = Settings()
         reset.launchAtLogin = launchAtLogin
         reset.welcomeShown = welcomeShown
+        reset.language = language
         if !backlightAvailable {
             reset.bottomEdge = .media
         }

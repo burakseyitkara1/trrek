@@ -28,6 +28,9 @@ let package = Package(
         .executableTarget(
             name: "Trrek",
             dependencies: ["TrrekAppCore", "TrrekEngine", "TrrekPlatform"],
+            // The localizations are copied into the app bundle's Resources by scripts/build-app.sh, where
+            // `Bundle.main` finds them; SwiftPM does not process them.
+            exclude: ["Resources"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .executableTarget(

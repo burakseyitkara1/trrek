@@ -16,17 +16,17 @@ public enum StatusText {
         pausedAppName: String?
     ) -> String {
         switch trackpadIssue {
-        case .notFound: return "Trackpad not found"
-        case .dataUnavailable: return "Trackpad data unavailable"
+        case .notFound: return String(localized: "Trackpad not found", bundle: .main)
+        case .dataUnavailable: return String(localized: "Trackpad data unavailable", bundle: .main)
         case nil: break
         }
         if !accessibilityTrusted {
-            return "Accessibility access needed"
+            return String(localized: "Accessibility access needed", bundle: .main)
         }
         if let pausedAppName {
-            return "Paused in \(pausedAppName)"
+            return String(localized: "Paused in \(pausedAppName)", bundle: .main)
         }
-        return "trrek is active"
+        return String(localized: "trrek is active", bundle: .main)
     }
 }
 

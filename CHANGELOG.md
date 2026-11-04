@@ -12,6 +12,7 @@ Each release lists its changes under its version and date; changes not yet relea
 - New corner actions: Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen and Screenshot Area
 - Slide Sensitivity setting in General: how far a finger slides for each step, from Very Low to Very High
 - A corner's double tap keeps working when an edge next to it is set to Off
+- Turkish interface, and a Language setting in General (System, English, Türkçe) that applies after a relaunch
 
 ## [0.2.2] - 2026-11-04
 

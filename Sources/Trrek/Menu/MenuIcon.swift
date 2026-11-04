@@ -16,15 +16,14 @@ enum MenuIcon {
         return image
     }
 
+    /// What VoiceOver reads for the icon; each state is one phrase, so a translation can word it as a whole.
     private static func description(active: Bool, attention: Bool) -> String {
-        var notes: [String] = []
-        if attention {
-            notes.append("Accessibility access needed")
+        switch (attention, active) {
+        case (false, false): "trrek"
+        case (true, false): String(localized: "trrek (Accessibility access needed)", bundle: .main)
+        case (false, true): String(localized: "trrek (hold-to-slide on)", bundle: .main)
+        case (true, true): String(localized: "trrek (Accessibility access needed, hold-to-slide on)", bundle: .main)
         }
-        if active {
-            notes.append("hold-to-slide on")
-        }
-        return notes.isEmpty ? "trrek" : "trrek (\(notes.joined(separator: ", ")))"
     }
 
     private static func draw(active: Bool, attention: Bool) {

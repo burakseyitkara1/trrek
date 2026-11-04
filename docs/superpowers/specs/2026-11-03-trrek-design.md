@@ -392,7 +392,7 @@ Menü `menuNeedsUpdate` ile açılırken tazelenir. İkon: `MenuIcon.pdf` şablo
 
 - Açılış: menüden "Settings…" ya da ⌘,. `NSWindow` + `NSHostingController<SettingsView>`; `titlebarAppearsTransparent`, araç çubuğu stili `.unified`; pencere kapanınca serbest bırakılır, bir sonraki açılışta yeniden kurulur.
 - Yerleşim: `TabView` ile dört sekme; her sekme `Form` + `.formStyle(.grouped)`. macOS 26'da araç çubuğu ve sekmeler sistemin Liquid Glass görünümünü alır; özel öğeler `.glassEffect(.regular, in: .rect(cornerRadius: 12))` ile camlaştırılır. Sabit boyut 640×480 pt.
-- **General:** Haptic Feedback (segment: Off/Light/Medium/Strong), Slide Sensitivity (Aşama 3), Precision Control, Freeze Cursor, Launch at Login, Reset to Defaults… butonu.
+- **General:** Haptic Feedback (segment: Off/Light/Medium/Strong), Slide Sensitivity (Aşama 3), Precision Control, Freeze Cursor, Launch at Login, Language (Aşama 3; 7.4b), Export Settings…/Import Settings… (Aşama 3), Reset to Defaults… butonu.
 - **Edges:** Üstte etkileşimli `TrackpadDiagram` (cam yüzeyli trackpad silueti; dört kenar renkli şeritlerle seçili eylemleriyle etiketli; Aşama 3'te Edges sekmesinde 150 pt yüksekliğinde). Altında: Left Edge, Right Edge (Aşama 3'te Swap Sides'ın yerine), Top Edge, Bottom Edge (Picker), Edge Width (segment), Bottom Quarter Only, External Monitor Brightness (köprü yoksa devre dışı ve açıklama).
 - **Corners & Taps:** Dört köşe için Picker (Off/Mute/Screenshot; Aşama 3'te 5.9'daki eylemler eklendi) diyagram üzerinde köşe rozetleriyle; 3-Finger Tap Middle Click anahtarı ve "Look up & data detectors" ayarına dair ipucu metni.
 - **Advanced:** Hold-to-Slide Key (Picker: None/Shift/Control/Option/Command) ve mod (Hold/Toggle); Paused Apps listesi (satır başına uygulama ikonu + ad, "−" ile kaldır, "+" ile `NSOpenPanel`'dan uygulama seç); Accessibility durumu ve "Open System Settings" butonu; sürüm bilgisi.
@@ -418,14 +418,19 @@ struct Settings: Codable, Equatable {
   var pausedBundleIDs: [String] = []
   var launchAtLogin = true
   var welcomeShown = false
+  var language: AppLanguage = .system                 // Aşama 3: system, english, turkish
 }
 ```
 
-`UserDefaults.standard` içinde `settings` anahtarında JSON. `schemaVersion` ileride göç için. Reset to Defaults: onay; `launchAtLogin` ve `welcomeShown` korunur.
+`UserDefaults.standard` içinde `settings` anahtarında JSON. `schemaVersion` ileride göç için. Reset to Defaults: onay; `launchAtLogin`, `welcomeShown` ve `language` korunur.
 
 #### 7.4a Dışa ve içe aktarma (Aşama 3)
 
-`TrrekAppCore.SettingsDocument` ayarları `.trrek` dosyasına yazar ve okur: girintili, anahtarları sıralı JSON, `{"appVersion", "format": "trrek-settings", "formatVersion": 1, "settings": {…}}`. `launchAtLogin` ve `welcomeShown` bu Mac'e aittir; dışa aktarılmaz, içe aktarmada mevcut değerleri korunur. `settings` forgiving decoder ile okunur. 1 MB'tan büyük, JSON olmayan, `format` farklı ya da `formatVersion` < 1 olan dosya `notSettingsFile`, `formatVersion` > 1 ya da `settings.schemaVersion` bu derlemeden yeni olan dosya `newerFormat` hatasıdır; ikisinde de ayarlar değişmez ve uyarı çıkar. General sekmesindeki Export/Import düğmeleri panelleri ayarlar penceresine sheet olarak açar; içe aktarma onaydan sonra `SettingsModel` → `onChange` → `Coordinator.apply` yolundan geçer. `Info.plist` `com.burakseyitkara.trrek.settings` türünü dışa aktarır (`public.json`'a uyar, uzantı `trrek`) ve onu Viewer rolüyle açar; Finder'dan açılan dosya `application(_:open:)` ile ayarlar penceresini General sekmesinde açıp aynı onayı gösterir (karar 43).
+`TrrekAppCore.SettingsDocument` ayarları `.trrek` dosyasına yazar ve okur: girintili, anahtarları sıralı JSON, `{"appVersion", "format": "trrek-settings", "formatVersion": 1, "settings": {…}}`. `launchAtLogin`, `welcomeShown` ve (Aşama 3, 7.4b) `language` bu Mac'e aittir; dışa aktarılmaz, içe aktarmada mevcut değerleri korunur. `settings` forgiving decoder ile okunur. 1 MB'tan büyük, JSON olmayan, `format` farklı ya da `formatVersion` < 1 olan dosya `notSettingsFile`, `formatVersion` > 1 ya da `settings.schemaVersion` bu derlemeden yeni olan dosya `newerFormat` hatasıdır; ikisinde de ayarlar değişmez ve uyarı çıkar. General sekmesindeki Export/Import düğmeleri panelleri ayarlar penceresine sheet olarak açar; içe aktarma onaydan sonra `SettingsModel` → `onChange` → `Coordinator.apply` yolundan geçer. `Info.plist` `com.burakseyitkara.trrek.settings` türünü dışa aktarır (`public.json`'a uyar, uzantı `trrek`) ve onu Viewer rolüyle açar; Finder'dan açılan dosya `application(_:open:)` ile ayarlar penceresini General sekmesinde açıp aynı onayı gösterir (karar 43).
+
+#### 7.4b Dil ve yerelleştirme (Aşama 3)
+
+Arayüz metinleri İngilizce yazılır; çeviriler `Sources/Trrek/Resources/{en,tr}.lproj/Localizable.strings` dosyalarındadır ve anahtar İngilizce kaynak metindir. `build-app.sh` bu klasörü paketin `Contents/Resources` klasörüne kopyalar; SwiftPM hedefi klasörü dışarıda bırakır (`exclude`). `Info.plist`: `CFBundleDevelopmentRegion` `en`, `CFBundleLocalizations` `[en, tr]`; `InfoPlist.strings` `.trrek` türünün adını çevirir. SwiftUI'da literal metinler (`Text("…")`, `Button("…")` …) kendiliğinden, `TrrekAppCore` ve AppKit metinleri `String(localized:bundle: .main)` ile çevrilir. Overlay'in "No DDC" etiketi gösterilirken anahtar olarak aranır, scrub etiketinin birimi ("+15 s") `"%@ s"` biçimiyle çevrilir (Türkçe "sn"). `Settings.language` (`system`, `english`, `turkish`) General sekmesindeki Language seçicisidir; bu Mac'in kullanıcısına aittir, dışa aktarılmaz, içe aktarma ve Reset onu korur. Değişince uygulamanın kendi defaults alanındaki `AppleLanguages` yazılır (`system` için silinir); seçimin çözüldüğü yerelleştirme (`system` için global `AppleLanguages`'a göre) açılıştakinden farklıysa "Relaunch trrek to use the new language." satırı Relaunch düğmesiyle çıkar; düğme trrek'in çıkmasını bekleyip aynı paketi yeniden açan kısa bir kabuk başlatır ve uygulamadan çıkar. Açılışta ayar ile tercih farklıysa tercih ayara göre yazılır (karar 49, 50).
 
 ### 7.5 OverlayPanel
 

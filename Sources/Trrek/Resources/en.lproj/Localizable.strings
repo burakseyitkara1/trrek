@@ -1,0 +1,195 @@
+/* trrek interface strings. The key is the English source text. */
+
+/* Menu bar icon (VoiceOver) */
+"trrek (Accessibility access needed)" = "trrek (Accessibility access needed)";
+"trrek (hold-to-slide on)" = "trrek (hold-to-slide on)";
+"trrek (Accessibility access needed, hold-to-slide on)" = "trrek (Accessibility access needed, hold-to-slide on)";
+
+/* Menu bar menu */
+"Precision Control" = "Precision Control";
+"Freeze Cursor" = "Freeze Cursor";
+"Hold-to-Slide: On" = "Hold-to-Slide: On";
+"Hold-to-Slide: Off" = "Hold-to-Slide: Off";
+"Resume in %@" = "Resume in %@";
+"Pause in %@" = "Pause in %@";
+"Settings…" = "Settings…";
+"Show Welcome" = "Show Welcome";
+"Grant Accessibility…" = "Grant Accessibility…";
+"About trrek" = "About trrek";
+"Quit trrek" = "Quit trrek";
+
+/* Advanced tab */
+"Hold-to-Slide Key" = "Hold-to-Slide Key";
+"Edges respond only while this key is held, or after it is pressed once in Toggle mode." = "Edges respond only while this key is held, or after it is pressed once in Toggle mode.";
+"Mode" = "Mode";
+"Paused Apps" = "Paused Apps";
+"Version" = "Version";
+"Open System Settings" = "Open System Settings";
+"Accessibility access granted" = "Accessibility access granted";
+"Accessibility access needed" = "Accessibility access needed";
+
+/* Corners & Taps tab */
+"3-Finger Tap Middle Click" = "3-Finger Tap Middle Click";
+"Set Look up & data detectors to Force click with one finger in System Settings › Trackpad" = "Set Look up & data detectors to Force click with one finger in System Settings › Trackpad";
+"Double-tap a corner to run its action. Click a corner in the diagram to change it." = "Double-tap a corner to run its action. Click a corner in the diagram to change it.";
+"Double-tap a corner to run its action once Accessibility access is granted." = "Double-tap a corner to run its action once Accessibility access is granted.";
+
+/* Edges tab */
+"Left Edge" = "Left Edge";
+"Right Edge" = "Right Edge";
+"Top Edge" = "Top Edge";
+"Bottom Edge" = "Bottom Edge";
+"Edge Width" = "Edge Width";
+"Bottom Quarter Only" = "Bottom Quarter Only";
+"The side edges respond only in their lower quarter." = "The side edges respond only in their lower quarter.";
+"External Monitor Brightness" = "External Monitor Brightness";
+"%@ — %@" = "%@ — %@";
+"Needs Accessibility access" = "Needs Accessibility access";
+
+/* General tab */
+"Haptic Feedback" = "Haptic Feedback";
+"Slide Sensitivity" = "Slide Sensitivity";
+"Higher sensitivity takes a shorter slide for each step." = "Higher sensitivity takes a shorter slide for each step.";
+"Each step changes the level by a quarter as much." = "Each step changes the level by a quarter as much.";
+"Launch at Login" = "Launch at Login";
+"Language" = "Language";
+"Settings are saved as a .trrek file. Launch at Login and the language are not included." = "Settings are saved as a .trrek file. Launch at Login and the language are not included.";
+"Reset to Defaults…" = "Reset to Defaults…";
+"Reset all settings to their defaults?" = "Reset all settings to their defaults?";
+"Reset" = "Reset";
+"Cancel" = "Cancel";
+"Launch at Login and the language keep their current settings." = "Launch at Login and the language keep their current settings.";
+"Relaunch trrek to use the new language." = "Relaunch trrek to use the new language.";
+"Relaunch" = "Relaunch";
+"The pointer stays still while you slide along an edge." = "The pointer stays still while you slide along an edge.";
+"Needs Accessibility access." = "Needs Accessibility access.";
+
+/* Level overlay */
+"Keyboard backlight" = "Keyboard backlight";
+"Display brightness" = "Display brightness";
+"Video position" = "Video position";
+"%@ s" = "%@ s";
+"%lld%%" = "%lld%%";
+"No DDC" = "No DDC";
+
+/* Paused apps */
+"No paused apps" = "No paused apps";
+"Add apps" = "Add apps";
+"Remove the selected app" = "Remove the selected app";
+"Edges are paused while one of these apps is in front." = "Edges are paused while one of these apps is in front.";
+"Choose Apps to Pause In" = "Choose Apps to Pause In";
+"Add" = "Add";
+
+/* Export and import */
+"The settings could not be exported." = "The settings could not be exported.";
+"“%@” could not be imported." = "“%@” could not be imported.";
+"The file could not be read. Your settings were not changed." = "The file could not be read. Your settings were not changed.";
+"Export Settings…" = "Export Settings…";
+"Import Settings…" = "Import Settings…";
+"Export Settings" = "Export Settings";
+"Export" = "Export";
+"Import Settings" = "Import Settings";
+"Import" = "Import";
+"Replace" = "Replace";
+"Import Failed" = "Import Failed";
+"OK" = "OK";
+"Replace your current settings?" = "Replace your current settings?";
+"Replace your current settings with the ones in “%@”?" = "Replace your current settings with the ones in “%@”?";
+"The file is not a trrek settings file, or it is damaged. Your settings were not changed." = "The file is not a trrek settings file, or it is damaged. Your settings were not changed.";
+"The file was exported by a newer version of trrek. Update trrek to import it. Your settings were not changed." = "The file was exported by a newer version of trrek. Update trrek to import it. Your settings were not changed.";
+
+/* Settings window */
+"trrek Settings" = "trrek Settings";
+
+/* Trackpad diagram */
+"Trackpad diagram" = "Trackpad diagram";
+
+/* Welcome window */
+"Open Settings" = "Open Settings";
+"Done" = "Done";
+"Welcome to trrek" = "Welcome to trrek";
+"Slide one finger along an edge of the trackpad." = "Slide one finger along an edge of the trackpad.";
+"Grant Accessibility Access" = "Grant Accessibility Access";
+
+/* Language */
+"System" = "System";
+
+/* Option titles and captions */
+"trrek needs Accessibility access to change volume, brightness and the other controls." = "trrek needs Accessibility access to change volume, brightness and the other controls.";
+"Monitors that support DDC/CI; the brightness edge follows the screen with the pointer" = "Monitors that support DDC/CI; the brightness edge follows the screen with the pointer";
+"Not available on this Mac" = "Not available on this Mac";
+"Volume" = "Volume";
+"Brightness" = "Brightness";
+"Keyboard Backlight" = "Keyboard Backlight";
+"Switch Apps" = "Switch Apps";
+"Switch Tabs" = "Switch Tabs";
+"Switch Desktops" = "Switch Desktops";
+"Scrub Video" = "Scrub Video";
+"Media" = "Media";
+"Zoom" = "Zoom";
+"Undo & Redo" = "Undo & Redo";
+"Off" = "Off";
+"Mute" = "Mute";
+"Screenshot" = "Screenshot";
+"Play/Pause" = "Play/Pause";
+"Mission Control" = "Mission Control";
+"App Windows" = "App Windows";
+"Show Desktop" = "Show Desktop";
+"Spotlight" = "Spotlight";
+"Lock Screen" = "Lock Screen";
+"Screenshot Area" = "Screenshot Area";
+"Top Left" = "Top Left";
+"Top Right" = "Top Right";
+"Bottom Left" = "Bottom Left";
+"Bottom Right" = "Bottom Right";
+"Light" = "Light";
+"Medium" = "Medium";
+"Strong" = "Strong";
+"Narrow" = "Narrow";
+"Standard" = "Standard";
+"Wide" = "Wide";
+"Very Low" = "Very Low";
+"Low" = "Low";
+"High" = "High";
+"Very High" = "Very High";
+"None" = "None";
+"Shift" = "Shift";
+"Control" = "Control";
+"Option" = "Option";
+"Command" = "Command";
+"Hold" = "Hold";
+"Toggle" = "Toggle";
+"Uses ← and → in the front app" = "Uses ← and → in the front app";
+"Uses ⌃⇥ and ⌃⇧⇥ in the front app" = "Uses ⌃⇥ and ⌃⇧⇥ in the front app";
+"Uses ⌃← and ⌃→" = "Uses ⌃← and ⌃→";
+"Uses ⌘= and ⌘− in the front app" = "Uses ⌘= and ⌘− in the front app";
+"Uses ⌘Z and ⇧⌘Z in the front app" = "Uses ⌘Z and ⇧⌘Z in the front app";
+
+/* Settings tabs */
+"General" = "General";
+"Edges" = "Edges";
+"Corners & Taps" = "Corners & Taps";
+"Advanced" = "Advanced";
+
+/* Menu bar status line */
+"Trackpad not found" = "Trackpad not found";
+"Trackpad data unavailable" = "Trackpad data unavailable";
+"Paused in %@" = "Paused in %@";
+"trrek is active" = "trrek is active";
+
+/* Welcome window edge cards */
+"Left edge — %@" = "Left edge — %@";
+"Right edge — %@" = "Right edge — %@";
+"Top edge — %@" = "Top edge — %@";
+"Bottom edge — %@" = "Bottom edge — %@";
+"Slide to turn the sound up or down." = "Slide to turn the sound up or down.";
+"Slide to brighten or dim the display." = "Slide to brighten or dim the display.";
+"Slide to brighten or dim the keys." = "Slide to brighten or dim the keys.";
+"Slide to pick an app, lift to switch." = "Slide to pick an app, lift to switch.";
+"Slide to move to the next or previous tab." = "Slide to move to the next or previous tab.";
+"Slide to move to the next or previous desktop." = "Slide to move to the next or previous desktop.";
+"Slide to step through a video." = "Slide to step through a video.";
+"Slide to skip, double-tap to play." = "Slide to skip, double-tap to play.";
+"Slide to zoom in or out." = "Slide to zoom in or out.";
+"Slide back to undo, forward to redo." = "Slide back to undo, forward to redo.";
+"Does nothing." = "Does nothing.";

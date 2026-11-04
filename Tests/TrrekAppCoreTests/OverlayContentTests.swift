@@ -30,6 +30,14 @@ import TrrekPlatform
     #expect(OverlayContent.symbol(for: .scrub) == "film")
 }
 
+@Test func labelsAreShownThroughTheirLocalization() {
+    // Tests have no translations, so the English text comes back unchanged.
+    #expect(OverlayContent.text(level: 0.5, label: "+15 s") == "+15 s")
+    #expect(OverlayContent.text(level: 0.5, label: "\u{2212}10 s") == "\u{2212}10 s")
+    #expect(OverlayContent.text(level: 0.5, label: "No DDC") == "No DDC")
+    #expect(OverlayContent.text(level: 0.5, label: nil) == "50%")
+}
+
 @Test func scrubLabelShowsSignedSeconds() {
     #expect(OverlayContent.scrubLabel(steps: 3) == "+15 s")
     #expect(OverlayContent.scrubLabel(steps: -2) == "\u{2212}10 s")
@@ -53,8 +61,13 @@ import TrrekPlatform
     }
     #expect(OverlayLayout.levelRowWidth <= OverlayLayout.width)
     #expect(width(OverlayContent.text(level: 1, label: nil)) <= OverlayLayout.levelTextWidth)
+    // English and the longest Turkish forms ("%100", "DDC yok", "+1000 sn").
+    #expect(width("%100") <= OverlayLayout.levelTextWidth)
     let labels = [
         "No DDC",
+        "DDC yok",
+        "+1000 sn",
+        "\u{2212}1000 sn",
         OverlayContent.scrubLabel(steps: 20),
         OverlayContent.scrubLabel(steps: -20),
         OverlayContent.scrubLabel(steps: 200),

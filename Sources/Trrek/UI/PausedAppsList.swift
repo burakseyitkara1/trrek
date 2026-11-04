@@ -62,8 +62,8 @@ struct PausedAppsList: View {
     /// front.
     private func addApps() {
         let panel = NSOpenPanel()
-        panel.title = "Choose Apps to Pause In"
-        panel.prompt = "Add"
+        panel.title = String(localized: "Choose Apps to Pause In", bundle: .main)
+        panel.prompt = String(localized: "Add", bundle: .main)
         panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
         panel.allowedContentTypes = [.applicationBundle]
         panel.allowsMultipleSelection = true

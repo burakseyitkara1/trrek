@@ -2,7 +2,7 @@ import SwiftUI
 import TrrekAppCore
 import TrrekPlatform
 
-/// Feedback, slide behaviour, login item, export and import, and reset.
+/// Feedback, slide behaviour, login item, language, export and import, and reset.
 struct GeneralTab: View {
     @Bindable var model: SettingsModel
 
@@ -45,11 +45,19 @@ struct GeneralTab: View {
             }
             Section {
                 Toggle("Launch at Login", isOn: $model.settings.launchAtLogin)
+                Picker("Language", selection: $model.settings.language) {
+                    ForEach(AppLanguage.allCases, id: \.self) { language in
+                        Text(language.title).tag(language)
+                    }
+                }
+                if model.needsRelaunch {
+                    relaunchRow
+                }
             }
             Section {
                 SettingsTransferButtons(model: model)
             } footer: {
-                Text("Settings are saved as a .trrek file. Launch at Login is not included.")
+                Text("Settings are saved as a .trrek file. Launch at Login and the language are not included.")
             }
             Section {
                 HStack {
@@ -63,13 +71,29 @@ struct GeneralTab: View {
             Button("Reset", role: .destructive) { model.resetToDefaults() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Launch at Login keeps its current setting.")
+            Text("Launch at Login and the language keep their current settings.")
+        }
+    }
+
+    /// Shown while the chosen language differs from the one in use.
+    private var relaunchRow: some View {
+        HStack {
+            Label {
+                Text("Relaunch trrek to use the new language.")
+            } icon: {
+                Image(systemName: "globe")
+            }
+            .foregroundStyle(.secondary)
+            Spacer()
+            if model.canRelaunch {
+                Button("Relaunch") { model.relaunch() }
+            }
         }
     }
 
     private var freezeCursorCaption: String {
         model.accessibilityGranted
-            ? "The pointer stays still while you slide along an edge."
-            : "Needs Accessibility access."
+            ? String(localized: "The pointer stays still while you slide along an edge.", bundle: .main)
+            : String(localized: "Needs Accessibility access.", bundle: .main)
     }
 }

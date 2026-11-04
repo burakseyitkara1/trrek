@@ -61,7 +61,10 @@ struct EdgesTab: View {
     /// A picker for one edge. Options that cannot be used on this Mac are listed but disabled, with
     /// the reason; the keyboard backlight shows as media control while its bridge is missing. Without Accessibility,
     /// a caption under the title says the chosen action cannot run yet.
-    private func edgePicker(_ title: String, action: WritableKeyPath<AppSettings, EdgeAction>) -> some View {
+    private func edgePicker(
+        _ title: LocalizedStringKey,
+        action: WritableKeyPath<AppSettings, EdgeAction>
+    ) -> some View {
         let available = model.backlightAvailable
         let selection = Binding(
             get: { EdgeChoices.displayed(model.settings[keyPath: action], backlightAvailable: available) },

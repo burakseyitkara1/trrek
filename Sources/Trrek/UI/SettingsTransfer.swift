@@ -17,8 +17,8 @@ struct SettingsTransferButtons: View {
 
     private func exportSettings() {
         let panel = NSSavePanel()
-        panel.title = "Export Settings"
-        panel.prompt = "Export"
+        panel.title = String(localized: "Export Settings", bundle: .main)
+        panel.prompt = String(localized: "Export", bundle: .main)
         panel.nameFieldStringValue = SettingsDocument.defaultFileName
         panel.allowedContentTypes = [.trrekSettings]
         panel.canCreateDirectories = true
@@ -28,8 +28,8 @@ struct SettingsTransferButtons: View {
 
     private func importSettings() {
         let panel = NSOpenPanel()
-        panel.title = "Import Settings"
-        panel.prompt = "Import"
+        panel.title = String(localized: "Import Settings", bundle: .main)
+        panel.prompt = String(localized: "Import", bundle: .main)
         panel.allowedContentTypes = [.trrekSettings]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -57,10 +57,10 @@ struct SettingsTransferAlerts: ViewModifier {
                 Button("Replace", role: .destructive) { model.confirmImport(pending) }
                 Button("Cancel", role: .cancel) {}
             } message: { _ in
-                Text("Launch at Login keeps its current setting.")
+                Text("Launch at Login and the language keep their current settings.")
             }
             .alert(
-                model.transferFailure?.title ?? "Import Failed",
+                model.transferFailure?.title ?? String(localized: "Import Failed", bundle: .main),
                 isPresented: $model.isShowingTransferFailure,
                 presenting: model.transferFailure
             ) { _ in
@@ -72,8 +72,11 @@ struct SettingsTransferAlerts: ViewModifier {
 
     /// The pending import is kept after the alert closes, so the title stays the same while it animates out.
     static func importTitle(_ pending: PendingImport?) -> String {
-        guard let pending else { return "Replace your current settings?" }
-        return "Replace your current settings with the ones in “\(pending.fileName)”?"
+        guard let pending else { return String(localized: "Replace your current settings?", bundle: .main) }
+        return String(
+            localized: "Replace your current settings with the ones in “\(pending.fileName)”?",
+            bundle: .main
+        )
     }
 }
 

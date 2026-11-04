@@ -30,7 +30,7 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Welcome to trrek"
+        window.title = String(localized: "Welcome to trrek", bundle: .main)
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true

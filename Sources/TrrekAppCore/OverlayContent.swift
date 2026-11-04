@@ -1,3 +1,4 @@
+import Foundation
 import TrrekPlatform
 
 /// What the level overlay shows for a level in 0...1.
@@ -17,15 +18,26 @@ public enum OverlayContent {
         kind != .scrub && label == nil
     }
 
-    /// `label` when given, otherwise the level as a whole percentage ("50%").
+    /// `label` when given, otherwise the level as a whole percentage ("50%"). Both are localized: the percentage
+    /// with its format ("%lld%%"); a scrub distance ("+15 s") with its unit's format ("%@ s"); any other label by
+    /// looking it up as a key ("No DDC"). The labels arrive as fixed English text from the frame thread and are
+    /// translated here, on the main thread.
     public static func text(level: Float, label: String?) -> String {
         if let label {
-            return label
+            if label.hasSuffix(scrubUnitSuffix) {
+                let value = String(label.dropLast(scrubUnitSuffix.count))
+                return String(localized: "\(value) s", bundle: .main)
+            }
+            return Bundle.main.localizedString(forKey: label, value: label, table: nil)
         }
-        return "\(Int((clamp(level) * 100).rounded()))%"
+        let percent = Int((clamp(level) * 100).rounded())
+        return String(localized: "\(percent)%", bundle: .main)
     }
 
     /// The net scrub distance as signed seconds ("+15 s", "\u{2212}10 s", "0 s"), assuming 5 s per step.
+    /// The unit `ScrubLabel` ends its text with.
+    private static let scrubUnitSuffix = " s"
+
     public static func scrubLabel(steps: Int) -> String {
         ScrubLabel.text(steps: steps)
     }

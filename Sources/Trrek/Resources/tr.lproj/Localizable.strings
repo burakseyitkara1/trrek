@@ -1,0 +1,195 @@
+/* trrek interface strings. The key is the English source text. */
+
+/* Menu bar icon (VoiceOver) */
+"trrek (Accessibility access needed)" = "trrek (Erişilebilirlik izni gerekli)";
+"trrek (hold-to-slide on)" = "trrek (basılı tutarak kaydırma açık)";
+"trrek (Accessibility access needed, hold-to-slide on)" = "trrek (Erişilebilirlik izni gerekli, basılı tutarak kaydırma açık)";
+
+/* Menu bar menu */
+"Precision Control" = "Hassas Denetim";
+"Freeze Cursor" = "İmleci Dondur";
+"Hold-to-Slide: On" = "Basılı Tutarak Kaydırma: Açık";
+"Hold-to-Slide: Off" = "Basılı Tutarak Kaydırma: Kapalı";
+"Resume in %@" = "%@ İçin Sürdür";
+"Pause in %@" = "%@ İçin Duraklat";
+"Settings…" = "Ayarlar…";
+"Show Welcome" = "Karşılamayı Göster";
+"Grant Accessibility…" = "Erişilebilirlik İzni Ver…";
+"About trrek" = "trrek Hakkında";
+"Quit trrek" = "trrek’ten Çık";
+
+/* Advanced tab */
+"Hold-to-Slide Key" = "Basılı Tutarak Kaydırma Tuşu";
+"Edges respond only while this key is held, or after it is pressed once in Toggle mode." = "Kenarlar yalnızca bu tuş basılıyken ya da Aç/Kapat modunda tuşa bir kez basıldıktan sonra yanıt verir.";
+"Mode" = "Mod";
+"Paused Apps" = "Duraklatılan Uygulamalar";
+"Version" = "Sürüm";
+"Open System Settings" = "Sistem Ayarları’nı Aç";
+"Accessibility access granted" = "Erişilebilirlik izni verildi";
+"Accessibility access needed" = "Erişilebilirlik izni gerekli";
+
+/* Corners & Taps tab */
+"3-Finger Tap Middle Click" = "Üç Parmakla Dokunarak Orta Tıklama";
+"Set Look up & data detectors to Force click with one finger in System Settings › Trackpad" = "Sistem Ayarları › İzleme Dörtgeni’nde “Araştırma ve veri algılayıcıları” seçeneğini “Tek Parmakla Kuvvetli Tıklayın” yapın";
+"Double-tap a corner to run its action. Click a corner in the diagram to change it." = "Bir köşenin eylemini çalıştırmak için köşeye çift dokunun. Değiştirmek için diyagramdaki köşeyi tıklayın.";
+"Double-tap a corner to run its action once Accessibility access is granted." = "Erişilebilirlik izni verildiğinde köşeye çift dokunarak eylemini çalıştırabilirsiniz.";
+
+/* Edges tab */
+"Left Edge" = "Sol Kenar";
+"Right Edge" = "Sağ Kenar";
+"Top Edge" = "Üst Kenar";
+"Bottom Edge" = "Alt Kenar";
+"Edge Width" = "Kenar Genişliği";
+"Bottom Quarter Only" = "Yalnızca Alt Çeyrek";
+"The side edges respond only in their lower quarter." = "Yan kenarlar yalnızca alt çeyreklerinde yanıt verir.";
+"External Monitor Brightness" = "Harici Ekran Parlaklığı";
+"%@ — %@" = "%@ — %@";
+"Needs Accessibility access" = "Erişilebilirlik izni gerekir";
+
+/* General tab */
+"Haptic Feedback" = "Dokunuş Geri Bildirimi";
+"Slide Sensitivity" = "Kaydırma Hassasiyeti";
+"Higher sensitivity takes a shorter slide for each step." = "Hassasiyet arttıkça her adım için daha kısa bir kaydırma yeterli olur.";
+"Each step changes the level by a quarter as much." = "Her adım düzeyi normalin dörtte biri kadar değiştirir.";
+"Launch at Login" = "Oturum Açıldığında Başlat";
+"Language" = "Dil";
+"Settings are saved as a .trrek file. Launch at Login and the language are not included." = "Ayarlar .trrek dosyası olarak kaydedilir. Oturum Açıldığında Başlat ve dil dosyaya dahil edilmez.";
+"Reset to Defaults…" = "Varsayılanlara Sıfırla…";
+"Reset all settings to their defaults?" = "Tüm ayarlar varsayılanlara sıfırlansın mı?";
+"Reset" = "Sıfırla";
+"Cancel" = "Vazgeç";
+"Launch at Login and the language keep their current settings." = "Oturum Açıldığında Başlat ve dil ayarları değişmez.";
+"Relaunch trrek to use the new language." = "Yeni dili kullanmak için trrek’i yeniden başlatın.";
+"Relaunch" = "Yeniden Başlat";
+"The pointer stays still while you slide along an edge." = "Bir kenar boyunca kaydırırken imleç yerinde kalır.";
+"Needs Accessibility access." = "Erişilebilirlik izni gerekir.";
+
+/* Level overlay */
+"Keyboard backlight" = "Klavye aydınlatması";
+"Display brightness" = "Ekran parlaklığı";
+"Video position" = "Video konumu";
+"%@ s" = "%@ sn";
+"%lld%%" = "%%%lld";
+"No DDC" = "DDC yok";
+
+/* Paused apps */
+"No paused apps" = "Duraklatılan uygulama yok";
+"Add apps" = "Uygulama ekle";
+"Remove the selected app" = "Seçili uygulamayı kaldır";
+"Edges are paused while one of these apps is in front." = "Bu uygulamalardan biri öndeyken kenarlar duraklatılır.";
+"Choose Apps to Pause In" = "Duraklatılacak Uygulamaları Seçin";
+"Add" = "Ekle";
+
+/* Export and import */
+"The settings could not be exported." = "Ayarlar dışa aktarılamadı.";
+"“%@” could not be imported." = "“%@” içe aktarılamadı.";
+"The file could not be read. Your settings were not changed." = "Dosya okunamadı. Ayarlarınız değiştirilmedi.";
+"Export Settings…" = "Ayarları Dışa Aktar…";
+"Import Settings…" = "Ayarları İçe Aktar…";
+"Export Settings" = "Ayarları Dışa Aktar";
+"Export" = "Dışa Aktar";
+"Import Settings" = "Ayarları İçe Aktar";
+"Import" = "İçe Aktar";
+"Replace" = "Değiştir";
+"Import Failed" = "İçe Aktarılamadı";
+"OK" = "Tamam";
+"Replace your current settings?" = "Geçerli ayarlarınız değiştirilsin mi?";
+"Replace your current settings with the ones in “%@”?" = "Geçerli ayarlarınız “%@” dosyasındakilerle değiştirilsin mi?";
+"The file is not a trrek settings file, or it is damaged. Your settings were not changed." = "Dosya bir trrek ayar dosyası değil ya da hasarlı. Ayarlarınız değiştirilmedi.";
+"The file was exported by a newer version of trrek. Update trrek to import it. Your settings were not changed." = "Dosya trrek’in daha yeni bir sürümüyle dışa aktarılmış. İçe aktarmak için trrek’i güncelleyin. Ayarlarınız değiştirilmedi.";
+
+/* Settings window */
+"trrek Settings" = "trrek Ayarları";
+
+/* Trackpad diagram */
+"Trackpad diagram" = "İzleme dörtgeni diyagramı";
+
+/* Welcome window */
+"Open Settings" = "Ayarları Aç";
+"Done" = "Bitti";
+"Welcome to trrek" = "trrek’e Hoş Geldiniz";
+"Slide one finger along an edge of the trackpad." = "Tek parmağınızı izleme dörtgeninin bir kenarı boyunca kaydırın.";
+"Grant Accessibility Access" = "Erişilebilirlik İzni Ver";
+
+/* Language */
+"System" = "Sistem";
+
+/* Option titles and captions */
+"trrek needs Accessibility access to change volume, brightness and the other controls." = "trrek’in sesi, parlaklığı ve diğer denetimleri değiştirebilmesi için Erişilebilirlik izni gerekir.";
+"Monitors that support DDC/CI; the brightness edge follows the screen with the pointer" = "DDC/CI destekleyen harici ekranlar; parlaklık kenarı imlecin bulunduğu ekranı izler";
+"Not available on this Mac" = "Bu Mac’te kullanılamaz";
+"Volume" = "Ses";
+"Brightness" = "Parlaklık";
+"Keyboard Backlight" = "Klavye Aydınlatması";
+"Switch Apps" = "Uygulama Değiştir";
+"Switch Tabs" = "Sekme Değiştir";
+"Switch Desktops" = "Masaüstü Değiştir";
+"Scrub Video" = "Videoyu Sar";
+"Media" = "Medya";
+"Zoom" = "Yakınlaştırma";
+"Undo & Redo" = "Geri Al ve Yinele";
+"Off" = "Kapalı";
+"Mute" = "Sesi Kapat";
+"Screenshot" = "Ekran Resmi";
+"Play/Pause" = "Oynat/Duraklat";
+"Mission Control" = "Mission Control";
+"App Windows" = "Uygulama Pencereleri";
+"Show Desktop" = "Masaüstünü Göster";
+"Spotlight" = "Spotlight";
+"Lock Screen" = "Ekranı Kilitle";
+"Screenshot Area" = "Seçilen Alanın Resmi";
+"Top Left" = "Sol Üst";
+"Top Right" = "Sağ Üst";
+"Bottom Left" = "Sol Alt";
+"Bottom Right" = "Sağ Alt";
+"Light" = "Hafif";
+"Medium" = "Orta";
+"Strong" = "Güçlü";
+"Narrow" = "Dar";
+"Standard" = "Standart";
+"Wide" = "Geniş";
+"Very Low" = "Çok Düşük";
+"Low" = "Düşük";
+"High" = "Yüksek";
+"Very High" = "Çok Yüksek";
+"None" = "Yok";
+"Shift" = "Shift";
+"Control" = "Kontrol";
+"Option" = "Option";
+"Command" = "Komut";
+"Hold" = "Basılı Tut";
+"Toggle" = "Aç/Kapat";
+"Uses ← and → in the front app" = "Öndeki uygulamada ← ve → kullanır";
+"Uses ⌃⇥ and ⌃⇧⇥ in the front app" = "Öndeki uygulamada ⌃⇥ ve ⌃⇧⇥ kullanır";
+"Uses ⌃← and ⌃→" = "⌃← ve ⌃→ kullanır";
+"Uses ⌘= and ⌘− in the front app" = "Öndeki uygulamada ⌘= ve ⌘− kullanır";
+"Uses ⌘Z and ⇧⌘Z in the front app" = "Öndeki uygulamada ⌘Z ve ⇧⌘Z kullanır";
+
+/* Settings tabs */
+"General" = "Genel";
+"Edges" = "Kenarlar";
+"Corners & Taps" = "Köşeler ve Dokunmalar";
+"Advanced" = "Gelişmiş";
+
+/* Menu bar status line */
+"Trackpad not found" = "İzleme dörtgeni bulunamadı";
+"Trackpad data unavailable" = "İzleme dörtgeni verisi alınamıyor";
+"Paused in %@" = "%@ için duraklatıldı";
+"trrek is active" = "trrek etkin";
+
+/* Welcome window edge cards */
+"Left edge — %@" = "Sol kenar — %@";
+"Right edge — %@" = "Sağ kenar — %@";
+"Top edge — %@" = "Üst kenar — %@";
+"Bottom edge — %@" = "Alt kenar — %@";
+"Slide to turn the sound up or down." = "Kaydırarak sesi açın ya da kısın.";
+"Slide to brighten or dim the display." = "Kaydırarak ekran parlaklığını ayarlayın.";
+"Slide to brighten or dim the keys." = "Kaydırarak tuş aydınlatmasını ayarlayın.";
+"Slide to pick an app, lift to switch." = "Kaydırıp uygulama seçin, parmağınızı kaldırınca geçin.";
+"Slide to move to the next or previous tab." = "Kaydırarak sonraki ya da önceki sekmeye geçin.";
+"Slide to move to the next or previous desktop." = "Kaydırarak sonraki ya da önceki masaüstüne geçin.";
+"Slide to step through a video." = "Kaydırarak videoda ileri ya da geri gidin.";
+"Slide to skip, double-tap to play." = "Kaydırıp parça atlayın, çift dokunup oynatın.";
+"Slide to zoom in or out." = "Kaydırarak yakınlaştırın ya da uzaklaştırın.";
+"Slide back to undo, forward to redo." = "Geri kaydırıp geri alın, ileri kaydırıp yineleyin.";
+"Does nothing." = "Hiçbir şey yapmaz.";

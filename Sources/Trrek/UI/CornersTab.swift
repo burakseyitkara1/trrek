@@ -43,8 +43,14 @@ struct CornersTab: View {
 
     private var footer: String {
         model.accessibilityGranted
-            ? "Double-tap a corner to run its action. Click a corner in the diagram to change it."
-            : "Double-tap a corner to run its action once Accessibility access is granted."
+            ? String(
+                localized: "Double-tap a corner to run its action. Click a corner in the diagram to change it.",
+                bundle: .main
+            )
+            : String(
+                localized: "Double-tap a corner to run its action once Accessibility access is granted.",
+                bundle: .main
+            )
     }
 
     private func binding(for corner: Corner) -> Binding<CornerAction> {

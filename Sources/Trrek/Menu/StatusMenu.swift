@@ -52,33 +52,38 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         menu.addItem(status)
         menu.addItem(.separator())
 
-        menu.addItem(item("Precision Control", #selector(togglePrecision), checked: settings.precision))
-        menu.addItem(item("Freeze Cursor", #selector(toggleFreezeCursor), checked: settings.freezeCursor))
+        let precision = String(localized: "Precision Control", bundle: .main)
+        menu.addItem(item(precision, #selector(togglePrecision), checked: settings.precision))
+        let freezeCursor = String(localized: "Freeze Cursor", bundle: .main)
+        menu.addItem(item(freezeCursor, #selector(toggleFreezeCursor), checked: settings.freezeCursor))
         if settings.holdKeyMode == .toggle, settings.holdKey != .none {
-            let state = coordinator.isHoldToggleActive ? "On" : "Off"
-            let holdItem = NSMenuItem(title: "Hold-to-Slide: \(state)", action: nil, keyEquivalent: "")
+            let title = coordinator.isHoldToggleActive
+                ? String(localized: "Hold-to-Slide: On", bundle: .main)
+                : String(localized: "Hold-to-Slide: Off", bundle: .main)
+            let holdItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
             holdItem.isEnabled = false
             menu.addItem(holdItem)
         }
         // The same app as the status line, also while a trrek window is in front.
         if let (id, name) = coordinator.pauseTargetApp {
             if settings.pausedBundleIDs.contains(id) {
-                menu.addItem(item("Resume in \(name)", #selector(resumeInFrontApp)))
+                menu.addItem(item(String(localized: "Resume in \(name)", bundle: .main), #selector(resumeInFrontApp)))
             } else {
-                menu.addItem(item("Pause in \(name)", #selector(pauseInFrontApp)))
+                menu.addItem(item(String(localized: "Pause in \(name)", bundle: .main), #selector(pauseInFrontApp)))
             }
         }
         menu.addItem(.separator())
 
-        menu.addItem(item("Settings…", #selector(openSettings), key: ","))
-        menu.addItem(item("Show Welcome", #selector(showWelcome)))
+        menu.addItem(item(String(localized: "Settings…", bundle: .main), #selector(openSettings), key: ","))
+        menu.addItem(item(String(localized: "Show Welcome", bundle: .main), #selector(showWelcome)))
         if !coordinator.isTrusted {
-            menu.addItem(item("Grant Accessibility…", #selector(grantAccessibility)))
+            let grant = String(localized: "Grant Accessibility…", bundle: .main)
+            menu.addItem(item(grant, #selector(grantAccessibility)))
         }
         menu.addItem(.separator())
 
-        menu.addItem(item("About trrek", #selector(showAbout)))
-        menu.addItem(item("Quit trrek", #selector(quit), key: "q"))
+        menu.addItem(item(String(localized: "About trrek", bundle: .main), #selector(showAbout)))
+        menu.addItem(item(String(localized: "Quit trrek", bundle: .main), #selector(quit), key: "q"))
     }
 
     private func item(_ title: String, _ action: Selector, key: String = "", checked: Bool? = nil) -> NSMenuItem {

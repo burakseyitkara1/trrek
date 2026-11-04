@@ -45,6 +45,7 @@ struct SettingsStoreTests {
         settings.pausedBundleIDs = ["com.example.one", "com.example.two"]
         settings.launchAtLogin = false
         settings.welcomeShown = true
+        settings.language = .turkish
         #expect(settings != Settings())
 
         SettingsStore(defaults: defaults).save(settings)
@@ -167,7 +168,8 @@ struct SettingsStoreTests {
 
         let json = """
         {"schemaVersion": 1, "hapticStrength": "thunderous", "edgeWidth": "wide", "topEdge": "teleport",
-         "bottomEdge": "media", "topLeft": "confetti", "topRight": "mute", "holdKey": "hyper", "precision": "yes"}
+         "bottomEdge": "media", "topLeft": "confetti", "topRight": "mute", "holdKey": "hyper", "precision": "yes",
+         "language": "klingon"}
         """
         defaults.set(Data(json.utf8), forKey: "settings")
         let loaded = SettingsStore(defaults: defaults).load()
@@ -195,6 +197,7 @@ struct SettingsStoreTests {
         #expect(settings.freezeCursor)
         #expect(!settings.bottomQuarterOnly)
         #expect(settings.slideSensitivity == .standard)
+        #expect(settings.language == .system)
         #expect(!settings.externalMonitorBrightness)
         #expect(settings.leftEdge == .brightness)
         #expect(settings.rightEdge == .volume)

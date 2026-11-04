@@ -6,6 +6,13 @@
 	<string>com.burakseyitkara.trrek</string>
 	<key>CFBundleName</key>
 	<string>trrek</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>tr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>trrek</string>
 	<key>CFBundleExecutable</key>

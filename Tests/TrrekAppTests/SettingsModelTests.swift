@@ -63,6 +63,7 @@ struct SettingsModelTests {
         initial.launchAtLogin = false
         initial.welcomeShown = true
         initial.middleClick = true
+        initial.language = .turkish
         var last: AppSettings?
         let model = SettingsModel(settings: initial, backlightAvailable: false) { last = $0 }
 
@@ -71,7 +72,57 @@ struct SettingsModelTests {
         #expect(last?.middleClick == false)
         #expect(last?.launchAtLogin == false)
         #expect(last?.welcomeShown == true)
+        #expect(last?.language == .turkish)
         #expect(last?.bottomEdge == .media)
+    }
+
+    @Test func relaunchIsOfferedWhileTheLanguageShowsAnotherLocalization() {
+        var relaunches = 0
+        let model = SettingsModel(
+            settings: AppSettings(),
+            backlightAvailable: true,
+            launchLocalization: "en",
+            localization: {
+                LanguagePreference.localization(for: $0, available: ["en", "tr"], systemLanguages: ["en-US"])
+            },
+            canRelaunch: true,
+            relaunch: { relaunches += 1 },
+            onChange: { _ in }
+        )
+        #expect(!model.needsRelaunch)
+
+        model.settings.language = .turkish
+        #expect(model.needsRelaunch)
+        model.relaunch()
+        #expect(relaunches == 1)
+
+        // English is what System shows here, so no relaunch is needed.
+        model.settings.language = .english
+        #expect(!model.needsRelaunch)
+        model.settings.language = .system
+        #expect(!model.needsRelaunch)
+
+        // Settings changed elsewhere count too.
+        var changed = model.settings
+        changed.language = .turkish
+        model.refresh(from: changed)
+        #expect(model.needsRelaunch)
+    }
+
+    @Test func choosingTheLanguageSystemAlreadyShowsNeedsNoRelaunch() {
+        let model = SettingsModel(
+            settings: AppSettings(),
+            backlightAvailable: true,
+            launchLocalization: "tr",
+            localization: {
+                LanguagePreference.localization(for: $0, available: ["en", "tr"], systemLanguages: ["tr-TR"])
+            },
+            onChange: { _ in }
+        )
+        model.settings.language = .turkish
+        #expect(!model.needsRelaunch)
+        model.settings.language = .english
+        #expect(model.needsRelaunch)
     }
 
     @Test func appInfoIsResolvedOncePerBundleID() {

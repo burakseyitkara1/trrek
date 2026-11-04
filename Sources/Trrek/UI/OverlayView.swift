@@ -53,9 +53,9 @@ struct OverlayView: View {
 
     private static func accessibilityName(of kind: OverlayKind) -> String {
         switch kind {
-        case .keyboardBacklight: "Keyboard backlight"
-        case .externalBrightness: "Display brightness"
-        case .scrub: "Video position"
+        case .keyboardBacklight: String(localized: "Keyboard backlight", bundle: .main)
+        case .externalBrightness: String(localized: "Display brightness", bundle: .main)
+        case .scrub: String(localized: "Video position", bundle: .main)
         }
     }
 }

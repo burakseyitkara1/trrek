@@ -12,10 +12,18 @@ public enum SettingsDocumentError: Error, Equatable, Sendable {
     public var message: String {
         switch self {
         case .notSettingsFile:
-            "The file is not a trrek settings file, or it is damaged. Your settings were not changed."
+            String(
+                localized: "The file is not a trrek settings file, or it is damaged. Your settings were not changed.",
+                bundle: .main
+            )
         case .newerFormat:
-            "The file was exported by a newer version of trrek. Update trrek to import it. "
-                + "Your settings were not changed."
+            String(
+                localized: """
+                The file was exported by a newer version of trrek. Update trrek to import it. \
+                Your settings were not changed.
+                """,
+                bundle: .main
+            )
         }
     }
 }
@@ -23,9 +31,10 @@ public enum SettingsDocumentError: Error, Equatable, Sendable {
 /// Settings exported to, and imported from, a `.trrek` file.
 ///
 /// The file is indented JSON with sorted keys:
-/// `{"appVersion": "…", "format": "trrek-settings", "formatVersion": 1, "settings": {…}}`. Launch at Login and
-/// whether the welcome window was shown belong to this Mac, so they are not exported and an import keeps their
-/// current values (`imported(_:into:)`). The `settings` object is read with the forgiving decoder: a missing or
+/// `{"appVersion": "…", "format": "trrek-settings", "formatVersion": 1, "settings": {…}}`. Launch at Login,
+/// whether the welcome window was shown and the interface language belong to this Mac and its user, so they are not
+/// exported and an import keeps their current values (`imported(_:into:)`). The `settings` object is read with the
+/// forgiving decoder: a missing or
 /// unreadable field (such as an action this build does not know) takes its default.
 public enum SettingsDocument {
     public static let format = "trrek-settings"
@@ -33,10 +42,13 @@ public enum SettingsDocument {
     public static let fileExtension = "trrek"
     /// The exported type declared in the app's Info.plist.
     public static let typeIdentifier = "com.burakseyitkara.trrek.settings"
-    public static let defaultFileName = "trrek Settings.\(fileExtension)"
+    /// The name the export panel suggests, in the interface language.
+    public static var defaultFileName: String {
+        "\(String(localized: "trrek Settings", bundle: .main)).\(fileExtension)"
+    }
 
     /// Fields that describe this Mac rather than how trrek behaves.
-    static let localKeys: Set<String> = ["launchAtLogin", "welcomeShown"]
+    static let localKeys: Set<String> = ["launchAtLogin", "welcomeShown", "language"]
 
     /// Larger files are refused without being read; an exported file is about 1 KB.
     public static let maximumFileSize = 1_000_000
@@ -76,8 +88,8 @@ public enum SettingsDocument {
         return data
     }
 
-    /// The settings in a file's contents. `launchAtLogin` and `welcomeShown` keep their defaults; apply the result
-    /// with `imported(_:into:)`.
+    /// The settings in a file's contents. `launchAtLogin`, `welcomeShown` and `language` keep their defaults; apply the
+    /// result with `imported(_:into:)`.
     public static func decode(_ data: Data) throws(SettingsDocumentError) -> Settings {
         let header: DocumentHeader
         do {
@@ -98,17 +110,19 @@ public enum SettingsDocument {
             let defaults = Settings()
             settings.launchAtLogin = defaults.launchAtLogin
             settings.welcomeShown = defaults.welcomeShown
+            settings.language = defaults.language
             return settings
         } catch {
             throw .notSettingsFile
         }
     }
 
-    /// `imported` with `current`'s Launch at Login and welcome state.
+    /// `imported` with `current`'s Launch at Login, welcome state and language.
     public static func imported(_ imported: Settings, into current: Settings) -> Settings {
         var result = imported
         result.launchAtLogin = current.launchAtLogin
         result.welcomeShown = current.welcomeShown
+        result.language = current.language
         return result
     }
 
