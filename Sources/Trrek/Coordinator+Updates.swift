@@ -18,12 +18,14 @@ extension Coordinator {
         let updates = UpdateController(
             checker: UpdateChecker(currentVersion: current, feed: ReleaseFeedClient(), state: state),
             downloader: UpdateDownloader(),
+            installer: UpdateInstaller(bundle: Bundle.main.bundleURL),
             notifier: SystemUpdateNotifier(),
             alerts: SystemUpdateAlerts(),
             automatic: { [weak self] in self?.settings.checkForUpdatesAutomatically ?? false }
         )
         updates.onChange = { [weak self] in self?.updateStateChanged() }
         self.updates = updates
+        updates.cleanUpLeftovers()
         updates.schedule(.launch)
     }
 

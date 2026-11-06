@@ -136,7 +136,9 @@ struct LocalizationTests {
             // A restart reason, only logged.
             "device change",
             // An encoding error's debug description.
-            "settings did not encode as an object"
+            "settings did not encode as an object",
+            // The device model DiskArbitration reports for a disk image, compared, not shown.
+            "Disk Image"
         ]
         let words = try NSRegularExpression(pattern: "[A-Za-z]{2,} [A-Za-z]{2,}")
         let logCall = try NSRegularExpression(pattern: #"Logger|\.(?:debug|info|notice|error|fault)\("#)

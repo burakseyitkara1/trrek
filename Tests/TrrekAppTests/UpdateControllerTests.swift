@@ -8,9 +8,9 @@ import TrrekAppCore
 @MainActor
 @Suite(.serialized)
 struct UpdateControllerTests {
-    private nonisolated static let suiteName = "trrek.tests.update-controller"
+    nonisolated static let suiteName = "trrek.tests.update-controller"
 
-    private actor Feed: ReleaseFeed {
+    actor Feed: ReleaseFeed {
         let result: Result<Data, any Error>
         let delay: Duration
         private(set) var calls = 0
@@ -27,7 +27,7 @@ struct UpdateControllerTests {
         }
     }
 
-    private struct Downloader: FileDownloading {
+    struct Downloader: FileDownloading {
         let fails: Bool
 
         func download(from _: URL) async throws -> URL {
@@ -40,7 +40,7 @@ struct UpdateControllerTests {
         }
     }
 
-    private final class Notifier: UpdateNotifying {
+    final class Notifier: UpdateNotifying {
         var posted: [SemanticVersion] = []
 
         func notify(_ release: ReleaseInfo) {
@@ -48,27 +48,39 @@ struct UpdateControllerTests {
         }
     }
 
-    private final class Alerts: UpdateAlertPresenting {
+    final class Alerts: UpdateAlertPresenting {
         var shown: [UpdateAlert] = []
         var answer = true
+        /// Answers the ready-to-install alert, when set; `answer` answers the others.
+        var installAnswer: Bool?
+
+        /// Runs while an alert is shown, before it is answered.
+        var onPresent: ((UpdateAlert) -> Void)?
 
         func present(_ alert: UpdateAlert, window _: NSWindow?) async -> Bool {
             shown.append(alert)
+            onPresent?(alert)
+            if case .readyToInstall = alert, let installAnswer {
+                return installAnswer
+            }
             return answer
         }
     }
 
-    private struct Harness {
+    struct Harness {
         let controller: UpdateController
         let feed: Feed
         let notifier: Notifier
         let alerts: Alerts
         let folder: URL
         let defaults: UserDefaults
+        /// The defaults suite, one per test suite so suites running side by side do not share state.
+        let suite: String
         let opened: () -> [URL]
+        let relaunches: () -> Int
 
         func tearDown() {
-            defaults.removePersistentDomain(forName: UpdateControllerTests.suiteName)
+            defaults.removePersistentDomain(forName: suite)
             try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path)
             try? FileManager.default.removeItem(at: folder)
         }
@@ -85,21 +97,25 @@ struct UpdateControllerTests {
         """.utf8)
     }
 
-    private static func harness(
+    static func harness(
         current: String = "0.3.0",
         feed: Result<Data, any Error> = .success(releaseJSON("0.4.0")),
         automatic: Bool = true,
         downloadFails: Bool = false,
-        feedDelay: Duration = .zero
+        feedDelay: Duration = .zero,
+        installer: Installer? = nil,
+        relaunchSucceeds: Bool = true,
+        suite: String = suiteName
     ) throws -> Harness {
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defaults.removePersistentDomain(forName: suiteName)
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("trrek-tests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let fakeFeed = Feed(feed, delay: feedDelay)
         let notifier = Notifier()
         let alerts = Alerts()
         var opened: [URL] = []
+        var relaunches = 0
         let checker = try UpdateChecker(
             currentVersion: #require(SemanticVersion(current)),
             feed: fakeFeed,
@@ -108,6 +124,11 @@ struct UpdateControllerTests {
         let controller = UpdateController(
             checker: checker,
             downloader: UpdateDownloader(client: Downloader(fails: downloadFails)),
+            installer: installer,
+            relaunch: {
+                relaunches += 1
+                return relaunchSucceeds
+            },
             notifier: notifier,
             alerts: alerts,
             downloadsFolder: { folder },
@@ -121,7 +142,9 @@ struct UpdateControllerTests {
             alerts: alerts,
             folder: folder,
             defaults: defaults,
-            opened: { opened }
+            suite: suite,
+            opened: { opened },
+            relaunches: { relaunches }
         )
     }
 

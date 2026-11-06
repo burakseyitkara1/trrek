@@ -218,3 +218,29 @@
 "Last checked: %@" = "Last checked: %@";
 "Not checked yet" = "Not checked yet";
 "The update information points to an unexpected address." = "The update information points to an unexpected address.";
+
+/* Update install */
+"trrek isn’t running from an app bundle." = "trrek isn’t running from an app bundle.";
+"macOS runs trrek from a temporary location. Move trrek to the Applications folder." = "macOS runs trrek from a temporary location. Move trrek to the Applications folder.";
+"trrek runs from a disk image or a read-only volume." = "trrek runs from a disk image or a read-only volume.";
+"trrek can’t write to the folder it’s installed in." = "trrek can’t write to the folder it’s installed in.";
+"The disk image couldn’t be opened." = "The disk image couldn’t be opened.";
+"The installed app couldn’t be replaced." = "The installed app couldn’t be replaced.";
+"The update isn’t signed by trrek’s developer." = "The update isn’t signed by trrek’s developer.";
+"macOS didn’t accept the update: it isn’t notarized." = "macOS didn’t accept the update: it isn’t notarized.";
+"The disk image doesn’t contain trrek." = "The disk image doesn’t contain trrek.";
+"The disk image contains another version (%@)." = "The disk image contains another version (%@).";
+"The update isn’t newer than this version of trrek." = "The update isn’t newer than this version of trrek.";
+"Installing trrek %@…" = "Installing trrek %@…";
+"Install trrek %@…" = "Install trrek %@…";
+"trrek %@ is ready to install" = "trrek %@ is ready to install";
+"trrek will quit and open again." = "trrek will quit and open again.";
+"Install and Relaunch" = "Install and Relaunch";
+"trrek %@ couldn’t be installed automatically" = "trrek %@ couldn’t be installed automatically";
+"Drag trrek to the Applications folder in the disk image’s window." = "Drag trrek to the Applications folder in the disk image’s window.";
+"trrek %@ couldn’t be verified" = "trrek %@ couldn’t be verified";
+"Nothing was installed. The disk image is kept in Downloads." = "Nothing was installed. The disk image is kept in Downloads.";
+"trrek %@ is installed" = "trrek %@ is installed";
+"Quit trrek and open it again to use the new version." = "Quit trrek and open it again to use the new version.";
+"Verifying trrek %@…" = "Verifying trrek %@…";
+"trrek %@ Is Ready to Install" = "trrek %@ Is Ready to Install";

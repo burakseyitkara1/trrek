@@ -1,7 +1,7 @@
 import AppKit
 import TrrekAppCore
 
-/// Quits trrek and opens the same app bundle again, so a new interface language takes effect.
+/// Quits trrek and opens the same app bundle again, so a new interface language or an installed update takes effect.
 ///
 /// A short-lived shell waits for this process to exit before opening the bundle: opening it while trrek still runs
 /// would only bring the running instance to the front (which shows its settings window). The wait is capped, after
@@ -24,11 +24,13 @@ enum Relauncher {
         return ["-c", script, "trrek-relaunch", String(pid), bundlePath]
     }
 
-    /// Starts the waiting shell and quits. Does nothing (and logs) when the shell cannot be started.
-    static func relaunch() {
+    /// Starts the waiting shell and quits; `reason` is logged. Returns `false` and does nothing more (but log) when
+    /// the shell cannot be started.
+    @discardableResult
+    static func relaunch(reason: String) -> Bool {
         guard canRelaunch else {
             appLogger.error("relaunch skipped: not running from an app bundle")
-            return
+            return false
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
@@ -40,9 +42,10 @@ enum Relauncher {
             try process.run()
         } catch {
             appLogger.error("relaunch failed: \(String(describing: error), privacy: .public)")
-            return
+            return false
         }
-        appLogger.notice("relaunching for a new language")
+        appLogger.notice("relaunching for the \(reason, privacy: .public)")
         NSApp.terminate(nil)
+        return true
     }
 }

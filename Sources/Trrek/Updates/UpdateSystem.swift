@@ -49,8 +49,54 @@ struct SystemUpdateAlerts: UpdateAlertPresenting {
             panel.alertStyle = .warning
             panel.addButton(withTitle: String(localized: "Open Download Page", bundle: .main))
             panel.addButton(withTitle: String(localized: "Cancel", bundle: .main))
+        case .readyToInstall, .installFallback, .verificationFailed, .relaunchNeeded:
+            configureInstallAlert(panel, alert)
         }
         return panel
+    }
+
+    /// The alerts of the in-place install.
+    private static func configureInstallAlert(_ panel: NSAlert, _ alert: UpdateAlert) {
+        switch alert {
+        case let .readyToInstall(release):
+            panel.messageText = String(
+                localized: "trrek \(release.version.description) is ready to install",
+                bundle: .main
+            )
+            panel.informativeText = String(localized: "trrek will quit and open again.", bundle: .main)
+            panel.addButton(withTitle: String(localized: "Install and Relaunch", bundle: .main))
+            panel.addButton(withTitle: String(localized: "Later", bundle: .main))
+        case let .installFallback(release, message):
+            panel.messageText = String(
+                localized: "trrek \(release.version.description) couldn’t be installed automatically",
+                bundle: .main
+            )
+            let drag = String(
+                localized: "Drag trrek to the Applications folder in the disk image’s window.",
+                bundle: .main
+            )
+            panel.informativeText = message + "\n\n" + drag
+            panel.addButton(withTitle: String(localized: "OK", bundle: .main))
+        case let .verificationFailed(release, message):
+            panel.messageText = String(
+                localized: "trrek \(release.version.description) couldn’t be verified",
+                bundle: .main
+            )
+            let kept = String(localized: "Nothing was installed. The disk image is kept in Downloads.", bundle: .main)
+            panel.informativeText = message + "\n\n" + kept
+            panel.alertStyle = .critical
+            panel.addButton(withTitle: String(localized: "Open Download Page", bundle: .main))
+            panel.addButton(withTitle: String(localized: "Cancel", bundle: .main))
+        case let .relaunchNeeded(release):
+            panel.messageText = String(localized: "trrek \(release.version.description) is installed", bundle: .main)
+            panel.informativeText = String(
+                localized: "Quit trrek and open it again to use the new version.",
+                bundle: .main
+            )
+            panel.addButton(withTitle: String(localized: "OK", bundle: .main))
+        case .available, .upToDate, .checkFailed, .downloadFailed:
+            break
+        }
     }
 }
 

@@ -119,19 +119,42 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         menu.addItem(item(String(localized: "Quit trrek", bundle: .main), #selector(quit), key: "q"))
     }
 
-    /// "Update Available: trrek X.Y.Z…" in bold with a download symbol, or the disabled "Downloading trrek X.Y.Z…"
-    /// while it downloads; `nil` when no update is known.
+    /// "Update Available: trrek X.Y.Z…", or "Install trrek X.Y.Z…" for an update kept for later, in bold with a
+    /// download symbol; disabled "Downloading…", "Verifying…", "… Is Ready to Install" or "Installing…" items while
+    /// that runs; `nil` when no update is known or one was installed and trrek awaits a restart.
     private func updateItem(_ updates: UpdateController?) -> NSMenuItem? {
-        guard let updates else { return nil }
-        if let version = updates.downloadingVersion {
-            let title = String(localized: "Downloading trrek \(version.description)…", bundle: .main)
-            let downloading = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-            downloading.isEnabled = false
-            return downloading
+        guard let updates, updates.installedVersion == nil else { return nil }
+        let busyTitle: String? = if let version = updates.downloadingVersion {
+            String(localized: "Downloading trrek \(version.description)…", bundle: .main)
+        } else if let version = updates.installingVersion {
+            switch updates.installPhase {
+            case .verifying:
+                String(localized: "Verifying trrek \(version.description)…", bundle: .main)
+            case .ready:
+                String(localized: "trrek \(version.description) Is Ready to Install", bundle: .main)
+            case .installing, nil:
+                String(localized: "Installing trrek \(version.description)…", bundle: .main)
+            }
+        } else {
+            nil
         }
-        guard let release = updates.availableUpdate else { return nil }
-        let title = String(localized: "Update Available: trrek \(release.version.description)…", bundle: .main)
-        let update = item(title, #selector(downloadUpdate))
+        if let busyTitle {
+            let busy = NSMenuItem(title: busyTitle, action: nil, keyEquivalent: "")
+            busy.isEnabled = false
+            return busy
+        }
+        let title: String
+        let action: Selector
+        if let pending = updates.pendingInstall {
+            title = String(localized: "Install trrek \(pending.release.version.description)…", bundle: .main)
+            action = #selector(installUpdate)
+        } else if let release = updates.availableUpdate {
+            title = String(localized: "Update Available: trrek \(release.version.description)…", bundle: .main)
+            action = #selector(downloadUpdate)
+        } else {
+            return nil
+        }
+        let update = item(title, action)
         update.attributedTitle = NSAttributedString(
             string: title,
             attributes: [.font: NSFont.systemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize, weight: .semibold)]
@@ -188,6 +211,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     @objc private func downloadUpdate() {
         guard let updates = coordinator?.updates else { return }
         Task { await updates.download() }
+    }
+
+    @objc private func installUpdate() {
+        guard let updates = coordinator?.updates else { return }
+        Task { await updates.installPending() }
     }
 
     @objc private func checkForUpdates() {

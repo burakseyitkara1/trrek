@@ -9,6 +9,14 @@ enum UpdateAlert: Equatable {
     case checkFailed(message: String)
     /// The primary button opens the release page.
     case downloadFailed(ReleaseInfo, message: String)
+    /// The downloaded app was verified; the primary button installs it and relaunches.
+    case readyToInstall(ReleaseInfo)
+    /// trrek cannot replace itself (`message` says why); the disk image is opened after the alert.
+    case installFallback(ReleaseInfo, message: String)
+    /// The downloaded app failed verification; the primary button opens the release page.
+    case verificationFailed(ReleaseInfo, message: String)
+    /// The update was installed but trrek could not relaunch itself.
+    case relaunchNeeded(ReleaseInfo)
 }
 
 /// Shows update alerts; replaced by a fake in tests.
@@ -36,6 +44,10 @@ final class UpdateController {
 
     let checker: UpdateChecker
     private let downloader: UpdateDownloader
+    /// Installs a downloaded update in place; without one the disk image is opened, as before in-place installs.
+    private let installer: (any UpdateInstalling)?
+    /// Quits and opens the (replaced) app bundle again; returns `false` when it could not.
+    private let relaunch: () -> Bool
     private let notifier: any UpdateNotifying
     private let alerts: any UpdateAlertPresenting
     private let downloadsFolder: () -> URL?
@@ -44,16 +56,29 @@ final class UpdateController {
     private let reveal: (URL) -> Void
     /// Whether automatic checks are on (the setting).
     private let automatic: () -> Bool
-    /// Called whenever `availableUpdate`, `downloadingVersion`, `isChecking` or `lastCheck` may have changed.
+    /// Called whenever `availableUpdate`, `downloadingVersion`, `installingVersion`, `pendingInstall`, `isChecking` or
+    /// `lastCheck` may have changed.
     var onChange: (() -> Void)?
 
     /// The release being downloaded.
     private(set) var downloadingVersion: SemanticVersion?
+    /// The release being verified, offered or installed, and which of those.
+    private(set) var installingVersion: SemanticVersion?
+    private(set) var installPhase: InstallPhase?
+    /// The release installed over the running app when trrek could not relaunch; nothing more is offered until it
+    /// is restarted.
+    private(set) var installedVersion: SemanticVersion?
+    /// The verified app waiting for the user's answer; removed when trrek quits meanwhile.
+    private var stagedUpdate: StagedUpdate?
+    /// A downloaded update the user chose to install later; the menu offers "Install trrek X.Y.Z…".
+    private(set) var pendingInstall: PendingInstall?
     private var pendingCheck: DispatchWorkItem?
 
     init(
         checker: UpdateChecker,
         downloader: UpdateDownloader,
+        installer: (any UpdateInstalling)? = nil,
+        relaunch: @escaping () -> Bool = { Relauncher.relaunch(reason: "update") },
         notifier: any UpdateNotifying,
         alerts: any UpdateAlertPresenting,
         downloadsFolder: @escaping () -> URL? = {
@@ -65,6 +90,8 @@ final class UpdateController {
     ) {
         self.checker = checker
         self.downloader = downloader
+        self.installer = installer
+        self.relaunch = relaunch
         self.notifier = notifier
         self.alerts = alerts
         self.downloadsFolder = downloadsFolder
@@ -82,9 +109,9 @@ final class UpdateController {
         checker.isChecking
     }
 
-    /// Whether a check or a download runs; Check for Updates… and Check Now are disabled meanwhile.
+    /// Whether a check, a download or an install runs; Check for Updates… and Check Now are disabled meanwhile.
     var isBusy: Bool {
-        isChecking || downloadingVersion != nil
+        isChecking || downloadingVersion != nil || installingVersion != nil
     }
 
     var lastCheck: Date? {
@@ -124,6 +151,10 @@ final class UpdateController {
     /// settings window alive during a download.
     func checkManually(window: @escaping () -> NSWindow? = { nil }) async {
         guard !isBusy else { return }
+        if let installed = installedVersion, let release = checker.availableUpdate, release.version == installed {
+            _ = await alerts.present(.relaunchNeeded(release), window: window())
+            return
+        }
         let result = await checker.check(.manual, automatic: automatic())
         let current = checker.currentVersion
         switch result {
@@ -142,11 +173,13 @@ final class UpdateController {
 
     // MARK: - Download
 
-    /// Downloads the available update to the Downloads folder and opens the disk image (or only shows it in Finder
-    /// when it could not be quarantined). A failure, including a refused Downloads folder, offers the release page
-    /// instead. Does nothing while a download runs or when no update is known.
+    /// Downloads the available update to the Downloads folder and installs it in place (`installOrOpen`), or opens
+    /// the disk image without an installer. A failure, including a refused Downloads folder, offers the release page
+    /// instead. Does nothing while a download or an install runs or when no update is known.
     func download(window: @escaping () -> NSWindow? = { nil }) async {
-        guard let release = checker.availableUpdate, downloadingVersion == nil else { return }
+        guard let release = checker.availableUpdate, downloadingVersion == nil, installingVersion == nil,
+              installedVersion == nil
+        else { return }
         downloadingVersion = release.version
         onChange?()
         let result: Result<DownloadedDiskImage, any Error>
@@ -159,13 +192,13 @@ final class UpdateController {
         downloadingVersion = nil
         onChange?()
         switch result {
-        case let .success(image) where image.isQuarantined:
-            appLogger.notice("downloaded \(image.file.lastPathComponent, privacy: .public)")
-            open(image.file)
         case let .success(image):
-            appLogger
-                .error("\(image.file.lastPathComponent, privacy: .public) is not quarantined; showing it in Finder")
-            reveal(image.file)
+            appLogger.notice("downloaded \(image.file.lastPathComponent, privacy: .public)")
+            if installer == nil {
+                openDiskImage(image)
+            } else {
+                await installOrOpen(image, release: release, window: window)
+            }
         case let .failure(error):
             appLogger.error("update download failed: \(String(describing: error), privacy: .public)")
             let message = UpdateChecker.message(for: error)
@@ -175,20 +208,155 @@ final class UpdateController {
         }
     }
 
-    /// A click on the notification for `version` starts the download of the known update. When none is known any
-    /// more (a later check found trrek up to date, or trrek was updated since), it checks by hand, so the click
-    /// always shows something.
+    /// Opens the disk image, or only shows it in Finder when it could not be quarantined.
+    func openDiskImage(_ image: DownloadedDiskImage) {
+        if image.isQuarantined {
+            open(image.file)
+        } else {
+            appLogger
+                .error("\(image.file.lastPathComponent, privacy: .public) is not quarantined; showing it in Finder")
+            reveal(image.file)
+        }
+    }
+
+    /// A click on the notification for `version` installs an update kept for later, or starts the download of the
+    /// known update. When none is known any more (a later check found trrek up to date, or trrek was updated since),
+    /// it checks by hand, so the click always shows something.
     func notificationOpened(version: String?) async {
         appLogger.notice("update notification opened for \(version ?? "?", privacy: .public)")
-        if checker.availableUpdate != nil {
+        if installedVersion != nil {
+            await checkManually()
+        } else if pendingInstall != nil {
+            await installPending()
+        } else if checker.availableUpdate != nil {
             await download()
         } else {
             await checkManually()
         }
     }
 
+    /// Removes what an interrupted install left (mounted images, the previous app's backup); once, at launch.
+    func cleanUpLeftovers() {
+        guard let installer else { return }
+        Task { await installer.cleanUpLeftovers() }
+    }
+
+    /// Removes a staged update whose alert is still open when trrek quits.
+    func discardStagedUpdate() {
+        guard let staged = stagedUpdate else { return }
+        stagedUpdate = nil
+        try? FileManager.default.removeItem(at: staged.folder)
+    }
+
     func cancelPendingCheck() {
         pendingCheck?.cancel()
         pendingCheck = nil
+    }
+}
+
+/// What the install of a downloaded update is doing; the menu names it.
+enum InstallPhase: Equatable {
+    /// Mounting the disk image and verifying the app.
+    case verifying
+    /// Waiting for the answer to "trrek X.Y.Z is ready to install".
+    case ready
+    /// Verifying again and replacing the app.
+    case installing
+}
+
+/// A downloaded disk image kept for a later install.
+struct PendingInstall: Equatable {
+    let release: ReleaseInfo
+    let image: DownloadedDiskImage
+}
+
+// MARK: - Install
+
+extension UpdateController {
+    /// Verifies the app in the downloaded disk image and asks whether to install it now. Install and Relaunch
+    /// replaces trrek's bundle and relaunches; Later keeps the disk image for "Install trrek X.Y.Z…". When trrek
+    /// cannot replace itself, the disk image is opened after an alert that says why; a failed verification shows an
+    /// error and keeps the disk image without opening it.
+    func installOrOpen(
+        _ image: DownloadedDiskImage,
+        release: ReleaseInfo,
+        window: @escaping () -> NSWindow? = { nil }
+    ) async {
+        guard let installer, installingVersion == nil, installedVersion == nil else { return }
+        pendingInstall = nil
+        installingVersion = release.version
+        enter(.verifying)
+        let staged: StagedUpdate
+        do {
+            staged = try await installer.prepare(
+                image: image.file,
+                version: release.version,
+                current: checker.currentVersion
+            )
+        } catch {
+            await installFailed(error, image: image, release: release, window: window)
+            return
+        }
+        stagedUpdate = staged
+        enter(.ready)
+        let accepted = await alerts.present(.readyToInstall(release), window: window())
+        stagedUpdate = nil
+        guard accepted else {
+            await installer.discard(staged)
+            pendingInstall = PendingInstall(release: release, image: image)
+            finishInstall()
+            return
+        }
+        enter(.installing)
+        do {
+            try await installer.install(staged)
+        } catch {
+            await installFailed(error, image: image, release: release, window: window)
+            return
+        }
+        installedVersion = release.version
+        if !relaunch() {
+            finishInstall()
+            _ = await alerts.present(.relaunchNeeded(release), window: window())
+        }
+    }
+
+    private func enter(_ phase: InstallPhase) {
+        installPhase = phase
+        onChange?()
+    }
+
+    /// "Install trrek X.Y.Z…": verifies the kept disk image again and offers it; downloads it again when it is gone.
+    func installPending(window: @escaping () -> NSWindow? = { nil }) async {
+        guard let pending = pendingInstall, !isBusy, installedVersion == nil else { return }
+        guard FileManager.default.fileExists(atPath: pending.image.file.path) else {
+            appLogger.notice("\(pending.image.file.lastPathComponent, privacy: .public) is gone; downloading again")
+            pendingInstall = nil
+            onChange?()
+            await download(window: window)
+            return
+        }
+        await installOrOpen(pending.image, release: pending.release, window: window)
+    }
+
+    private func installFailed(
+        _ error: UpdateInstallError,
+        image: DownloadedDiskImage,
+        release: ReleaseInfo,
+        window: () -> NSWindow?
+    ) async {
+        finishInstall()
+        if error.fallsBackToDiskImage {
+            _ = await alerts.present(.installFallback(release, message: error.message), window: window())
+            openDiskImage(image)
+        } else if await alerts.present(.verificationFailed(release, message: error.message), window: window()) {
+            open(release.pageURL)
+        }
+    }
+
+    private func finishInstall() {
+        installingVersion = nil
+        installPhase = nil
+        onChange?()
     }
 }
