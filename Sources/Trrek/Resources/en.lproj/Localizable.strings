@@ -193,3 +193,28 @@
 "Slide to zoom in or out." = "Slide to zoom in or out.";
 "Slide back to undo, forward to redo." = "Slide back to undo, forward to redo.";
 "Does nothing." = "Does nothing.";
+
+/* Updates */
+"Check for Updates…" = "Check for Updates…";
+"Update Available: trrek %@…" = "Update Available: trrek %@…";
+"Downloading trrek %@…" = "Downloading trrek %@…";
+"trrek %@ is available" = "trrek %@ is available";
+"Click to download." = "Click to download.";
+"You have trrek %@." = "You have trrek %@.";
+"Download" = "Download";
+"Later" = "Later";
+"trrek is up to date" = "trrek is up to date";
+"trrek %@ is the latest version." = "trrek %@ is the latest version.";
+"Couldn’t check for updates" = "Couldn’t check for updates";
+"Couldn’t download trrek %@" = "Couldn’t download trrek %@";
+"Open Download Page" = "Open Download Page";
+"The update information could not be read." = "The update information could not be read.";
+"The latest release could not be found." = "The latest release could not be found.";
+"The server answered with status %lld." = "The server answered with status %lld.";
+"Check for Updates Automatically" = "Check for Updates Automatically";
+"At most once a day; the request carries only trrek’s version." = "At most once a day; the request carries only trrek’s version.";
+"Check Now" = "Check Now";
+"Checking…" = "Checking…";
+"Last checked: %@" = "Last checked: %@";
+"Not checked yet" = "Not checked yet";
+"The update information points to an unexpected address." = "The update information points to an unexpected address.";

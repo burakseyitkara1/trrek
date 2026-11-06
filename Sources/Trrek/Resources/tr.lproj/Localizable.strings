@@ -193,3 +193,28 @@
 "Slide to zoom in or out." = "Kaydırarak yakınlaştırın ya da uzaklaştırın.";
 "Slide back to undo, forward to redo." = "Geri kaydırıp geri alın, ileri kaydırıp yineleyin.";
 "Does nothing." = "Hiçbir şey yapmaz.";
+
+/* Updates */
+"Check for Updates…" = "Güncellemeleri Denetle…";
+"Update Available: trrek %@…" = "Güncelleme Mevcut: trrek %@…";
+"Downloading trrek %@…" = "trrek %@ İndiriliyor…";
+"trrek %@ is available" = "trrek %@ kullanılabilir";
+"Click to download." = "İndirmek için tıklayın.";
+"You have trrek %@." = "Kullandığınız sürüm: trrek %@.";
+"Download" = "İndir";
+"Later" = "Daha Sonra";
+"trrek is up to date" = "trrek güncel";
+"trrek %@ is the latest version." = "trrek %@ en son sürüm.";
+"Couldn’t check for updates" = "Güncellemeler denetlenemedi";
+"Couldn’t download trrek %@" = "trrek %@ indirilemedi";
+"Open Download Page" = "İndirme Sayfasını Aç";
+"The update information could not be read." = "Güncelleme bilgileri okunamadı.";
+"The latest release could not be found." = "En son sürüm bulunamadı.";
+"The server answered with status %lld." = "Sunucu %lld durum koduyla yanıt verdi.";
+"Check for Updates Automatically" = "Güncellemeleri Otomatik Olarak Denetle";
+"At most once a day; the request carries only trrek’s version." = "En fazla günde bir kez; istekte yalnızca trrek’in sürümü gönderilir.";
+"Check Now" = "Şimdi Denetle";
+"Checking…" = "Denetleniyor…";
+"Last checked: %@" = "Son denetim: %@";
+"Not checked yet" = "Henüz denetlenmedi";
+"The update information points to an unexpected address." = "Güncelleme bilgileri beklenmeyen bir adresi gösteriyor.";

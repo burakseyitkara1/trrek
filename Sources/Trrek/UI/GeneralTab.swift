@@ -1,8 +1,10 @@
 import SwiftUI
 import TrrekAppCore
+import TrrekEngine
 import TrrekPlatform
 
-/// Feedback, slide behaviour, login item, language, export and import, and reset.
+/// Feedback, slide behaviour, login item, language, updates, export and import, and reset. The form scrolls when it is
+/// taller than the window.
 struct GeneralTab: View {
     @Bindable var model: SettingsModel
 
@@ -53,6 +55,23 @@ struct GeneralTab: View {
                 if model.needsRelaunch {
                     relaunchRow
                 }
+            }
+            Section {
+                Toggle(isOn: $model.settings.checkForUpdatesAutomatically) {
+                    Text("Check for Updates Automatically")
+                    Text("At most once a day; the request carries only trrek’s version.")
+                }
+                HStack {
+                    Text(verbatim: "trrek \(TrrekVersion.string)")
+                    Spacer()
+                    if model.isCheckingForUpdates {
+                        ProgressView().controlSize(.small)
+                    }
+                    Button("Check Now") { model.checkForUpdatesNow() }
+                        .disabled(model.isUpdateBusy || model.isCheckingForUpdates)
+                }
+            } footer: {
+                Text(model.updateCheckStatus)
             }
             Section {
                 SettingsTransferButtons(model: model)

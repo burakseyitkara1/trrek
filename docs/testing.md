@@ -283,3 +283,39 @@ Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
 ### 9.1 Boşta bütçe
 - **Nasıl:** Çalışan örneği kapat; `make perf`.
 - **Beklenen:** CPU en fazla %1 (genelde 0.0), fiziksel ayak izi 15 MB altı.
+
+## 10. Güncellemeler
+
+Ön koşul: `make install`. Denetim durumu trrek'in defaults alanında tutulur (`lastUpdateCheck`, `notifiedVersion`, `availableUpdate`); `--assume-version` ile başlatılan trrek ise kendi ayrı alanını (`com.burakseyitkara.trrek.assumed-version`) kullanır, böylece elle deneme gerçek takvimi ve bildirimi etkilemez. O denemeyi baştan almak için `defaults delete com.burakseyitkara.trrek.assumed-version`. Günlük: `/usr/bin/log stream --predicate 'subsystem == "com.burakseyitkara.trrek" AND category == "app"'`.
+
+### 10.1 Otomatik denetim ve bildirim
+- **Nasıl:** trrek'ten çık, `defaults delete com.burakseyitkara.trrek.assumed-version` çalıştır, `~/Applications/trrek.app/Contents/MacOS/trrek --assume-version 0.2.0` ile başlat ve 15 sn bekle. İlk seferde çıkan bildirim izni isteğine izin ver.
+- **Beklenen:** Günlükte "update check assumes version 0.2.0" ve yaklaşık 10 sn sonra "update check: X.Y.Z is available" görünür. "trrek X.Y.Z kullanılabilir / İndirmek için tıklayın." (İngilizce: "trrek X.Y.Z is available / Click to download.") bildirimi bir kez gelir. Menünün en üstünde kalın, indirme simgeli "Update Available: trrek X.Y.Z…" öğesi vardır. trrek'i aynı argümanla yeniden başlatınca (24 saat dolmadan) yeni istek ve yeni bildirim olmaz, menü öğesi kalır. Bildirim izni verilmezse bildirim gelmez, menü öğesi yine görünür. Not: kabuktan başlatılan trrek'in Accessibility izni kabuğun iznine bağlıdır; jestler çalışmayabilir ve karşılama penceresi açılabilir.
+
+### 10.2 Bildirime tıklayarak indirme
+- **Nasıl:** 10.1'deki bildirime tıkla (trrek kapalıyken Bildirim Merkezi'ndeki bildirime tıklamayı da dene).
+- **Beklenen:** Menüde devre dışı "Downloading trrek X.Y.Z…" görünür; indirme bitince `~/Downloads/trrek-vX.Y.Z.dmg` oluşur (aynı adlı eski dosya değiştirilir) ve disk görüntüsü açılır. `xattr -p com.apple.quarantine` dosyada bir değer gösterir; içindeki uygulamayı ilk açışta macOS internetten indirilmiş uygulama onayını sorar. trrek kapalıyken tıklama trrek'i başlatır ve indirmeyi başlatır; bu yalnızca çalışan sürümden gerçekten yeni bir sürümde denenebilir. `--assume-version` ile bulunan sürüm normal açılışta bilinmez; o durumda tıklama elle denetim yapar ve "trrek is up to date" uyarısını gösterir (tıklama hiçbir zaman sessiz kalmaz).
+
+### 10.3 Menüden indirme
+- **Nasıl:** 10.1'den sonra menüde "Update Available: trrek X.Y.Z…" öğesini seç.
+- **Beklenen:** 10.2'deki gibi indirilip açılır. İndirme sırasında öğe "Downloading trrek X.Y.Z…" olur ve seçilemez; bitince yeniden "Update Available…" olur.
+
+### 10.4 Elle denetim: güncel
+- **Nasıl:** `--assume-version` olmadan normal başlat; menüden "Check for Updates…" seç. Ardından ayarlar penceresinde General › Check Now'a bas.
+- **Beklenen:** Menüden: trrek öne gelir, "trrek is up to date / trrek X.Y.Z is the latest version." uyarısı OK ile çıkar. Check Now: aynı uyarı ayarlar penceresine sheet olarak gelir; denetim sürerken düğme devre dışıdır ve altında "Checking…" yazar, sonra "Last checked: <tarih saat>" olur. Türkçe arayüzde metinler "trrek güncel", "Güncellemeleri Denetle…", "Şimdi Denetle", "Son denetim: …" olur ve kesilmez.
+
+### 10.5 Elle denetim: yeni sürüm
+- **Nasıl:** `--assume-version 0.2.0` ile başlat, otomatik denetimi beklemeden menüden "Check for Updates…" seç.
+- **Beklenen:** "trrek X.Y.Z is available" uyarısı "You have trrek 0.2.0." satırı ve en fazla ~600 karakterlik sürüm notlarıyla (madde işaretleri "•", ters tırnaksız) çıkar; Download indirmeyi başlatır (10.2), Later hiçbir şey yapmaz. Bu denetimden sonra aynı sürüm için bildirim gelmez. Sürüm notları CHANGELOG'dan geldiği için Türkçe arayüzde de İngilizcedir. Uyarı açıkken ya da indirme sürerken menüdeki "Check for Updates…" ve General › Check Now devre dışıdır.
+
+### 10.6 Otomatik denetim kapalı
+- **Nasıl:** General'da "Check for Updates Automatically"ı kapat; `lastUpdateCheck` anahtarını sil, trrek'i yeniden başlat, menüyü birkaç kez aç, Mac'i uyut ve uyandır.
+- **Beklenen:** Günlükte "update check" satırı çıkmaz (istek gönderilmez). "Check for Updates…" ve Check Now yine çalışır. Ayar `.trrek` dosyasına `checkForUpdatesAutomatically` olarak yazılır; Reset to Defaults onu yeniden açar.
+
+### 10.7 Çevrimdışı
+- **Nasıl:** Wi-Fi'ı kapat; menüden "Check for Updates…" seç. Sonra 10.1'deki gibi bir indirmeyi başlatıp indirme sırasında ağı kes.
+- **Beklenen:** "Couldn’t check for updates" uyarısı sistemin hata açıklamasıyla (ör. "The Internet connection appears to be offline.") çıkar. İndirme kesilince "Couldn’t download trrek X.Y.Z" uyarısı çıkar; "Open Download Page" sürüm sayfasını tarayıcıda açar, Cancel kapatır; Downloads'ta yarım dosya kalmaz. Çevrimdışıyken otomatik denetim başarısız olursa bir saat boyunca menü açılışları yeni istek göndermez.
+
+### 10.8 İndirilenler klasörü izni (bir kez)
+- **Nasıl:** Finder'dan ya da `open ~/Applications/trrek.app` ile başlatılmış trrek'te (kabuktan başlatılan süreç izni kabuğa yazar) bir güncellemeyi ilk kez indir (10.2 ya da 10.3). Sistem Ayarları › Gizlilik ve Güvenlik › Dosyalar ve Klasörler'de trrek'in İndirilenler iznini kapatıp tekrar dene; sonra `tccutil reset SystemPolicyDownloadsFolder com.burakseyitkara.trrek` ile istemi sıfırla ve bu kez reddet.
+- **Beklenen:** İlk indirmede bir kez "“trrek” İndirilenler klasörünüzdeki dosyalara erişmek istiyor" istemi, açıklama satırıyla çıkar: "trrek, güncelleme disk görüntülerini İndirilenler klasörünüze kaydeder." (İngilizce: "trrek saves update disk images to your Downloads folder."). İzin verilince indirilip açılır, sonraki indirmelerde istem çıkmaz. İzin kapalıyken ya da reddedilince "Couldn’t download trrek X.Y.Z" uyarısı izin hatasıyla çıkar; "Open Download Page" sürüm sayfasını açar; İndirilenler'de dosya oluşmaz.

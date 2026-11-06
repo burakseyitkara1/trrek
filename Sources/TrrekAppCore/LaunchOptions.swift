@@ -8,6 +8,8 @@ import Foundation
 /// - `--quit-after <seconds>` quits after the given time (for screenshots and footprint checks).
 /// - `--skip-first-run` records the welcome window as shown and shows no welcome window at launch, neither the
 ///   first-run one nor the one for missing Accessibility (for screenshots and footprint checks).
+/// - `--assume-version X.Y.Z` makes the update check treat the running version as X.Y.Z, to try the update flow
+///   against the real feed. Nothing else sees it.
 public struct LaunchOptions: Equatable, Sendable {
     public var openSettings = false
     /// The tab to open settings on; `nil` for the default tab.
@@ -16,6 +18,8 @@ public struct LaunchOptions: Equatable, Sendable {
     public var demoOverlay = false
     public var quitAfter: TimeInterval?
     public var skipFirstRun = false
+    /// The version the update check compares with the feed instead of the running one.
+    public var assumedVersion: SemanticVersion?
 
     public init() {}
 
@@ -37,14 +41,24 @@ public struct LaunchOptions: Equatable, Sendable {
                 demoOverlay = true
             case "--skip-first-run":
                 skipFirstRun = true
+            case "--assume-version":
+                assumedVersion = Self.takeValue(from: &remaining, SemanticVersion.init)
             case "--quit-after":
-                if let value = remaining.first.flatMap(TimeInterval.init), value >= 0 {
-                    quitAfter = value
-                    remaining.removeFirst()
-                }
+                quitAfter = Self.takeValue(from: &remaining) { TimeInterval($0).flatMap { $0 >= 0 ? $0 : nil } }
             default:
                 break
             }
         }
+    }
+
+    /// The next argument parsed by `parse`, which is then consumed; `nil` (and nothing consumed) when it is missing
+    /// or does not parse.
+    private static func takeValue<T>(
+        from remaining: inout ArraySlice<String>,
+        _ parse: (String) -> T?
+    ) -> T? {
+        guard let value = remaining.first.flatMap(parse) else { return nil }
+        remaining.removeFirst()
+        return value
     }
 }

@@ -6,6 +6,9 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+- trrek tells you when a newer version is out: it checks the public releases page at most once a day (after launch, after wake or when the menu opens), shows Update Available in the menu and posts one notification per new version; clicking either downloads the disk image to Downloads and opens it
+- Check for Updates… in the menu, and Check for Updates Automatically, Check Now and the last check time in General
+
 ## [0.3.0] - 2026-11-06
 
 - Export Settings… and Import Settings… in the General tab save the settings to a `.trrek` file and load them back after a confirmation; opening a `.trrek` file from Finder offers the same import

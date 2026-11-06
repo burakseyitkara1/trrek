@@ -129,13 +129,26 @@ extension Coordinator {
         }
         frontmostObserver.start()
         wakeObserver.onWake = { [weak self] in
-            MainActor.assumeIsolated { self?.scheduleRestart(reason: "wake") }
+            MainActor.assumeIsolated {
+                self?.scheduleRestart(reason: "wake")
+                self?.updates?.schedule(.wake)
+            }
         }
         wakeObserver.start()
         hotplugObserver.onChange = { [weak self] in
             MainActor.assumeIsolated { self?.scheduleRestart(reason: "device change") }
         }
         hotplugObserver.start()
+    }
+
+    /// The first request shows the system prompt only. The system shows that prompt once per app, so a later
+    /// request while still untrusted opens the Accessibility pane instead of doing nothing.
+    func grantAccessibility() {
+        let promptedBefore = accessibilityPrompted
+        accessibilityPrompted = true
+        Permissions.prompt()
+        guard promptedBefore, !Permissions.isTrusted, let url = Permissions.accessibilityPaneURL else { return }
+        NSWorkspace.shared.open(url)
     }
 
     /// Called only when trust actually changes. On a grant both taps are created anew, since taps made before

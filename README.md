@@ -20,6 +20,7 @@ A menu bar app for macOS that turns trackpad edges into single-finger controls f
 - Liquid Glass settings window, launch at login
 - Export and import settings as a `.trrek` file; double-clicking a `.trrek` file in Finder offers to import it
 - English and Turkish interface: the Language setting follows the system or picks one of them
+- Update check: a notification and a menu item when a newer version is published; one click downloads the disk image
 
 ## Requirements
 
@@ -36,7 +37,7 @@ macOS ties the Accessibility grant to the app's code signature. `scripts/build-a
 
 ### Publishing a release
 
-Releases are built, signed with Developer ID and the hardened runtime, notarized, stapled and published from the release Mac with `make release VERSION=X.Y.Z` (`scripts/release.sh`; update `Sources/TrrekEngine/Version.swift` and the changelog first, from an up-to-date `main`). One-time setup: create an app-specific password for your Apple ID and store the notarization credentials in the login keychain with `xcrun notarytool store-credentials trrek --team-id <TEAM_ID>`. `scripts/release.sh --version X.Y.Z --no-publish` produces the notarized DMG and zip in `dist/release` without tagging. The tag-triggered workflow only checks that the tagged commit builds and passes the tests.
+Releases are built, signed with Developer ID and the hardened runtime, notarized, stapled and published from the release Mac with `make release VERSION=X.Y.Z` (`scripts/release.sh`; update `Sources/TrrekEngine/Version.swift` and the changelog first, from an up-to-date `main`). One-time setup: create an app-specific password for your Apple ID and store the notarization credentials in the login keychain with `xcrun notarytool store-credentials trrek --team-id <TEAM_ID>`. After publishing here, the script publishes the same DMG and zip to the public [`burakseyitkara1/trrek-releases`](https://github.com/burakseyitkara1/trrek-releases) repository, which the app's update check reads, with the version's `CHANGELOG.md` section as the release notes; it stops before building when that section is missing. `scripts/release.sh --version X.Y.Z --no-publish` produces the notarized DMG and zip in `dist/release` without tagging or publishing anywhere. The tag-triggered workflow only checks that the tagged commit builds and passes the tests.
 
 ## Usage
 
@@ -47,7 +48,7 @@ Put one finger in an edge strip of the trackpad and move along it.
 - Corners: double tap for the action set per corner (Mute, Screenshot, Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen, Screenshot Area or Off). A corner keeps its action when one or both of its edges are Off.
 - A second finger cancels a slide; lifting commits it.
 
-Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, Language, Export Settings…/Import Settings… and Reset to Defaults. Edges covers the action of each edge, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
+Open Settings from the menu bar icon, or by opening trrek again while it runs. General covers haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, Language, update checks, Export Settings…/Import Settings… and Reset to Defaults. Edges covers the action of each edge, strip width, Bottom Quarter Only (side edges respond only in their lower quarter) and External Monitor Brightness (DDC/CI; shown as not available when this Mac lacks the system support it needs). Corners & Taps covers the corner actions and middle click. Advanced covers the Hold-to-Slide key and mode, paused apps and the Accessibility status.
 
 ### Language
 
@@ -56,6 +57,10 @@ trrek's interface is in English and Turkish. The Language setting in General is 
 ### Moving settings to another Mac
 
 Export Settings… in the General tab saves every setting except Launch at Login and the language to a `.trrek` file (indented JSON). Import Settings…, or double-clicking the file in Finder, asks before replacing the current settings; Launch at Login and the language keep their current values. A file that is damaged, not a trrek settings file or exported by a newer trrek is refused with an explanation, and the settings stay as they were.
+
+### Updates
+
+trrek looks for a newer version in the public `burakseyitkara1/trrek-releases` repository on GitHub. With Check for Updates Automatically on (General; the default) it checks at most once a day, about 10 seconds after launch, about 10 seconds after the Mac wakes or when the menu opens; after a failed check it waits an hour before trying again. Check for Updates… in the menu and Check Now in General check at any time. Each check is one HTTPS request to the releases API that sends only trrek's version as the user agent: no cookies, no identifiers, no settings (the server sees your IP address, as with any request). When a newer version is found, the menu shows Update Available at the top and trrek posts one notification for that version (it asks for permission the first time). Choosing either downloads `trrek-vX.Y.Z.dmg` to Downloads, replacing a file of the same name, and opens it; drag trrek onto Applications to update. trrek only downloads from that repository's own release address for the version it found, and macOS asks once for access to the Downloads folder. If the download fails, Open Download Page opens the release page instead. Turn Check for Updates Automatically off to make no requests unless you ask; the setting is part of an exported `.trrek` file. `--assume-version X.Y.Z` makes the check treat the running version as X.Y.Z, to try the flow against the real releases; it keeps its check state apart from the normal one.
 
 ## Performance
 

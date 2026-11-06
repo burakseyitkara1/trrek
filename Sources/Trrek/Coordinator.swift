@@ -43,9 +43,11 @@ final class Coordinator {
     var restartWork: DispatchWorkItem?
     var statusMenu: StatusMenu?
     /// Whether the system Accessibility prompt was requested during this session.
-    private var accessibilityPrompted = false
+    var accessibilityPrompted = false
     /// trrek's `AppleLanguages` preference.
     let languagePreference = LanguagePreferenceStore()
+    /// The update check and download; created by `start` (`startUpdates`).
+    var updates: UpdateController?
 
     init(store: SettingsStore) {
         self.store = store
@@ -54,8 +56,9 @@ final class Coordinator {
     // MARK: - Lifecycle
 
     /// Loads the settings and starts everything. `skipFirstRun` records the welcome window as shown and shows no
-    /// welcome window at launch (for screenshots and footprint checks).
-    func start(skipFirstRun: Bool = false) {
+    /// welcome window at launch (for screenshots and footprint checks). `assumedVersion` replaces the running version
+    /// in the update check (`--assume-version`).
+    func start(skipFirstRun: Bool = false, assumedVersion: SemanticVersion? = nil) {
         settings = reconciledLanguage(store.load())
         let trusted = Permissions.isTrusted
         isTrusted = trusted
@@ -91,6 +94,7 @@ final class Coordinator {
         startPipeline()
         startInputMonitor()
         startObservers()
+        startUpdates(assumedVersion: assumedVersion)
         statusMenu = StatusMenu(coordinator: self)
 
         if skipFirstRun {
@@ -111,6 +115,7 @@ final class Coordinator {
     func terminate() {
         restartWork?.cancel()
         restartWork = nil
+        updates?.cancelPendingCheck()
         inputMonitor?.stop()
         // Frames stop first, so nothing can press Command again after it is released.
         pipeline?.stop()
@@ -216,11 +221,13 @@ final class Coordinator {
             },
             canRelaunch: Relauncher.canRelaunch,
             relaunch: { Relauncher.relaunch() },
+            checkForUpdates: checkForUpdatesAction,
             onChange: { [weak self] in self?.apply($0) }
         )
         if let tab = SettingsTab(argument: tab) {
             model.selectedTab = tab
         }
+        showUpdateState(in: model)
         settingsWindowController.show(model: model)
     }
 
@@ -249,16 +256,6 @@ final class Coordinator {
     /// Shows the level overlay once, as a slide on the keyboard backlight would (for screenshots).
     func showDemoOverlay() {
         overlay.show(kind: .keyboardBacklight, level: 0.5, label: nil)
-    }
-
-    /// The first request shows the system prompt only. The system shows that prompt once per app, so a later
-    /// request while still untrusted opens the Accessibility pane instead of doing nothing.
-    func grantAccessibility() {
-        let promptedBefore = accessibilityPrompted
-        accessibilityPrompted = true
-        Permissions.prompt()
-        guard promptedBefore, !Permissions.isTrusted, let url = Permissions.accessibilityPaneURL else { return }
-        NSWorkspace.shared.open(url)
     }
 
     // MARK: - Helpers

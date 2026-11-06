@@ -1,0 +1,33 @@
+{
+  "url": "https://api.github.com/repos/burakseyitkara1/trrek-releases/releases/436361403",
+  "html_url": "https://github.com/burakseyitkara1/trrek-releases/releases/tag/v0.3.0",
+  "id": 436361403,
+  "tag_name": "v0.3.0",
+  "target_commitish": "main",
+  "name": "trrek 0.3.0",
+  "draft": false,
+  "prerelease": false,
+  "created_at": "2026-11-06T10:23:34Z",
+  "published_at": "2026-11-06T10:23:47Z",
+  "body": "- Export Settings… and Import Settings… in the General tab save the settings to a `.trrek` file and load them back after a confirmation; opening a `.trrek` file from Finder offers the same import\n- Every edge offers every action: the left and right edges get their own pickers in place of Swap Sides (a stored Swap Sides setting carries over), and the trackpad diagram shows them\n- New edge actions: Switch Tabs, Switch Desktops, Zoom and Undo & Redo (forward is rightward on the top and bottom edges, upward on the side edges)\n- New corner actions: Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen and Screenshot Area\n- Slide Sensitivity setting in General: how far a finger slides for each step, from Very Low to Very High\n- A corner's double tap keeps working when an edge next to it is set to Off\n- Turkish interface, and a Language setting in General (System, English, Türkçe) that applies after a relaunch\n- The Language setting follows a language chosen for trrek in System Settings › General › Language & Region › Applications\n",
+  "assets": [
+    {
+      "url": "https://api.github.com/repos/burakseyitkara1/trrek-releases/releases/assets/716762058",
+      "id": 716762058,
+      "name": "trrek-v0.3.0.dmg",
+      "content_type": "application/x-apple-diskimage",
+      "state": "uploaded",
+      "size": 613874,
+      "browser_download_url": "https://github.com/burakseyitkara1/trrek-releases/releases/download/v0.3.0/trrek-v0.3.0.dmg"
+    },
+    {
+      "url": "https://api.github.com/repos/burakseyitkara1/trrek-releases/releases/assets/716762061",
+      "id": 716762061,
+      "name": "trrek-v0.3.0.zip",
+      "content_type": "application/zip",
+      "state": "uploaded",
+      "size": 587521,
+      "browser_download_url": "https://github.com/burakseyitkara1/trrek-releases/releases/download/v0.3.0/trrek-v0.3.0.zip"
+    }
+  ]
+}

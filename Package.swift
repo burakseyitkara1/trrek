@@ -51,6 +51,8 @@ let package = Package(
         .testTarget(
             name: "TrrekAppCoreTests",
             dependencies: ["TrrekAppCore", "TrrekEngine", "TrrekPlatform"],
+            // Read by path (see `UpdateFixtures`), like the localization tables.
+            exclude: ["Fixtures"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(

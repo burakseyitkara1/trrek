@@ -383,8 +383,11 @@ Show Welcome
 Grant Accessibility…       (yalnızca izin yokken)
 ─────────────
 About trrek
+Check for Updates…         (0.4.0)
 Quit trrek                 ⌘Q
 ```
+
+0.4.0'dan beri yeni bir sürüm biliniyorsa menünün en üstünde, ayırıcıyla, "Update Available: trrek X.Y.Z…" öğesi bulunur (7.4c).
 
 Menü `menuNeedsUpdate` ile açılırken tazelenir. İkon: `MenuIcon.pdf` şablon görüntüsü (trackpad silueti, sağ kenarı vurgulu); Toggle modunda aktifken köşede nokta.
 
@@ -431,6 +434,10 @@ struct Settings: Codable, Equatable {
 #### 7.4b Dil ve yerelleştirme (Aşama 3)
 
 Arayüz metinleri İngilizce yazılır; çeviriler `Sources/Trrek/Resources/{en,tr}.lproj/Localizable.strings` dosyalarındadır ve anahtar İngilizce kaynak metindir. `build-app.sh` bu klasörü paketin `Contents/Resources` klasörüne kopyalar; SwiftPM hedefi klasörü dışarıda bırakır (`exclude`). `Info.plist`: `CFBundleDevelopmentRegion` `en`, `CFBundleLocalizations` `[en, tr]`; `InfoPlist.strings` `.trrek` türünün adını çevirir. SwiftUI'da literal metinler (`Text("…")`, `Button("…")` …) kendiliğinden, `TrrekAppCore` ve AppKit metinleri `String(localized:bundle: .main)` ile çevrilir. Overlay'in "No DDC" etiketi gösterilirken anahtar olarak aranır, scrub etiketinin birimi ("+15 s") `"%@ s"` biçimiyle çevrilir (Türkçe "sn"). `Settings.language` (`system`, `english`, `turkish`) General sekmesindeki Language seçicisidir; bu Mac'in kullanıcısına aittir, dışa aktarılmaz, içe aktarma ve Reset onu korur. Değişince uygulamanın kendi defaults alanındaki `AppleLanguages` yazılır (`system` için silinir); seçimin çözüldüğü yerelleştirme (`system` için global `AppleLanguages`'a göre) açılıştakinden farklıysa "Relaunch trrek to use the new language." satırı Relaunch düğmesiyle çıkar; düğme trrek'in çıkmasını bekleyip aynı paketi yeniden açan kısa bir kabuk başlatır ve uygulamadan çıkar. Açılışta ayar ile tercih farklıysa tercih ayara göre yazılır (karar 49, 50).
+
+#### 7.4c Güncelleme denetimi (0.4.0)
+
+trrek, herkese açık `burakseyitkara1/trrek-releases` deposunun `releases/latest` uç noktasını okur (ephemeral oturum, yalnızca `Accept` ve `User-Agent: trrek/<sürüm>`, 15 sn). Saf mantık `TrrekAppCore`'dadır: `SemanticVersion`, `ReleaseInfo` (etiket, sayfa, `trrek-vX.Y.Z.dmg`, notlar; taslak/ön sürüm reddedilir; DMG adresi tam olarak deponun `releases/download/vX.Y.Z/trrek-vX.Y.Z.dmg` adresi, sayfa deponun `releases` altında olmalıdır, kayıtlı güncelleme okunurken de aynı denetim yapılır), `UpdateCheckPolicy` (elle her zaman; otomatik en fazla 24 saatte bir, başarısızlıktan sonra 1 saat), `UpdateStateStore` (ayarlardan ayrı defaults anahtarları) ve `UpdateChecker` (besleme `ReleaseFeed` protokolü arkasında). Uygulama tarafında `UpdateController` açılıştan ve uyanmadan 10 sn sonra tek seferlik, menü açılınca ve elle denetler; zamanlayıcı yoktur. Menü: yeni sürüm biliniyorsa en üstte kalın "Update Available: trrek X.Y.Z…" (indirirken devre dışı "Downloading trrek X.Y.Z…"), About'un altında her zaman "Check for Updates…". İndirme `~/Downloads/trrek-vX.Y.Z.dmg`'ye yapılır (ilk seferde sistem `NSDownloadsFolderUsageDescription` açıklamasıyla izin ister), karantinaya alınır ve açılır (karantina yazılamazsa yalnızca Finder'da gösterilir); hata, izin reddi dahil, "Open Download Page" sunar. Otomatik denetim yeni sürümü ilk bulduğunda tek bir bildirim gönderir (izin ilk gerektiğinde istenir); tıklama indirir. General: "Check for Updates Automatically" (`Settings.checkForUpdatesAutomatically`, dışa aktarılır), Check Now ve son denetim zamanı. `--assume-version X.Y.Z` yalnızca denetleyicinin karşılaştırdığı sürümü değiştirir. `release.sh` aynı DMG/zip'i CHANGELOG bölümüyle bu depoya da yayınlar (karar 52–64).
 
 ### 7.5 OverlayPanel
 

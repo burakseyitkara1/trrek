@@ -46,3 +46,19 @@ import TrrekAppCore
     #expect(combined.skipFirstRun)
     #expect(combined.quitAfter == 6)
 }
+
+@Test func assumeVersionTakesAVersion() {
+    #expect(LaunchOptions(arguments: ["trrek"]).assumedVersion == nil)
+    #expect(LaunchOptions(arguments: ["trrek", "--assume-version", "0.2.0"]).assumedVersion == SemanticVersion("0.2.0"))
+    #expect(LaunchOptions(arguments: ["trrek", "--assume-version", "v1.0.0"])
+        .assumedVersion == SemanticVersion("1.0.0"))
+    // A missing or invalid version is ignored and the next argument still counts.
+    #expect(LaunchOptions(arguments: ["trrek", "--assume-version"]).assumedVersion == nil)
+    let invalid = LaunchOptions(arguments: ["trrek", "--assume-version", "--welcome"])
+    #expect(invalid.assumedVersion == nil)
+    #expect(invalid.welcome)
+    #expect(LaunchOptions(arguments: ["trrek", "--assume-version", "soon"]).assumedVersion == nil)
+    let combined = LaunchOptions(arguments: ["trrek", "--assume-version", "0.2.0", "--skip-first-run"])
+    #expect(combined.assumedVersion == SemanticVersion("0.2.0"))
+    #expect(combined.skipFirstRun)
+}

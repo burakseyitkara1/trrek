@@ -58,12 +58,27 @@ struct LocalizationTests {
         }
     }
 
+    /// The Info.plist template's values by key.
+    private static func infoPlist() throws -> [String: Any] {
+        let url = LocalizationScan.root.appendingPathComponent("Resources/Info.plist.in")
+        let plist = try PropertyListSerialization.propertyList(from: Data(contentsOf: url), format: nil)
+        return try #require(plist as? [String: Any])
+    }
+
+    /// Every English value is its key, except usage descriptions in `InfoPlist.strings`: the system looks those up by
+    /// their Info.plist key, and their English value must be the one in Info.plist.
     @Test func englishValuesAreTheirKeys() throws {
+        let info = try Self.infoPlist()
         for name in Self.tables {
             for (key, value) in try Self.table(name, "en") {
-                #expect(key == value)
+                if name == "InfoPlist", key.hasSuffix("UsageDescription") {
+                    #expect(value == info[key] as? String, "\(key)")
+                } else {
+                    #expect(key == value)
+                }
             }
         }
+        #expect(try Self.table("InfoPlist", "en")["NSDownloadsFolderUsageDescription"] != nil)
     }
 
     @Test func translationsKeepTheFormatSpecifiers() throws {

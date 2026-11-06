@@ -63,6 +63,8 @@ public struct Settings: Codable, Equatable, Sendable {
     public var welcomeShown = false
     /// The interface language; it takes effect at the next launch (see `LanguagePreference`).
     public var language: AppLanguage = .system
+    /// Whether trrek looks for a newer version by itself (at most once a day); Check Now works either way.
+    public var checkForUpdatesAutomatically = true
 
     public init() {}
 }
@@ -116,6 +118,8 @@ extension Settings {
         launchAtLogin = Self.field(container, .launchAtLogin) ?? launchAtLogin
         welcomeShown = Self.field(container, .welcomeShown) ?? welcomeShown
         language = Self.field(container, .language) ?? language
+        checkForUpdatesAutomatically = Self.field(container, .checkForUpdatesAutomatically)
+            ?? checkForUpdatesAutomatically
     }
 
     /// The stored value of `key`, or `nil` when it is missing or unreadable.

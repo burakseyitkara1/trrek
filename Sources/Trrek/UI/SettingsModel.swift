@@ -45,6 +45,12 @@ final class SettingsModel {
     var isShowingTransferFailure = false
     /// Whether a settings file is being read.
     var isReadingImport = false
+    /// The last successful update check, shown under Check Now.
+    var lastUpdateCheck: Date?
+    /// Whether an update check is running.
+    var isCheckingForUpdates = false
+    /// Whether an update check or download is running; Check Now is disabled meanwhile.
+    var isUpdateBusy = false
 
     /// Looks up an app's name and icon; replaced in tests.
     @ObservationIgnored var appInfoResolver: (String) -> PausedAppInfo = PausedAppInfo.init(bundleID:)
@@ -57,6 +63,8 @@ final class SettingsModel {
     @ObservationIgnored private let onChange: (AppSettings) -> Void
     /// Quits and reopens the app.
     @ObservationIgnored let relaunch: () -> Void
+    /// Runs a manual update check whose alert attaches to the given window.
+    @ObservationIgnored private let checkForUpdates: (NSWindow?) -> Void
     @ObservationIgnored private var isRefreshing = false
 
     init(
@@ -68,6 +76,9 @@ final class SettingsModel {
         localization: @escaping (AppLanguage) -> String = { $0 == .turkish ? "tr" : "en" },
         canRelaunch: Bool = false,
         relaunch: @escaping () -> Void = {},
+        lastUpdateCheck: Date? = nil,
+        isCheckingForUpdates: Bool = false,
+        checkForUpdates: @escaping (NSWindow?) -> Void = { _ in },
         onChange: @escaping (AppSettings) -> Void
     ) {
         self.settings = settings
@@ -76,6 +87,9 @@ final class SettingsModel {
         self.localization = localization
         self.canRelaunch = canRelaunch
         self.relaunch = relaunch
+        self.lastUpdateCheck = lastUpdateCheck
+        self.isCheckingForUpdates = isCheckingForUpdates
+        self.checkForUpdates = checkForUpdates
         self.externalBrightnessAvailable = externalBrightnessAvailable
         self.accessibilityGranted = accessibilityGranted
         self.onChange = onChange
@@ -117,6 +131,23 @@ final class SettingsModel {
             updated.append(id)
         }
         settings.pausedBundleIDs = updated
+    }
+
+    /// Check Now: checks for updates, with the outcome shown as a sheet on the settings window.
+    func checkForUpdatesNow() {
+        checkForUpdates(window)
+    }
+
+    /// The line under Check Now.
+    var updateCheckStatus: String {
+        if isCheckingForUpdates {
+            return String(localized: "Checking…", bundle: .main)
+        }
+        guard let lastUpdateCheck else {
+            return String(localized: "Not checked yet", bundle: .main)
+        }
+        let date = lastUpdateCheck.formatted(date: .abbreviated, time: .shortened)
+        return String(localized: "Last checked: \(date)", bundle: .main)
     }
 
     /// Restores the defaults, keeping Launch at Login, the language and whether the welcome window was shown.

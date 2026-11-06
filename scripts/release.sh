@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Builds, signs (Developer ID + hardened runtime), notarizes and staples trrek, then tags the release and
-# publishes it on GitHub with a DMG and a zip.
+# publishes it on GitHub with a DMG and a zip: in this repository, and in the public releases repository
+# (burakseyitkara1/trrek-releases) that the app's update check reads, with the version's CHANGELOG.md section as
+# its notes. --no-publish publishes to neither.
 #
 # Usage: scripts/release.sh --version X.Y.Z [--build N] [--profile NAME] [--identity NAME] [--no-publish]
 #
@@ -29,6 +31,29 @@ done
 
 fail() { echo "release: $*" >&2; exit 1; }
 
+PUBLIC_REPO="burakseyitkara1/trrek-releases"
+NOTES=""
+
+# Prints the CHANGELOG section of version $1 (file $2, CHANGELOG.md by default): the lines under its
+# "## [X.Y.Z]" heading up to the next "## [" heading, without link reference definitions ("[X.Y.Z]: https://…")
+# and without leading and trailing blank lines. Prints nothing when the section is missing or empty.
+changelog_section() {
+    local version="$1" file="${2:-CHANGELOG.md}"
+    awk -v heading="## [$version]" '
+        index($0, "## [") == 1 {
+            if (found) exit
+            if (index($0, heading) == 1) { found = 1; next }
+        }
+        found && !/^\[[^]]+\]: / { lines[++n] = $0 }
+        END {
+            first = 1
+            while (first <= n && lines[first] ~ /^[[:space:]]*$/) first++
+            last = n
+            while (last >= first && lines[last] ~ /^[[:space:]]*$/) last--
+            for (i = first; i <= last; i++) print lines[i]
+        }' "$file"
+}
+
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "--version X.Y.Z is required"
 TAG="v$VERSION"
 
@@ -42,6 +67,10 @@ if [[ $PUBLISH -eq 1 ]]; then
     [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || fail "main is not up to date with origin"
     ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "tag $TAG already exists"
     gh auth status >/dev/null 2>&1 || fail "gh is not signed in"
+    gh repo view "$PUBLIC_REPO" >/dev/null 2>&1 || fail "the public releases repository $PUBLIC_REPO is not reachable"
+    ! gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1 || fail "$PUBLIC_REPO already has a release $TAG"
+    NOTES="$(changelog_section "$VERSION")"
+    [[ -n "$NOTES" ]] || fail "CHANGELOG.md has no section for $VERSION (a '## [$VERSION] - YYYY-MM-DD' heading with lines under it)"
 fi
 
 if [[ -z "$IDENTITY" ]]; then
@@ -60,6 +89,7 @@ OUT="dist/release"
 mkdir -p "$OUT"
 ZIP="$OUT/trrek-$TAG.zip"
 DMG="$OUT/trrek-$TAG.dmg"
+NOTES_FILE="$OUT/trrek-$TAG-notes.md"
 
 notarize() {
     local file="$1" result status id
@@ -128,3 +158,10 @@ git tag -a "$TAG" -m "trrek $VERSION"
 git push origin "$TAG"
 gh release create "$TAG" --verify-tag --title "trrek $VERSION" --generate-notes "$DMG" "$ZIP"
 echo "published $TAG"
+
+# The public copy the update check reads: the same files, the changelog section as notes.
+# The notes are kept beside the artifacts (not in $WORK, which is removed on exit) so a failed upload can be redone.
+printf '%s\n' "$NOTES" > "$NOTES_FILE"
+gh release create "$TAG" --repo "$PUBLIC_REPO" --title "trrek $VERSION" --notes-file "$NOTES_FILE" "$DMG" "$ZIP" \
+    || fail "$TAG is published here but not in $PUBLIC_REPO; rerun: gh release create $TAG --repo $PUBLIC_REPO --title \"trrek $VERSION\" --notes-file $NOTES_FILE $DMG $ZIP"
+echo "published $TAG in $PUBLIC_REPO"

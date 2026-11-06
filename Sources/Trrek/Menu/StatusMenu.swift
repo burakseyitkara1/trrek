@@ -10,6 +10,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private weak var coordinator: Coordinator?
     /// The state the icon was last drawn for: hold toggle on, Accessibility missing.
     private var iconState: (active: Bool, attention: Bool)?
+    /// Whether the menu is showing. Changes that arrive meanwhile (an update check started by opening it) are built
+    /// when it closes, so items never move under the pointer.
+    private var isOpen = false
+    private var needsRebuild = false
 
     init(coordinator: Coordinator) {
         self.coordinator = coordinator
@@ -22,10 +26,14 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         refresh()
     }
 
-    /// Updates the icon and the menu contents.
+    /// Updates the icon and the menu contents; while the menu shows, the contents wait until it closes.
     func refresh() {
         refreshIcon()
-        rebuild()
+        if isOpen {
+            needsRebuild = true
+        } else {
+            rebuild()
+        }
     }
 
     func refreshIcon() {
@@ -42,11 +50,33 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         rebuild()
     }
 
+    func menuWillOpen(_: NSMenu) {
+        isOpen = true
+        coordinator?.updates?.checkAutomatically(.menuOpened)
+    }
+
+    /// The chosen item's action is sent after this, so the pending rebuild waits for the next main-queue turn.
+    func menuDidClose(_: NSMenu) {
+        isOpen = false
+        guard needsRebuild else { return }
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, !self.isOpen, self.needsRebuild else { return }
+                self.rebuild()
+            }
+        }
+    }
+
     private func rebuild() {
+        needsRebuild = false
         menu.removeAllItems()
         guard let coordinator else { return }
         let settings = coordinator.settings
 
+        if let updateItem = updateItem(coordinator.updates) {
+            menu.addItem(updateItem)
+            menu.addItem(.separator())
+        }
         let status = NSMenuItem(title: coordinator.statusText, action: nil, keyEquivalent: "")
         status.isEnabled = false
         menu.addItem(status)
@@ -83,7 +113,31 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         menu.addItem(item(String(localized: "About trrek", bundle: .main), #selector(showAbout)))
+        let checkForUpdates = item(String(localized: "Check for Updates…", bundle: .main), #selector(checkForUpdates))
+        checkForUpdates.isEnabled = !(coordinator.updates?.isBusy ?? false)
+        menu.addItem(checkForUpdates)
         menu.addItem(item(String(localized: "Quit trrek", bundle: .main), #selector(quit), key: "q"))
+    }
+
+    /// "Update Available: trrek X.Y.Z…" in bold with a download symbol, or the disabled "Downloading trrek X.Y.Z…"
+    /// while it downloads; `nil` when no update is known.
+    private func updateItem(_ updates: UpdateController?) -> NSMenuItem? {
+        guard let updates else { return nil }
+        if let version = updates.downloadingVersion {
+            let title = String(localized: "Downloading trrek \(version.description)…", bundle: .main)
+            let downloading = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            downloading.isEnabled = false
+            return downloading
+        }
+        guard let release = updates.availableUpdate else { return nil }
+        let title = String(localized: "Update Available: trrek \(release.version.description)…", bundle: .main)
+        let update = item(title, #selector(downloadUpdate))
+        update.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [.font: NSFont.systemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize, weight: .semibold)]
+        )
+        update.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
+        return update
     }
 
     private func item(_ title: String, _ action: Selector, key: String = "", checked: Bool? = nil) -> NSMenuItem {
@@ -129,6 +183,16 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
     @objc private func grantAccessibility() {
         coordinator?.grantAccessibility()
+    }
+
+    @objc private func downloadUpdate() {
+        guard let updates = coordinator?.updates else { return }
+        Task { await updates.download() }
+    }
+
+    @objc private func checkForUpdates() {
+        guard let updates = coordinator?.updates else { return }
+        Task { await updates.checkManually() }
     }
 
     @objc private func showAbout() {
