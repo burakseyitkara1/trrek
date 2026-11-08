@@ -17,7 +17,7 @@ extension Coordinator {
             appLogger.info("multitouch started with \(pipeline.deviceCount, privacy: .public) device(s)")
         } catch {
             trackpadIssue = Self.issue(for: error)
-            appLogger.error("multitouch start failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("multitouch start failed", error)
         }
         guard let haptics else { return }
         let devices = pipeline.devices

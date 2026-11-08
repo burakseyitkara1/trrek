@@ -175,7 +175,7 @@ struct ReleaseInfoTests {
 
     @Test func errorsHaveMessages() {
         let errors: [ReleaseFeedError] = [
-            .malformed, .missingTag, .missingDiskImage, .notPublished, .httpStatus(403), .unexpectedLink
+            .malformed, .missingTag, .missingDiskImage, .notPublished, .httpStatus(403), .unexpectedLink, .tooLarge
         ]
         for error in errors {
             #expect(!error.message.isEmpty)

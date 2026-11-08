@@ -288,7 +288,8 @@ struct UpdateInstallReleaseTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let installed = try Self.makeInstalledCopy(in: root)
 
-        let installer = UpdateInstaller(bundle: installed)
+        // The published image may be older than this build; the downgrade check has its own tests.
+        let installer = UpdateInstaller(bundle: installed, runningVersion: Self.old)
         let staged = try await installer.prepare(image: image, version: version, current: Self.old)
         let imageQuarantined = getxattr(image.path, "com.apple.quarantine", nil, 0, 0, 0) >= 0
         let stagedQuarantined = Self.quarantinedFiles(in: staged.app).count

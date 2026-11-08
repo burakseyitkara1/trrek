@@ -207,6 +207,7 @@
 "Last checked: %@" = "Son denetim: %@";
 "Not checked yet" = "Henüz denetlenmedi";
 "The update information points to an unexpected address." = "Güncelleme bilgileri beklenmeyen bir adresi gösteriyor.";
+"The update information is larger than expected." = "Güncelleme bilgileri beklenenden büyük.";
 "Installing trrek %@…" = "trrek %@ Yükleniyor…";
 "trrek %@ is installed" = "trrek %@ yüklendi";
 "Update Available: trrek %@" = "Güncelleme Mevcut: trrek %@";

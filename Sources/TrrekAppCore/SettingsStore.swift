@@ -1,4 +1,5 @@
 import Foundation
+import TrrekPlatform
 
 /// Reads and writes `Settings` as JSON in user defaults.
 ///
@@ -19,7 +20,7 @@ public final class SettingsStore: @unchecked Sendable {
         do {
             return try JSONDecoder().decode(Settings.self, from: data)
         } catch {
-            appLogger.error("settings unreadable, using defaults: \(String(describing: error), privacy: .public)")
+            appLogger.error("settings unreadable, using defaults", error)
             return Settings()
         }
     }
@@ -28,7 +29,7 @@ public final class SettingsStore: @unchecked Sendable {
         do {
             try defaults.set(JSONEncoder().encode(settings), forKey: key)
         } catch {
-            appLogger.error("settings could not be saved: \(String(describing: error), privacy: .public)")
+            appLogger.error("settings could not be saved", error)
         }
     }
 }

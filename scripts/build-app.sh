@@ -27,6 +27,23 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$BIN_DIR/Trrek" "$APP/Contents/MacOS/trrek"
 
+# The linked executable carries a debug map (the source and object file paths of this checkout, which name the
+# builder's home folder) and the full symbol table. Both are kept in dist/trrek.app.dSYM, next to the app and never
+# shipped, for symbolicating crash reports of this build; the shipped executable keeps only what the dynamic linker
+# needs (the Swift runtime's metadata lives in sections, not in the symbol table).
+DSYM="dist/trrek.app.dSYM"
+rm -rf "$DSYM"
+dsymutil "$APP/Contents/MacOS/trrek" -o "$DSYM"
+strip "$APP/Contents/MacOS/trrek"
+if nm -ap "$APP/Contents/MacOS/trrek" | grep -qE ' (SO|SOL|OSO) '; then
+    echo "the executable still has a debug map after strip" >&2
+    exit 1
+fi
+if LC_ALL=C grep -aqF -e "$PWD" -e "$HOME/" "$APP/Contents/MacOS/trrek"; then
+    echo "the executable still names a build or home folder after strip" >&2
+    exit 1
+fi
+
 sed -e "s/\${VERSION}/$VERSION/g" -e "s/\${BUILD}/$BUILD/g" \
     Resources/Info.plist.in > "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist"
@@ -42,7 +59,11 @@ fi
 # same one releases use, so local builds and released builds share one Accessibility grant), the
 # self-signed "trrek Local Signing" identity (scripts/make-signing-identity.sh), then ad-hoc. When
 # signing with an identity fails (for example a keychain prompt was denied), the build falls back
-# to ad-hoc. Releases re-sign with the hardened runtime and notarize (scripts/release.sh).
+# to ad-hoc. Releases re-sign with the hardened runtime and notarize (scripts/release.sh). The bundle holds no
+# nested code (no frameworks, helpers or plug-ins), so it is signed without --deep.
+for nested in Frameworks PlugIns Helpers XPCServices Library; do
+    [[ ! -e "$APP/Contents/$nested" ]] || { echo "$APP/Contents/$nested is nested code; sign it before the app" >&2; exit 1; }
+done
 IDENTITIES="$(security find-identity -v -p codesigning || true)"
 IDENTITY=""
 DEVELOPER_ID="$(sed -nE 's/.*"(Developer ID Application: [^"]+)".*/\1/p' <<<"$IDENTITIES" | head -n 1)"
@@ -53,12 +74,12 @@ elif [[ -n "$DEVELOPER_ID" ]]; then
 elif grep -q "trrek Local Signing" <<<"$IDENTITIES"; then
     IDENTITY="trrek Local Signing"
 fi
-if [[ -n "$IDENTITY" ]] && ! codesign --force --deep --sign "$IDENTITY" "$APP"; then
+if [[ -n "$IDENTITY" ]] && ! codesign --force --sign "$IDENTITY" "$APP"; then
     echo "warning: signing with '$IDENTITY' failed; signing ad-hoc instead (Accessibility must be granted again)" >&2
     IDENTITY=""
 fi
 if [[ -z "$IDENTITY" ]]; then
-    codesign --force --sign - --deep "$APP"
+    codesign --force --sign - "$APP"
 fi
 codesign -dv "$APP"
 echo "built $APP ($VERSION, build $BUILD)"

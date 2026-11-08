@@ -1,4 +1,6 @@
 import Foundation
+import TrrekEngine
+import TrrekPlatform
 
 /// Mounts a disk image read-only and hidden, copies its `trrek.app` and detaches it; replaced by a fake in tests.
 public protocol DiskImageAppExtracting: Sendable {
@@ -77,7 +79,16 @@ public protocol UpdateInstalling: Sendable {
 
 /// Installs an update over the app bundle at `bundle`: stage, verify, then replace.
 public struct UpdateInstaller: UpdateInstalling {
+    /// The running trrek's version (`TrrekVersion`); a version below it is never installed.
+    public static let runningVersion = SemanticVersion(TrrekVersion.string) ?? SemanticVersion(
+        major: 0,
+        minor: 0,
+        patch: 0
+    )
+
     public let bundle: URL
+    /// The version no update may be older than, whatever version the update check assumes.
+    public let runningVersion: SemanticVersion
     private let extractor: any DiskImageAppExtracting
     private let verifier: any UpdateVerifying
     private let replacer: any BundleReplacing
@@ -90,9 +101,11 @@ public struct UpdateInstaller: UpdateInstalling {
         verifier: any UpdateVerifying = CodeSignatureVerifier(),
         replacer: any BundleReplacing = BundleReplacer(),
         location: any InstallLocationInspecting = SystemInstallLocation(),
-        makeStagingFolder: @escaping @Sendable (URL) throws -> URL = UpdateInstaller.stagingFolder(for:)
+        makeStagingFolder: @escaping @Sendable (URL) throws -> URL = UpdateInstaller.stagingFolder(for:),
+        runningVersion: SemanticVersion = UpdateInstaller.runningVersion
     ) {
         self.bundle = bundle
+        self.runningVersion = runningVersion
         self.extractor = extractor
         self.verifier = verifier
         self.replacer = replacer
@@ -127,6 +140,7 @@ public struct UpdateInstaller: UpdateInstalling {
         version: SemanticVersion,
         current: SemanticVersion
     ) async throws(UpdateInstallError) -> StagedUpdate {
+        try refuseDowngrade(to: version)
         if let issue = await locationIssue() {
             appLogger.notice("update install not possible here: \(String(describing: issue), privacy: .public)")
             throw .location(issue)
@@ -139,7 +153,7 @@ public struct UpdateInstaller: UpdateInstalling {
             let bundle = bundle
             folder = try await runOffMain { try makeStagingFolder(bundle) }
         } catch {
-            appLogger.error("update staging failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update staging failed", error)
             throw .extraction
         }
         await Self.removeStaleStaging(besides: folder)
@@ -150,7 +164,7 @@ public struct UpdateInstaller: UpdateInstalling {
             await Self.remove(folder)
             throw .verification(failure)
         } catch {
-            appLogger.error("update extraction failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update extraction failed", error)
             await Self.remove(folder)
             throw .extraction
         }
@@ -179,6 +193,7 @@ public struct UpdateInstaller: UpdateInstalling {
     /// installed app
     /// once more right after it.
     private func replace(with staged: StagedUpdate) async throws(UpdateInstallError) {
+        try refuseDowngrade(to: staged.version)
         // The app may have been moved since `prepare`.
         if let issue = await locationIssue() {
             appLogger.notice("update install not possible here: \(String(describing: issue), privacy: .public)")
@@ -193,7 +208,7 @@ public struct UpdateInstaller: UpdateInstalling {
         do {
             backup = try await replacer.swap(bundle, with: staged.app)
         } catch {
-            appLogger.error("update replace failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update replace failed", error)
             throw .replacement
         }
         if let failure = await verifier.verify(bundle, expected: staged.version, current: staged.current) {
@@ -201,11 +216,19 @@ public struct UpdateInstaller: UpdateInstalling {
             do {
                 try await replacer.restore(bundle, from: backup)
             } catch {
-                appLogger.fault("update rollback failed: \(String(describing: error), privacy: .public)")
+                appLogger.fault("update rollback failed", error)
             }
             throw .verification(failure)
         }
         await replacer.removeBackup(next: bundle)
+    }
+
+    /// Throws when `version` is older than the running trrek (see `UpdateInstallPolicy.downgradeProblem`).
+    private func refuseDowngrade(to version: SemanticVersion) throws(UpdateInstallError) {
+        if let failure = UpdateInstallPolicy.downgradeProblem(version: version, running: runningVersion) {
+            appLogger.error("update \(version, privacy: .public) is older than \(runningVersion, privacy: .public)")
+            throw .verification(failure)
+        }
     }
 
     public func cleanUpLeftovers() async {
@@ -217,7 +240,7 @@ public struct UpdateInstaller: UpdateInstalling {
         do {
             try await runOffMain { try FileManager.default.removeItem(at: folder) }
         } catch {
-            appLogger.error("update staging cleanup failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update staging cleanup failed", error)
         }
     }
 

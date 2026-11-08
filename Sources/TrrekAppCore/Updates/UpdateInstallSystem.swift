@@ -1,6 +1,7 @@
 import DiskArbitration
 import Foundation
 import Security
+import TrrekPlatform
 
 // MARK: - Disk image
 
@@ -68,8 +69,7 @@ public struct DiskImageAppExtractor: DiskImageAppExtracting {
                 }
                 appLogger.error("\(tool, privacy: .public) attach exited with \(result.status, privacy: .public)")
             } catch {
-                appLogger
-                    .error("\(tool, privacy: .public) attach failed: \(String(describing: error), privacy: .public)")
+                appLogger.error("\(tool) attach failed", error)
             }
             // A tool stopped after it attached (its timeout) leaves the image mounted without naming its device.
             await release(mountPoint)
@@ -217,7 +217,7 @@ public struct CodeSignatureVerifier: UpdateVerifying {
             }
             return result.status == 0
         } catch {
-            appLogger.error("update assessment failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update assessment failed", error)
             return false
         }
     }
@@ -288,7 +288,7 @@ public struct BundleReplacer: BundleReplacing {
         do {
             try FileManager.default.removeItem(at: backup)
         } catch {
-            appLogger.error("update backup cleanup failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update backup cleanup failed", error)
         }
     }
 
@@ -305,8 +305,7 @@ public struct BundleReplacer: BundleReplacing {
                 appLogger.notice("update swap failed; the previous app was put back")
                 return
             } catch {
-                appLogger
-                    .error("update rollback from a candidate failed: \(String(describing: error), privacy: .public)")
+                appLogger.error("update rollback from a candidate failed", error)
             }
         }
         appLogger.fault("update swap failed and the previous app could not be put back")

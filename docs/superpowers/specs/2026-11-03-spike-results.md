@@ -1,6 +1,6 @@
 # Aşama 0 Spike Sonuçları (TrrekProbe)
 
-Tarih: 2026-11-03 · Makine: MacBook Air M4, macOS 27.2 · Araç: `TrrekProbe` (debug derlemesi)
+Tarih: 2026-11-03 · Makine: geliştirme Mac'i, macOS 27.2 · Araç: `TrrekProbe` (debug derlemesi)
 
 | # | Soru (spec 11) | Sonuç | Karar |
 |---|---|---|---|

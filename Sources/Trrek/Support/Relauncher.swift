@@ -1,5 +1,6 @@
 import AppKit
 import TrrekAppCore
+import TrrekPlatform
 
 /// Quits trrek and opens the same app bundle again, so a new interface language or an installed update takes effect.
 ///
@@ -41,7 +42,7 @@ enum Relauncher {
         do {
             try process.run()
         } catch {
-            appLogger.error("relaunch failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("relaunch failed", error)
             return false
         }
         appLogger.notice("relaunching for the \(reason, privacy: .public)")

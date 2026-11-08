@@ -300,7 +300,7 @@ final class Coordinator {
         do {
             try LaunchAtLogin.setEnabled(enabled)
         } catch {
-            appLogger.error("launch at login change failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("launch at login change failed", error)
         }
     }
 

@@ -207,6 +207,7 @@
 "Last checked: %@" = "Last checked: %@";
 "Not checked yet" = "Not checked yet";
 "The update information points to an unexpected address." = "The update information points to an unexpected address.";
+"The update information is larger than expected." = "The update information is larger than expected.";
 "Installing trrek %@…" = "Installing trrek %@…";
 "trrek %@ is installed" = "trrek %@ is installed";
 "Update Available: trrek %@" = "Update Available: trrek %@";

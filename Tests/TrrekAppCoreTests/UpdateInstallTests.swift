@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import TrrekAppCore
+import TrrekEngine
 
 /// The in-place install's decisions, and the installer with fake steps: what runs, what fails and that the staging
 /// folder never outlives an attempt.
@@ -51,6 +52,18 @@ struct UpdateInstallPolicyTests {
         #expect(try problem(id, "0.3.0", current: #require(SemanticVersion("0.4.0"))) == .notNewer)
     }
 
+    /// A version below the running one is refused whatever the update check assumes; the same version is allowed.
+    @Test func downgrades() throws {
+        let running = try #require(SemanticVersion("0.4.0"))
+        func problem(_ version: String) throws -> UpdateVerificationFailure? {
+            try UpdateInstallPolicy.downgradeProblem(version: #require(SemanticVersion(version)), running: running)
+        }
+        #expect(try problem("0.3.9") == .olderThanRunning)
+        #expect(try problem("0.4.0") == nil)
+        #expect(try problem("0.4.1") == nil)
+        #expect(UpdateInstaller.runningVersion.description == TrrekVersion.string)
+    }
+
     @Test func onlyAFailedVerificationDoesNotOpenTheReleasePage() {
         #expect(UpdateInstallError.location(.translocated).fallsBackToBrowser)
         #expect(UpdateInstallError.extraction.fallsBackToBrowser)
@@ -78,7 +91,8 @@ struct UpdateInstallerTests {
     private static func harness(
         extractError: (any Error)? = nil,
         verifications: [UpdateVerificationFailure?] = [],
-        replaceFails: Bool = false
+        replaceFails: Bool = false,
+        running: SemanticVersion = v040
     ) throws -> Harness {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("trrek-install-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -94,7 +108,8 @@ struct UpdateInstallerTests {
                 let folder = root.appendingPathComponent(UUID().uuidString)
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
                 return folder
-            }
+            },
+            runningVersion: running
         )
         return Harness(installer: installer, log: log, location: location, root: root)
     }
@@ -212,6 +227,33 @@ struct UpdateInstallerTests {
             #expect(harness.log.all == Self.prepared)
             #expect(harness.stagingFolders.isEmpty)
         }
+    }
+
+    /// Under `--assume-version` the check may offer a release older than the running trrek: it is refused before
+    /// anything is mounted, and a staged one before the swap.
+    @Test func anOlderVersionThanTheRunningOneIsRefused() async throws {
+        let harness = try Self.harness(running: SemanticVersion(major: 0, minor: 5, patch: 0))
+        defer { try? FileManager.default.removeItem(at: harness.root) }
+        guard case let .failure(error) = await Self.prepare(harness) else {
+            Issue.record("expected a failure")
+            return
+        }
+        #expect(error == .verification(.olderThanRunning))
+        #expect(!error.fallsBackToBrowser)
+        #expect(harness.log.all.isEmpty)
+        #expect(harness.stagingFolders.isEmpty)
+
+        let folder = harness.root.appendingPathComponent("staged")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let staged = StagedUpdate(
+            app: folder.appendingPathComponent("trrek.app"),
+            folder: folder,
+            version: Self.v040,
+            current: Self.v030
+        )
+        #expect(await Self.install(harness, staged) == .verification(.olderThanRunning))
+        #expect(harness.log.all.isEmpty)
+        #expect(harness.stagingFolders.isEmpty)
     }
 
     @Test func aFailedReplaceCleansUp() async throws {

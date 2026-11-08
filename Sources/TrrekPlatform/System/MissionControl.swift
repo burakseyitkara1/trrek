@@ -24,9 +24,7 @@ public struct SystemMissionControl: MissionControlOpening {
             configuration.createsNewApplicationInstance = true
             NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, error in
                 if let error {
-                    platformLogger.error(
-                        "mission control could not be opened: \(String(describing: error), privacy: .public)"
-                    )
+                    platformLogger.error("mission control could not be opened", error)
                 }
             }
         }

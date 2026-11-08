@@ -47,6 +47,9 @@ public enum UpdateVerificationFailure: Error, Equatable, Sendable {
     case unexpectedVersion(String?)
     /// The app is not newer than the version the update check runs as.
     case notNewer
+    /// The app is older than the running trrek. Refused even when the update check assumes an older version
+    /// (`--assume-version`), so an older signed release can never be installed over a newer one.
+    case olderThanRunning
 }
 
 /// Why an update could not be installed in place.
@@ -93,6 +96,15 @@ public enum UpdateInstallPolicy {
             return .readOnlyVolume
         }
         return facts.isWritable ? nil : .notWritable
+    }
+
+    /// Refuses installing `version` over the running trrek's version `running` when it is older. The same version is
+    /// allowed, so `--assume-version` can still try an install of the running version on a copy.
+    public static func downgradeProblem(
+        version: SemanticVersion,
+        running: SemanticVersion
+    ) -> UpdateVerificationFailure? {
+        version >= running ? nil : .olderThanRunning
     }
 
     /// Checks the staged app's `Info.plist` values: trrek's bundle identifier, the release's version and newer than

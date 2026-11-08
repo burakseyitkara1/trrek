@@ -92,11 +92,14 @@ struct UpdateRowStateTests {
     }
 }
 
-/// The session downloader against a stub protocol: progress, the file and HTTP errors.
+/// The session downloader and the feed client against a stub protocol: progress, the file, HTTP errors and the size
+/// limits.
 @Suite(.serialized)
 struct SessionFileDownloaderTests {
     final class Stub: URLProtocol, @unchecked Sendable {
         nonisolated(unsafe) static var status = 200
+        /// Whether the response announces its size (`Content-Length`).
+        nonisolated(unsafe) static var announcesLength = true
         static let body = Data(repeating: 7, count: 300_000)
 
         override static func canInit(with _: URLRequest) -> Bool {
@@ -112,7 +115,7 @@ struct SessionFileDownloaderTests {
                 url: request.url!,
                 statusCode: Self.status,
                 httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Length": "\(Self.body.count)"]
+                headerFields: Self.announcesLength ? ["Content-Length": "\(Self.body.count)"] : [:]
             )!
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             var offset = 0
@@ -140,10 +143,18 @@ struct SessionFileDownloaderTests {
         }
     }
 
-    private static let downloader = SessionFileDownloader {
+    @Sendable private static func stubConfiguration() -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [Stub.self]
         return configuration
+    }
+
+    private static let downloader = SessionFileDownloader(configuration: stubConfiguration)
+
+    /// The downloads (`trrek-download-…`) in the temporary folder.
+    private static func downloadsLeft() -> Set<String> {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.path))
+        return Set((names ?? []).filter { $0.hasPrefix("trrek-download-") })
     }
 
     private static let url =
@@ -167,6 +178,74 @@ struct SessionFileDownloaderTests {
         defer { Stub.status = 200 }
         await #expect(throws: ReleaseFeedError.httpStatus(404)) {
             _ = try await Self.downloader.download(from: Self.url) { _, _ in }
+        }
+    }
+
+    /// A download announced or sent above the limit is cancelled, keeps no file and fails as too large.
+    @Test func aDownloadAboveTheLimitIsRefused() async throws {
+        defer { Stub.announcesLength = true }
+        let small = SessionFileDownloader(configuration: Self.stubConfiguration, maximumSize: 100_000)
+        for announces in [true, false] {
+            Stub.announcesLength = announces
+            let before = Self.downloadsLeft()
+            await #expect(throws: ReleaseFeedError.tooLarge) {
+                _ = try await small.download(from: Self.url) { _, _ in }
+            }
+            #expect(Self.downloadsLeft().subtracting(before).isEmpty)
+        }
+    }
+
+    @Test func aDownloadOfExactlyTheLimitIsKept() async throws {
+        let exact = SessionFileDownloader(configuration: Self.stubConfiguration, maximumSize: Int64(Stub.body.count))
+        let file = try await exact.download(from: Self.url) { _, _ in }
+        defer { try? FileManager.default.removeItem(at: file) }
+        #expect(try Data(contentsOf: file) == Stub.body)
+    }
+
+    /// The feed's reader with fake byte sequences: at most `limit` bytes, and none when the announced size is above it.
+    @Test func feedAnswersAreCappedAtTheLimit() async throws {
+        func bytes(_ count: Int) -> AsyncStream<UInt8> {
+            AsyncStream { continuation in
+                for _ in 0 ..< count {
+                    continuation.yield(1)
+                }
+                continuation.finish()
+            }
+        }
+        #expect(try await ReleaseFeedClient.collect(bytes(10), expectedLength: -1, limit: 10).count == 10)
+        #expect(try await ReleaseFeedClient.collect(bytes(10), expectedLength: 10, limit: 10).count == 10)
+        await #expect(throws: ReleaseFeedError.tooLarge) {
+            try await ReleaseFeedClient.collect(bytes(11), expectedLength: -1, limit: 10)
+        }
+        await #expect(throws: ReleaseFeedError.tooLarge) {
+            try await ReleaseFeedClient.collect(bytes(0), expectedLength: 11, limit: 10)
+        }
+        #expect(ReleaseFeedClient.maximumSize == 1_048_576)
+        #expect(SessionFileDownloader.maximumSize == 67_108_864)
+    }
+
+    @Test func theFeedReadsAnAnswerUpToTheLimit() async throws {
+        let feed = ReleaseFeedClient(configuration: Self.stubConfiguration, maximumSize: Stub.body.count)
+        #expect(try await feed.latestRelease() == Stub.body)
+    }
+
+    /// An answer announced or sent above the limit is refused as too large.
+    @Test func theFeedRefusesAnAnswerAboveTheLimit() async {
+        defer { Stub.announcesLength = true }
+        let feed = ReleaseFeedClient(configuration: Self.stubConfiguration, maximumSize: 1000)
+        for announces in [true, false] {
+            Stub.announcesLength = announces
+            await #expect(throws: ReleaseFeedError.tooLarge) {
+                _ = try await feed.latestRelease()
+            }
+        }
+    }
+
+    @Test func theFeedRefusesAnHTTPError() async {
+        Stub.status = 503
+        defer { Stub.status = 200 }
+        await #expect(throws: ReleaseFeedError.httpStatus(503)) {
+            _ = try await ReleaseFeedClient(configuration: Self.stubConfiguration).latestRelease()
         }
     }
 

@@ -23,7 +23,7 @@ Tarih: 2026-11-03 · Durum: onaylandı (otonom yürütme)
 **Kapsam dışı:** Lisans, deneme, ödeme ve otomatik güncelleme mekanizmaları; web sitesi; notarizasyon; Intel; macOS 26 öncesi.
 
 **Başarı ölçütleri**
-1. Bu Mac'te (MacBook Air M4, macOS 27.2) dört kenar, dört köşe ve üç parmak orta tık tanımlandığı gibi çalışır; ses ve parlaklıkta sistem HUD'u görünür; her adımda haptik tık hissedilir.
+1. Geliştirme Mac'inde (macOS 27.2) dört kenar, dört köşe ve üç parmak orta tık tanımlandığı gibi çalışır; ses ve parlaklıkta sistem HUD'u görünür; her adımda haptik tık hissedilir.
 2. `make perf` boşta 0 CPU ve 15 MB altı bellek raporlar.
 3. Engine testleri Bölüm 5'teki her kuralı kapsar ve CI'da geçer.
 4. `make install` ile uygulama ~/Applications'a kurulur, girişte açılır; ayar penceresi ve karşılama Liquid Glass görünümündedir.
@@ -33,7 +33,7 @@ Tarih: 2026-11-03 · Durum: onaylandı (otonom yürütme)
 
 | Konu | Değer |
 |---|---|
-| Geliştirme makinesi | MacBook Air M4, macOS 27.2, Force Touch trackpad (Multitouch ID <multitouch-id>), klavye arka ışığı var, yalnızca dahili ekran |
+| Geliştirme makinesi | Geliştirme Mac'i (Apple silicon), macOS 27.2, Force Touch trackpad (Multitouch ID `<multitouch-id>`), klavye arka ışığı var, yalnızca dahili ekran |
 | Araçlar | Command Line Tools, Swift 6.4.2, Homebrew; Xcode yok |
 | CI runner | `macos-26` imajı: macOS 26.6.1, Xcode 26.6, SwiftLint 0.65, SwiftFormat 0.62 |
 | Swift uyumu | `swift-tools-version: 6.0`, dil modu Swift 6; Swift 6.3+ dil özellikleri ve macOS 27 API'leri kullanılmaz |

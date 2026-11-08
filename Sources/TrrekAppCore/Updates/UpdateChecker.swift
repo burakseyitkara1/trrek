@@ -1,4 +1,5 @@
 import Foundation
+import TrrekPlatform
 
 /// Fetches the latest release's JSON; replaced by a fake in tests.
 public protocol ReleaseFeed: Sendable {
@@ -89,7 +90,7 @@ public final class UpdateChecker {
         } catch {
             state.lastFailure = now()
             let message = Self.message(for: error)
-            appLogger.error("update check failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update check failed", error)
             return .failed(message: message)
         }
         state.lastCheck = now()

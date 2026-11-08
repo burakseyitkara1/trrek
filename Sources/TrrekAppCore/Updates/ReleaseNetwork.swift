@@ -1,17 +1,33 @@
 import Foundation
 import TrrekEngine
+import TrrekPlatform
 
 /// The releases API's latest release of the public releases repository.
 ///
 /// Each request uses its own ephemeral session (no cookies, no cache, no stored credentials) that is invalidated
-/// afterwards, and sends only the `Accept` and `User-Agent` headers.
+/// afterwards, and sends only the `Accept` and `User-Agent` headers. An answer larger than `maximumSize` is refused
+/// as it arrives.
 public struct ReleaseFeedClient: ReleaseFeed {
     public static let latestReleaseURL = URL(
         string: "https://api.github.com/repos/burakseyitkara1/trrek-releases/releases/latest"
     )!
     public static let timeout: TimeInterval = 15
+    /// The largest answer read: 1 MB, far above a release's few kilobytes of JSON.
+    public static let maximumSize = 1 << 20
 
-    public init() {}
+    private let configuration: @Sendable () -> URLSessionConfiguration
+    private let maximumSize: Int
+
+    /// `configuration` and `maximumSize` are for tests (a stub protocol, a smaller limit).
+    public init(
+        configuration: (@Sendable () -> URLSessionConfiguration)? = nil,
+        maximumSize: Int = ReleaseFeedClient.maximumSize
+    ) {
+        self
+            .configuration = configuration ??
+            { ReleaseFeedClient.configuration(resourceTimeout: ReleaseFeedClient.timeout) }
+        self.maximumSize = maximumSize
+    }
 
     /// The request for the latest release; the user agent names the running version, never an assumed one.
     public static func request(url: URL = latestReleaseURL) -> URLRequest {
@@ -41,10 +57,27 @@ public struct ReleaseFeedClient: ReleaseFeed {
     }
 
     public func latestRelease() async throws -> Data {
-        let session = URLSession(configuration: Self.configuration(resourceTimeout: Self.timeout))
-        defer { session.finishTasksAndInvalidate() }
-        let (data, response) = try await session.data(for: Self.request())
+        let session = URLSession(configuration: configuration())
+        // Also stops a transfer refused before its end.
+        defer { session.invalidateAndCancel() }
+        let (bytes, response) = try await session.bytes(for: Self.request())
         try Self.requireSuccess(response)
+        return try await Self.collect(bytes, expectedLength: response.expectedContentLength, limit: maximumSize)
+    }
+
+    /// Reads `bytes` into memory. Throws `ReleaseFeedError.tooLarge` before reading anything when `expectedLength`
+    /// (`-1` when unknown) is above `limit`, and as soon as more than `limit` bytes arrive.
+    static func collect<Bytes: AsyncSequence>(
+        _ bytes: Bytes,
+        expectedLength: Int64,
+        limit: Int
+    ) async throws -> Data where Bytes.Element == UInt8 {
+        guard expectedLength <= Int64(limit) else { throw ReleaseFeedError.tooLarge }
+        var data = Data()
+        for try await byte in bytes {
+            guard data.count < limit else { throw ReleaseFeedError.tooLarge }
+            data.append(byte)
+        }
         return data
     }
 
@@ -64,28 +97,39 @@ public protocol FileDownloading: Sendable {
     func download(from url: URL, progress: @escaping DownloadProgress) async throws -> URL
 }
 
-/// Downloads with an ephemeral session, like the feed, through a session delegate that reports progress.
+/// Downloads with an ephemeral session, like the feed, through a session delegate that reports progress and cancels a
+/// download larger than `maximumSize`.
 public struct SessionFileDownloader: FileDownloading {
     /// A slow connection may stall this long between packets (release downloads were seen pausing for more than
     /// the feed's 15 s at 30 KB/s) …
     public static let idleTimeout: TimeInterval = 60
     /// … and take this long for the whole file.
     public static let resourceTimeout: TimeInterval = 600
+    /// The largest download accepted: 64 MB, far above a release disk image's few megabytes.
+    public static let maximumSize: Int64 = 64 << 20
 
     private let configuration: @Sendable () -> URLSessionConfiguration
+    private let maximumSize: Int64
 
-    /// `configuration` is for tests (a stub protocol); the default is the feed's ephemeral configuration.
-    public init(configuration: (@Sendable () -> URLSessionConfiguration)? = nil) {
+    /// `configuration` and `maximumSize` are for tests (a stub protocol, a smaller limit); the default configuration
+    /// is the feed's ephemeral one.
+    public init(
+        configuration: (@Sendable () -> URLSessionConfiguration)? = nil,
+        maximumSize: Int64 = SessionFileDownloader.maximumSize
+    ) {
         self.configuration = configuration ?? {
             ReleaseFeedClient.configuration(
                 requestTimeout: SessionFileDownloader.idleTimeout,
                 resourceTimeout: SessionFileDownloader.resourceTimeout
             )
         }
+        self.maximumSize = maximumSize
     }
 
+    /// Throws `ReleaseFeedError.tooLarge` (and keeps no file) when the server announces or sends more than
+    /// `maximumSize` bytes.
     public func download(from url: URL, progress: @escaping DownloadProgress) async throws -> URL {
-        let delegate = DownloadDelegate(progress: progress)
+        let delegate = DownloadDelegate(progress: progress, limit: maximumSize)
         let session = URLSession(configuration: configuration(), delegate: delegate, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
         var request = ReleaseFeedClient.request(url: url)
@@ -103,17 +147,22 @@ public struct SessionFileDownloader: FileDownloading {
     }
 }
 
-/// Reports a download task's progress, keeps its file and resumes the waiting call once.
+/// Reports a download task's progress, cancels it above `limit` bytes, keeps its file and resumes the waiting call
+/// once.
 final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     private let progress: DownloadProgress
+    private let limit: Int64
     private let lock = NSLock()
     private var continuation: CheckedContinuation<URL, any Error>?
     private var result: Result<URL, any Error>?
     /// The last reported whole percent (`-1` for an unknown size), so at most about a hundred reports are made.
     private var reported: Int?
+    /// The size announced or received passed `limit`; the task was cancelled.
+    private var tooLarge = false
 
-    init(progress: @escaping DownloadProgress) {
+    init(progress: @escaping DownloadProgress, limit: Int64) {
         self.progress = progress
+        self.limit = limit
     }
 
     func start(_ continuation: CheckedContinuation<URL, any Error>) {
@@ -122,11 +171,21 @@ final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked S
 
     func urlSession(
         _: URLSession,
-        downloadTask _: URLSessionDownloadTask,
+        downloadTask: URLSessionDownloadTask,
         didWriteData _: Int64,
         totalBytesWritten: Int64,
         totalBytesExpectedToWrite: Int64
     ) {
+        if totalBytesWritten > limit || totalBytesExpectedToWrite > limit {
+            let isFirst = lock.withLock {
+                defer { tooLarge = true }
+                return !tooLarge
+            }
+            if isFirst {
+                downloadTask.cancel()
+            }
+            return
+        }
         let step = Self.step(received: totalBytesWritten, expected: totalBytesExpectedToWrite)
         let isNew = lock.withLock {
             guard reported != step else { return false }
@@ -148,6 +207,9 @@ final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked S
     func urlSession(_: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         let outcome: Result<URL, any Error>
         do {
+            // The transfer may have ended before the cancellation took effect.
+            let refused = lock.withLock { tooLarge } || downloadTask.countOfBytesReceived > limit
+            guard !refused else { throw ReleaseFeedError.tooLarge }
             guard let response = downloadTask.response else { throw ReleaseFeedError.malformed }
             try ReleaseFeedClient.requireSuccess(response)
             let file = FileManager.default.temporaryDirectory
@@ -161,16 +223,17 @@ final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked S
     }
 
     func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError error: (any Error)?) {
-        let (continuation, result) = lock.withLock {
-            let pair = (self.continuation, self.result)
+        let (continuation, result, tooLarge) = lock.withLock {
+            let state = (self.continuation, self.result, self.tooLarge)
             self.continuation = nil
-            return pair
+            return state
         }
-        if let error {
+        if error != nil || tooLarge {
             if case let .success(file) = result {
                 try? FileManager.default.removeItem(at: file)
             }
-            continuation?.resume(throwing: error)
+            // The cancellation's own error says nothing about why.
+            continuation?.resume(throwing: tooLarge ? ReleaseFeedError.tooLarge : error ?? ReleaseFeedError.malformed)
         } else {
             continuation?.resume(with: result ?? .failure(ReleaseFeedError.malformed))
         }
@@ -240,7 +303,7 @@ public struct UpdateDownloader: Sendable {
             try file.setResourceValues(values)
             return true
         } catch {
-            appLogger.error("download quarantine failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("download quarantine failed", error)
             return false
         }
     }

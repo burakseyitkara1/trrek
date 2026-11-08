@@ -14,6 +14,9 @@ public enum ReleaseFeedError: Error, Equatable, Sendable {
     case httpStatus(Int)
     /// The disk image or the release page is not where trrek's releases are published.
     case unexpectedLink
+    /// The answer or the download is larger than trrek accepts (`ReleaseFeedClient.maximumSize`,
+    /// `SessionFileDownloader.maximumSize`).
+    case tooLarge
 
     /// The explanation shown in the "Couldn't check for updates" alert.
     public var message: String {
@@ -26,6 +29,8 @@ public enum ReleaseFeedError: Error, Equatable, Sendable {
             String(localized: "The server answered with status \(status).", bundle: .main)
         case .unexpectedLink:
             String(localized: "The update information points to an unexpected address.", bundle: .main)
+        case .tooLarge:
+            String(localized: "The update information is larger than expected.", bundle: .main)
         }
     }
 }

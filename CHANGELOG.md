@@ -6,6 +6,9 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+- The app is smaller: its executable ships without the build's symbol table and debug paths
+- The update check reads at most 1 MB of release information and an update downloads at most 64 MB; anything larger is refused
+
 ## [0.4.0] - 2026-11-08
 
 - trrek tells you when a newer version is out: it checks the public releases page at most once a day (after launch, after wake or when the menu opens) and shows an arrow on the menu bar icon and Update Available at the top of the menu

@@ -1,5 +1,6 @@
 import AppKit
 import TrrekAppCore
+import TrrekPlatform
 
 /// An alert a manual check shows: only its outcome when there is nothing to update, since a found update shows in
 /// the menu bar icon, the menu and General instead.
@@ -187,6 +188,12 @@ final class UpdateController {
     /// changes only the update it started (`release.version`).
     private func run(_ release: ReleaseInfo) async {
         let version = release.version
+        // An older release than this build is refused before anything is downloaded (the installer checks again).
+        if UpdateInstallPolicy.downgradeProblem(version: version, running: UpdateInstaller.runningVersion) != nil {
+            appLogger.error("update \(version, privacy: .public) is older than this build; not downloading")
+            update(version) { $0.fail() }
+            return
+        }
         if let issue = await installer.locationIssue() {
             appLogger.notice("update install not possible here: \(String(describing: issue), privacy: .public)")
             fallBackToBrowser(release)
@@ -201,7 +208,7 @@ final class UpdateController {
                 DispatchQueue.main.async { report(received, expected) }
             }
         } catch {
-            appLogger.error("update download failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("update download failed", error)
             update(version) { $0.fail() }
             return
         }

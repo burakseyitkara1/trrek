@@ -9,7 +9,7 @@ import Foundation
 /// - `--skip-first-run` records the welcome window as shown and shows no welcome window at launch, neither the
 ///   first-run one nor the one for missing Accessibility (for screenshots and footprint checks).
 /// - `--assume-version X.Y.Z` makes the update check treat the running version as X.Y.Z, to try the update flow
-///   against the real feed. Nothing else sees it.
+///   against the real feed. Nothing else sees it; the installer still refuses a version older than the running one.
 public struct LaunchOptions: Equatable, Sendable {
     public var openSettings = false
     /// The tab to open settings on; `nil` for the default tab.

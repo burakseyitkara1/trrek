@@ -1,5 +1,6 @@
 import AppKit
 import TrrekAppCore
+import TrrekPlatform
 
 /// Settings read from a file, shown in the import confirmation.
 struct PendingImport {
@@ -31,7 +32,7 @@ extension SettingsModel {
         do {
             try SettingsDocument.encode(settings).write(to: url, options: .atomic)
         } catch {
-            appLogger.error("settings export failed: \(String(describing: error), privacy: .public)")
+            appLogger.error("settings export failed", error)
             showFailure(TransferFailure(
                 title: String(localized: "The settings could not be exported.", bundle: .main),
                 message: error.localizedDescription
@@ -95,7 +96,7 @@ extension SettingsModel {
             appLogger.error("settings import refused: \(String(describing: error), privacy: .public)")
             return .failure(ImportFailureMessage(error.message))
         } catch {
-            appLogger.error("settings file unreadable: \(String(describing: error), privacy: .public)")
+            appLogger.error("settings file unreadable", error)
             return .failure(ImportFailureMessage(
                 String(localized: "The file could not be read. Your settings were not changed.", bundle: .main)
             ))

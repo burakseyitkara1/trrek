@@ -189,7 +189,7 @@ public final class GesturePipeline: @unchecked Sendable {
         do {
             try start()
         } catch {
-            platformLogger.error("pipeline restart failed: \(String(describing: error), privacy: .public)")
+            platformLogger.error("pipeline restart failed", error)
         }
     }
 

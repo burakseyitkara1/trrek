@@ -4,7 +4,13 @@
 # (burakseyitkara1/trrek-releases) that the app's update check reads, with the version's CHANGELOG.md section as
 # its notes. --no-publish publishes to neither.
 #
+# Publishing needs a successful run of the ci workflow for the exact commit being released. Pull request runs test a
+# merge of the branch, not the squashed commit on main, so start one on main first and wait for it to pass:
+#   gh workflow run ci --ref main && sleep 10 && gh run watch "$(gh run list --workflow ci --commit "$(git rev-parse HEAD)" --limit 1 --json databaseId --jq '.[0].databaseId')"
+# --allow-missing-ci publishes without one (with a warning), for when GitHub Actions cannot run at all.
+#
 # Usage: scripts/release.sh --version X.Y.Z [--build N] [--profile NAME] [--identity NAME] [--no-publish]
+#                           [--allow-missing-ci]
 #
 # One-time setup on the release Mac:
 #   xcrun notarytool store-credentials trrek --team-id <TEAM_ID>
@@ -18,6 +24,7 @@ BUILD="$(git rev-list --count HEAD)"
 PROFILE="trrek"
 IDENTITY=""
 PUBLISH=1
+ALLOW_MISSING_CI=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version) VERSION="${2:?--version needs a value}"; shift 2 ;;
@@ -25,6 +32,7 @@ while [[ $# -gt 0 ]]; do
         --profile) PROFILE="${2:?--profile needs a value}"; shift 2 ;;
         --identity) IDENTITY="${2:?--identity needs a value}"; shift 2 ;;
         --no-publish) PUBLISH=0; shift ;;
+        --allow-missing-ci) ALLOW_MISSING_CI=1; shift ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
 done
@@ -67,6 +75,21 @@ if [[ $PUBLISH -eq 1 ]]; then
     [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || fail "main is not up to date with origin"
     ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "tag $TAG already exists"
     gh auth status >/dev/null 2>&1 || fail "gh is not signed in"
+    COMMIT="$(git rev-parse HEAD)"
+    if [[ $ALLOW_MISSING_CI -eq 1 ]]; then
+        {
+            echo "################################################################################"
+            echo "WARNING: --allow-missing-ci: publishing $COMMIT without checking for a"
+            echo "successful ci run. This release is built, tested and signed on this Mac only."
+            echo "Run the ci workflow for $COMMIT as soon as GitHub Actions works again."
+            echo "################################################################################"
+        } >&2
+    else
+        CI_RUN="$(gh run list --commit "$COMMIT" --workflow ci --status success --limit 1 \
+            --json databaseId --jq '.[0].databaseId // empty')" || fail "could not list the ci runs of $COMMIT"
+        [[ -n "$CI_RUN" ]] || fail "no successful ci run for $COMMIT; run it with 'gh workflow run ci --ref main' and wait for it to pass (or pass --allow-missing-ci)"
+        echo "ci run $CI_RUN passed for $COMMIT"
+    fi
     gh repo view "$PUBLIC_REPO" >/dev/null 2>&1 || fail "the public releases repository $PUBLIC_REPO is not reachable"
     ! gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1 || fail "$PUBLIC_REPO already has a release $TAG"
     NOTES="$(changelog_section "$VERSION")"
@@ -105,6 +128,9 @@ notarize() {
 }
 
 TRREK_SIGN_IDENTITY="$IDENTITY" scripts/build-app.sh --version "$VERSION" --build "$BUILD"
+# The stripped executable's symbols, for crash reports of this release; kept on this Mac, never published.
+rm -rf "$OUT/trrek-$TAG.dSYM"
+cp -R dist/trrek.app.dSYM "$OUT/trrek-$TAG.dSYM"
 
 codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
 codesign --verify --strict --verbose=2 "$APP"

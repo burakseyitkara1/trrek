@@ -16,7 +16,7 @@ public final class ActuatorHaptics: @unchecked Sendable {
     public init?(multitouchID: UInt64) {
         guard let symbols = PrivateSymbols.actuator else { return nil }
         guard let actuator = symbols.createFromDeviceID(multitouchID)?.takeRetainedValue() else {
-            platformLogger.error("actuator create failed for device \(multitouchID, privacy: .public)")
+            platformLogger.error("actuator create failed for device \(multitouchID, privacy: .private(mask: .hash))")
             return nil
         }
         let result = symbols.open(actuator)

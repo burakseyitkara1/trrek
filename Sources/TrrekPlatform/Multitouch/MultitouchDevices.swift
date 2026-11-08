@@ -170,7 +170,10 @@ public enum MultitouchDevices {
             let kind = MultitouchDeviceKind.classify(properties)
             if kind == .unknown {
                 let id = identifier.uint64Value
-                platformLogger.error("multitouch device \(id, privacy: .public) has no kind; treating it as a trackpad")
+                platformLogger
+                    .error(
+                        "multitouch device \(id, privacy: .private(mask: .hash)) has no kind; treating it as a trackpad"
+                    )
             }
             result.entries.append(RegistryEntry(multitouchID: identifier.uint64Value, isBuiltIn: builtIn, kind: kind))
         }
