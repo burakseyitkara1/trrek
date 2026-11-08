@@ -531,7 +531,7 @@ Note: memory is measured as the physical footprint (`phys_footprint`, `vmmap --s
 ### 10.1 Branch model
 
 - `main` always builds and is green. No direct commits; changes come by PR from `feat/`, `fix/`, `docs/`, `ci/`, `chore/`, `test/` branches. Squash merge, the branch is deleted.
-- Commit messages are English conventional commits; PR bodies are in Turkish.
+- Commit messages are English conventional commits; PR titles and bodies are in English and follow `.github/pull_request_template.md` (decision 85).
 - **Enforcement:** `scripts/install-hooks.sh` installs two local hooks: `pre-push` (rejects a direct push to `main`) and `pre-commit` (`swiftformat --lint` + `swiftlint`). A merge is made only with `gh pr merge --squash --delete-branch` and while CI is green. If the repository is made public or the plan is upgraded, the same rules are added as a ruleset (required check: `ci / build-test`).
 
 ### 10.2 PR life cycle (autonomous)
