@@ -37,8 +37,8 @@ public protocol InstallLocationInspecting: Sendable {
     func facts(for bundle: URL) -> InstallLocationFacts
 }
 
-/// A verified app waiting for the user's answer. `folder` is its staging folder, removed by `install` and `discard`;
-/// `current` is the version it was verified to be newer than.
+/// A verified app between `prepare` and `install`. `folder` is its staging folder, removed by `install`; `current` is
+/// the version it was verified to be newer than.
 public struct StagedUpdate: Equatable, Sendable {
     public let app: URL
     public let folder: URL
@@ -67,8 +67,9 @@ public protocol UpdateInstalling: Sendable {
     /// previous one back if that fails. The staging folder is removed on every path.
     func install(_ staged: StagedUpdate) async throws(UpdateInstallError)
 
-    /// Removes the staging folder of an update that is not installed now.
-    func discard(_ staged: StagedUpdate) async
+    /// Why trrek cannot replace its bundle where it runs; `nil` when it can. Asked before downloading, so a location
+    /// that rules the install out sends the user to the release page at once (`prepare` asks again).
+    func locationIssue() async -> InstallLocationIssue?
 
     /// Removes what an interrupted install left: mounted images and the previous app's backup.
     func cleanUpLeftovers() async
@@ -173,11 +174,12 @@ public struct UpdateInstaller: UpdateInstalling {
         appLogger.notice("update \(staged.version, privacy: .public) installed")
     }
 
-    /// The staged app sat in a folder any process of the user may write to while the user decided, so it is verified
-    /// again right before the swap (after the quarantine removal, which leaves the seal intact), and the installed app
+    /// The staged app sits in a folder any process of the user may write to between `prepare` and `install`, so it is
+    /// verified again right before the swap (after the quarantine removal, which leaves the seal intact), and the
+    /// installed app
     /// once more right after it.
     private func replace(with staged: StagedUpdate) async throws(UpdateInstallError) {
-        // The app may have been moved while the user decided.
+        // The app may have been moved since `prepare`.
         if let issue = await locationIssue() {
             appLogger.notice("update install not possible here: \(String(describing: issue), privacy: .public)")
             throw .location(issue)
@@ -204,10 +206,6 @@ public struct UpdateInstaller: UpdateInstalling {
             throw .verification(failure)
         }
         await replacer.removeBackup(next: bundle)
-    }
-
-    public func discard(_ staged: StagedUpdate) async {
-        await Self.remove(staged.folder)
     }
 
     public func cleanUpLeftovers() async {

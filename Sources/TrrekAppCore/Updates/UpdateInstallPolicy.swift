@@ -1,6 +1,6 @@
 import Foundation
 
-/// Why trrek cannot replace its own app bundle; the update is then installed from the disk image by hand.
+/// Why trrek cannot replace its own app bundle; the release page is then opened in the browser.
 public enum InstallLocationIssue: Equatable, Sendable {
     /// trrek does not run from an `.app` bundle (a development build or the test runner).
     case notAppBundle
@@ -13,23 +13,6 @@ public enum InstallLocationIssue: Equatable, Sendable {
     case readOnlyVolume
     /// trrek may not write to its bundle or to the folder holding it.
     case notWritable
-
-    /// The explanation shown when the disk image is opened instead.
-    public var message: String {
-        switch self {
-        case .notAppBundle:
-            String(localized: "trrek isn’t running from an app bundle.", bundle: .main)
-        case .translocated:
-            String(
-                localized: "macOS runs trrek from a temporary location. Move trrek to the Applications folder.",
-                bundle: .main
-            )
-        case .diskImage, .readOnlyVolume:
-            String(localized: "trrek runs from a disk image or a read-only volume.", bundle: .main)
-        case .notWritable:
-            String(localized: "trrek can’t write to the folder it’s installed in.", bundle: .main)
-        }
-    }
 }
 
 /// What the file system says about the running app bundle's location.
@@ -52,7 +35,7 @@ public struct InstallLocationFacts: Equatable, Sendable {
     }
 }
 
-/// Why a staged update was refused. A refused update is never installed and the disk image is not opened.
+/// Why a staged update was refused. A refused update is never installed; the menu row offers to try again.
 public enum UpdateVerificationFailure: Error, Equatable, Sendable {
     /// The code signature is broken, or not trrek's Developer ID signature.
     case signature
@@ -64,55 +47,25 @@ public enum UpdateVerificationFailure: Error, Equatable, Sendable {
     case unexpectedVersion(String?)
     /// The app is not newer than the version the update check runs as.
     case notNewer
-
-    /// The explanation shown in the "couldn't be verified" alert.
-    public var message: String {
-        switch self {
-        case .signature:
-            String(localized: "The update isn’t signed by trrek’s developer.", bundle: .main)
-        case .notNotarized:
-            String(localized: "macOS didn’t accept the update: it isn’t notarized.", bundle: .main)
-        case .notTrrek:
-            String(localized: "The disk image doesn’t contain trrek.", bundle: .main)
-        case let .unexpectedVersion(found):
-            String(localized: "The disk image contains another version (\(found ?? "?")).", bundle: .main)
-        case .notNewer:
-            String(localized: "The update isn’t newer than this version of trrek.", bundle: .main)
-        }
-    }
 }
 
 /// Why an update could not be installed in place.
 public enum UpdateInstallError: Error, Equatable, Sendable {
-    /// trrek cannot replace its bundle where it runs; the disk image is opened instead.
+    /// trrek cannot replace its bundle where it runs; the release page is opened instead.
     case location(InstallLocationIssue)
-    /// The disk image could not be mounted or the app not copied from it; the disk image is opened instead.
+    /// The disk image could not be mounted or the app not copied from it; the release page is opened instead.
     case extraction
     /// The staged app failed verification; nothing is installed or opened.
     case verification(UpdateVerificationFailure)
-    /// The bundle could not be replaced (the previous one is kept); the disk image is opened instead.
+    /// The bundle could not be replaced (the previous one is kept); the release page is opened instead.
     case replacement
 
-    /// Whether the disk image is opened for a manual install; only a failed verification does not.
-    public var fallsBackToDiskImage: Bool {
+    /// Whether the release page is opened for a manual install; only a failed verification does not.
+    public var fallsBackToBrowser: Bool {
         if case .verification = self {
             return false
         }
         return true
-    }
-
-    /// The explanation shown with the disk image fallback.
-    public var message: String {
-        switch self {
-        case let .location(issue):
-            issue.message
-        case .extraction:
-            String(localized: "The disk image couldn’t be opened.", bundle: .main)
-        case let .verification(failure):
-            failure.message
-        case .replacement:
-            String(localized: "The installed app couldn’t be replaced.", bundle: .main)
-        }
     }
 }
 

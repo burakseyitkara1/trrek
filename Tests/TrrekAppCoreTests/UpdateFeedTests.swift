@@ -266,13 +266,16 @@ actor FakeReleaseFeed: ReleaseFeed {
     }
 }
 
-/// "Downloads" by writing `contents` to a new temporary file.
+/// "Downloads" by writing `contents` to a new temporary file, reporting half and then all of it.
 struct FakeFileDownloader: FileDownloading {
     let contents: Data
 
-    func download(from _: URL) async throws -> URL {
+    func download(from _: URL, progress: @escaping DownloadProgress) async throws -> URL {
+        let size = Int64(contents.count)
+        progress(size / 2, size)
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try contents.write(to: file)
+        progress(size, size)
         return file
     }
 }
@@ -285,8 +288,10 @@ struct UpdateDownloaderTests {
     }
 
     @Test func downloadsUnderTheReleaseNameReplacingAnOldFile() async throws {
-        let folder = try Self.folder()
-        defer { try? FileManager.default.removeItem(at: folder) }
+        let root = try Self.folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let folder = root.appendingPathComponent("Caches/Updates")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let release = try ReleaseInfo.decode(UpdateFixtures.latestRelease)
         let destination = folder.appendingPathComponent("trrek-v0.3.0.dmg")
         try Data("old".utf8).write(to: destination)
@@ -306,7 +311,7 @@ struct UpdateDownloaderTests {
     @Test func aFailedDownloadLeavesTheOldFile() async throws {
         struct Offline: Error {}
         struct FailingDownloader: FileDownloading {
-            func download(from _: URL) async throws -> URL {
+            func download(from _: URL, progress _: @escaping DownloadProgress) async throws -> URL {
                 throw Offline()
             }
         }

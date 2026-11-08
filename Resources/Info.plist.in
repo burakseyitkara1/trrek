@@ -29,8 +29,6 @@
 	<string>26.0</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSDownloadsFolderUsageDescription</key>
-	<string>trrek saves update disk images to your Downloads folder.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Burak Seyit Kara</string>
 	<key>NSPrincipalClass</key>

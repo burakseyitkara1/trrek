@@ -20,7 +20,7 @@ struct LocalizationTests {
 
     /// Turkish entries that are the same as the English on purpose: names and key names macOS does not translate.
     private static let untranslated: Set = [
-        "%@ — %@", "Mission Control", "Spotlight", "Shift", "Option"
+        "%@ — %@", "trrek (%@)", "Mission Control", "Spotlight", "Shift", "Option"
     ]
 
     private static func table(_ name: String, _ language: String) throws -> [String: String] {
@@ -78,7 +78,6 @@ struct LocalizationTests {
                 }
             }
         }
-        #expect(try Self.table("InfoPlist", "en")["NSDownloadsFolderUsageDescription"] != nil)
     }
 
     @Test func translationsKeepTheFormatSpecifiers() throws {

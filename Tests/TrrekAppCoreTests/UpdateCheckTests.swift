@@ -49,15 +49,6 @@ struct UpdateCheckPolicyTests {
         #expect(Self.due(.wake, lastCheck: -Self.hour))
         #expect(Self.due(.wake, lastFailure: -60))
     }
-
-    @Test func notifiesOncePerVersionAndOnlyForAutomaticChecks() throws {
-        let version = try #require(SemanticVersion("0.4.0"))
-        let older = try #require(SemanticVersion("0.3.1"))
-        #expect(UpdateCheckPolicy.shouldNotify(version: version, trigger: .launch, notifiedVersion: nil))
-        #expect(UpdateCheckPolicy.shouldNotify(version: version, trigger: .wake, notifiedVersion: older))
-        #expect(!UpdateCheckPolicy.shouldNotify(version: version, trigger: .menuOpened, notifiedVersion: version))
-        #expect(!UpdateCheckPolicy.shouldNotify(version: version, trigger: .manual, notifiedVersion: nil))
-    }
 }
 
 @MainActor
@@ -85,13 +76,11 @@ struct UpdateCheckerTests {
         let release = try ReleaseInfo.decode(UpdateFixtures.latestRelease)
         state.lastCheck = date
         state.lastFailure = date
-        state.notifiedVersion = try Self.version("0.3.0")
         state.availableUpdate = release
 
         let reloaded = UpdateStateStore(defaults: defaults)
         #expect(reloaded.lastCheck == date)
         #expect(reloaded.lastFailure == date)
-        #expect(reloaded.notifiedVersion == SemanticVersion("0.3.0"))
         #expect(reloaded.availableUpdate == release)
         // Kept apart from the settings blob.
         #expect(defaults.data(forKey: "settings") == nil)
@@ -137,7 +126,7 @@ struct UpdateCheckerTests {
         #expect(state.availableUpdate == good)
     }
 
-    @Test func aNewerReleaseIsStoredAndNotifiedOnce() async throws {
+    @Test func aNewerReleaseIsStored() async throws {
         let (state, defaults) = try Self.freshState()
         defer { defaults.removePersistentDomain(forName: Self.suiteName) }
         var now = Date(timeIntervalSinceReferenceDate: 800_000_000)
@@ -148,21 +137,20 @@ struct UpdateCheckerTests {
 
         let first = await checker.check(.launch, automatic: true)
         let release = try ReleaseInfo.decode(UpdateFixtures.latestRelease)
-        #expect(first == .available(release, notify: true))
+        #expect(first == .available(release))
         #expect(checker.availableUpdate == release)
         #expect(checker.lastCheck == now)
-        #expect(state.notifiedVersion == SemanticVersion("0.3.0"))
         #expect(changes == 2)
         #expect(!checker.isChecking)
 
-        // Within a day automatic triggers do nothing; a manual check runs and does not notify.
+        // Within a day automatic triggers do nothing; a manual check runs.
         #expect(await checker.check(.menuOpened, automatic: true) == .skipped)
         #expect(await feed.calls == 1)
-        #expect(await checker.check(.manual, automatic: true) == .available(release, notify: false))
+        #expect(await checker.check(.manual, automatic: true) == .available(release))
 
-        // A day later the same version is found again but not notified again.
+        // A day later the same version is found again.
         now.addTimeInterval(UpdateCheckPolicy.interval)
-        #expect(await checker.check(.wake, automatic: true) == .available(release, notify: false))
+        #expect(await checker.check(.wake, automatic: true) == .available(release))
         #expect(await feed.calls == 3)
     }
 
@@ -189,7 +177,6 @@ struct UpdateCheckerTests {
         let result = await checker.check(.manual, automatic: true)
         #expect(try result == .upToDate(latest: Self.version("0.3.0")))
         #expect(checker.availableUpdate == nil)
-        #expect(state.notifiedVersion == nil)
     }
 
     @Test func aStoredUpdateNoNewerThanTheRunningVersionIsForgotten() throws {

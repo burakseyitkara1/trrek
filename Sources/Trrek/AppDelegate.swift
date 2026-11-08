@@ -10,18 +10,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var terminationSignals: TerminationSignals?
     /// Settings files opened from Finder before the coordinator started.
     private var openedFiles = OpenedFileQueue()
-    /// Receives clicks on the update notification.
-    private let notificationDelegate = UpdateNotificationDelegate()
 
     func applicationDidFinishLaunching(_: Notification) {
-        // First, so a click on a notification that launched trrek is delivered.
-        notificationDelegate.install()
         launchOptions = LaunchOptions(arguments: CommandLine.arguments)
         coordinator.start(skipFirstRun: launchOptions.skipFirstRun, assumedVersion: launchOptions.assumedVersion)
-        notificationDelegate.onOpen = { [coordinator] version in
-            guard let updates = coordinator.updates else { return }
-            Task { await updates.notificationOpened(version: version) }
-        }
         terminationSignals = TerminationSignals { [coordinator] number in
             MainActor.assumeIsolated {
                 appLogger.notice("signal \(number, privacy: .public); quitting")

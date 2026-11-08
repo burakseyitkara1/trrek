@@ -6,12 +6,11 @@ public final class UpdateStateStore: @unchecked Sendable {
     private enum Key {
         static let lastCheck = "lastUpdateCheck"
         static let lastFailure = "lastFailedUpdateCheck"
-        static let notifiedVersion = "notifiedVersion"
         static let availableUpdate = "availableUpdate"
     }
 
     /// The defaults domain used while `--assume-version` is given, so trying the flow by hand leaves the real
-    /// schedule and the per-version notification alone.
+    /// schedule and the stored update alone.
     public static let assumedVersionSuite = "com.burakseyitkara.trrek.assumed-version"
 
     private let defaults: UserDefaults
@@ -30,12 +29,6 @@ public final class UpdateStateStore: @unchecked Sendable {
     public var lastFailure: Date? {
         get { defaults.object(forKey: Key.lastFailure) as? Date }
         set { defaults.set(newValue, forKey: Key.lastFailure) }
-    }
-
-    /// The last version a notification was posted for.
-    public var notifiedVersion: SemanticVersion? {
-        get { defaults.string(forKey: Key.notifiedVersion).flatMap(SemanticVersion.init) }
-        set { defaults.set(newValue?.description, forKey: Key.notifiedVersion) }
     }
 
     /// The newer release the last check found. Unreadable data, and a release whose links are not trrek's own

@@ -116,7 +116,6 @@ final class Coordinator {
         restartWork?.cancel()
         restartWork = nil
         updates?.cancelPendingCheck()
-        updates?.discardStagedUpdate()
         inputMonitor?.stop()
         // Frames stop first, so nothing can press Command again after it is released.
         pipeline?.stop()
@@ -223,6 +222,7 @@ final class Coordinator {
             canRelaunch: Relauncher.canRelaunch,
             relaunch: { Relauncher.relaunch(reason: "language") },
             checkForUpdates: checkForUpdatesAction,
+            startUpdate: startUpdateAction,
             onChange: { [weak self] in self?.apply($0) }
         )
         if let tab = SettingsTab(argument: tab) {

@@ -1,32 +1,50 @@
 import AppKit
 
-/// The menu bar icon, drawn in code: a trackpad outline with its right edge highlighted, plus a dot in the
-/// bottom-right corner while a toggled hold key is on and a dot in the top-right corner while Accessibility access
-/// is missing.
+/// The menu bar icon, drawn in code as a template image: a trackpad outline with its right edge highlighted, plus a
+/// dot in the bottom-right corner while a toggled hold key is on, a dot in the top-right corner while Accessibility
+/// access is missing, and a filled up-arrow in the top-left corner while an update is known. Each mark is cut out of
+/// the outline with a 1 pt clear ring, so it stays legible in light and dark menu bars.
 enum MenuIcon {
-    private static let size = NSSize(width: 18, height: 18)
+    static let size = NSSize(width: 18, height: 18)
 
-    static func image(active: Bool, attention: Bool) -> NSImage {
+    /// What the icon shows.
+    struct State: Equatable {
+        /// A toggled hold key is on.
+        var active = false
+        /// Accessibility access is missing.
+        var attention = false
+        /// A newer version is known.
+        var update = false
+    }
+
+    static func image(_ state: State) -> NSImage {
         let image = NSImage(size: size, flipped: false) { _ in
-            draw(active: active, attention: attention)
+            draw(state)
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = description(active: active, attention: attention)
+        image.accessibilityDescription = description(state)
         return image
     }
 
-    /// What VoiceOver reads for the icon; each state is one phrase, so a translation can word it as a whole.
-    private static func description(active: Bool, attention: Bool) -> String {
-        switch (attention, active) {
-        case (false, false): "trrek"
-        case (true, false): String(localized: "trrek (Accessibility access needed)", bundle: .main)
-        case (false, true): String(localized: "trrek (hold-to-slide on)", bundle: .main)
-        case (true, true): String(localized: "trrek (Accessibility access needed, hold-to-slide on)", bundle: .main)
+    /// What VoiceOver reads for the icon: "trrek", followed by the states that hold, in parentheses.
+    static func description(_ state: State) -> String {
+        var parts: [String] = []
+        if state.update {
+            parts.append(String(localized: "update available", bundle: .main))
         }
+        if state.attention {
+            parts.append(String(localized: "Accessibility access needed", bundle: .main))
+        }
+        if state.active {
+            parts.append(String(localized: "hold-to-slide on", bundle: .main))
+        }
+        guard !parts.isEmpty else { return "trrek" }
+        let list = parts.joined(separator: ", ")
+        return String(localized: "trrek (\(list))", bundle: .main)
     }
 
-    private static func draw(active: Bool, attention: Bool) {
+    private static func draw(_ state: State) {
         NSColor.black.set()
 
         let outline = NSBezierPath(
@@ -39,20 +57,42 @@ enum MenuIcon {
 
         NSBezierPath(roundedRect: NSRect(x: 13, y: 5, width: 2, height: 8), xRadius: 1, yRadius: 1).fill()
 
-        if active {
-            badge(NSRect(x: 14, y: 0, width: 4, height: 4))
+        if state.active {
+            mark(NSBezierPath(ovalIn: NSRect(x: 14, y: 0, width: 4, height: 4)))
         }
-        if attention {
-            badge(NSRect(x: 13.5, y: 13.5, width: 4.5, height: 4.5))
+        if state.attention {
+            mark(NSBezierPath(ovalIn: NSRect(x: 13.5, y: 13.5, width: 4.5, height: 4.5)))
+        }
+        if state.update {
+            mark(updateArrow)
         }
     }
 
-    /// A filled dot with a cleared 1 pt ring, so it reads as a badge over the outline's corner.
-    private static func badge(_ dot: NSRect) {
+    /// A filled up-arrow in the top-left corner (head 6 pt wide, 3.5 pt tall, on a 2 pt stem): a shape that reads
+    /// differently from the round dots of the other marks.
+    static var updateArrow: NSBezierPath {
+        let arrow = NSBezierPath()
+        arrow.move(to: NSPoint(x: 3.5, y: 18))
+        arrow.line(to: NSPoint(x: 6.5, y: 14.5))
+        arrow.line(to: NSPoint(x: 4.5, y: 14.5))
+        arrow.line(to: NSPoint(x: 4.5, y: 11))
+        arrow.line(to: NSPoint(x: 2.5, y: 11))
+        arrow.line(to: NSPoint(x: 2.5, y: 14.5))
+        arrow.line(to: NSPoint(x: 0.5, y: 14.5))
+        arrow.close()
+        return arrow
+    }
+
+    /// Fills `shape` after clearing a 1 pt ring around it, so it reads as a badge over the outline.
+    private static func mark(_ shape: NSBezierPath) {
         guard let context = NSGraphicsContext.current else { return }
         context.compositingOperation = .clear
-        NSBezierPath(ovalIn: dot.insetBy(dx: -1, dy: -1)).fill()
+        let ring = shape.copy() as? NSBezierPath ?? shape
+        ring.lineWidth = 2
+        ring.lineJoinStyle = .round
+        ring.stroke()
+        ring.fill()
         context.compositingOperation = .sourceOver
-        NSBezierPath(ovalIn: dot).fill()
+        shape.fill()
     }
 }

@@ -3,6 +3,3 @@
 
 /* The .trrek document and type name, shown as the file kind in Finder */
 "trrek Settings" = "trrek Settings";
-
-/* Shown when trrek first saves a downloaded update to the Downloads folder */
-"NSDownloadsFolderUsageDescription" = "trrek saves update disk images to your Downloads folder.";

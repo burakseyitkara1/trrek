@@ -8,8 +8,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
     private weak var coordinator: Coordinator?
-    /// The state the icon was last drawn for: hold toggle on, Accessibility missing.
-    private var iconState: (active: Bool, attention: Bool)?
+    /// The state the icon was last drawn for.
+    private var iconState: MenuIcon.State?
+    /// The update items of the menu built last, updated in place while the menu is open.
+    let updateItems = UpdateMenuItems()
     /// Whether the menu is showing. Changes that arrive meanwhile (an update check started by opening it) are built
     /// when it closes, so items never move under the pointer.
     private var isOpen = false
@@ -37,13 +39,23 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     func refreshIcon() {
-        let active = coordinator?.isHoldToggleActive ?? false
-        let attention = !(coordinator?.isTrusted ?? true)
-        if let iconState, iconState == (active, attention) {
-            return
+        let state = MenuIcon.State(
+            active: coordinator?.isHoldToggleActive ?? false,
+            attention: !(coordinator?.isTrusted ?? true),
+            update: coordinator?.updates?.row != nil
+        )
+        guard state != iconState else { return }
+        iconState = state
+        statusItem.button?.image = MenuIcon.image(state)
+    }
+
+    /// Shows a changed update row: in place when the menu has a row (also while it is open, so the download's
+    /// progress moves), otherwise by rebuilding the menu (when it closes, if it is open).
+    func showUpdateRow(_ row: UpdateRowState?) {
+        refreshIcon()
+        if updateItems.show(row: row, isBusy: coordinator?.updates?.isBusy ?? false) {
+            refresh()
         }
-        iconState = (active, attention)
-        statusItem.button?.image = MenuIcon.image(active: active, attention: attention)
     }
 
     func menuNeedsUpdate(_: NSMenu) {
@@ -73,8 +85,13 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         guard let coordinator else { return }
         let settings = coordinator.settings
 
-        if let updateItem = updateItem(coordinator.updates) {
-            menu.addItem(updateItem)
+        updateItems.reset()
+        let row = coordinator.updates?.row
+        if let row {
+            let item = updateItems.makeRowItem(row, target: self, action: #selector(startUpdate)) { [weak self] in
+                self?.startUpdate()
+            }
+            menu.addItem(item)
             menu.addItem(.separator())
         }
         let status = NSMenuItem(title: coordinator.statusText, action: nil, keyEquivalent: "")
@@ -114,53 +131,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
         menu.addItem(item(String(localized: "About trrek", bundle: .main), #selector(showAbout)))
         let checkForUpdates = item(String(localized: "Check for Updates…", bundle: .main), #selector(checkForUpdates))
-        checkForUpdates.isEnabled = !(coordinator.updates?.isBusy ?? false)
         menu.addItem(checkForUpdates)
-        menu.addItem(item(String(localized: "Quit trrek", bundle: .main), #selector(quit), key: "q"))
-    }
-
-    /// "Update Available: trrek X.Y.Z…", or "Install trrek X.Y.Z…" for an update kept for later, in bold with a
-    /// download symbol; disabled "Downloading…", "Verifying…", "… Is Ready to Install" or "Installing…" items while
-    /// that runs; `nil` when no update is known or one was installed and trrek awaits a restart.
-    private func updateItem(_ updates: UpdateController?) -> NSMenuItem? {
-        guard let updates, updates.installedVersion == nil else { return nil }
-        let busyTitle: String? = if let version = updates.downloadingVersion {
-            String(localized: "Downloading trrek \(version.description)…", bundle: .main)
-        } else if let version = updates.installingVersion {
-            switch updates.installPhase {
-            case .verifying:
-                String(localized: "Verifying trrek \(version.description)…", bundle: .main)
-            case .ready:
-                String(localized: "trrek \(version.description) Is Ready to Install", bundle: .main)
-            case .installing, nil:
-                String(localized: "Installing trrek \(version.description)…", bundle: .main)
-            }
-        } else {
-            nil
-        }
-        if let busyTitle {
-            let busy = NSMenuItem(title: busyTitle, action: nil, keyEquivalent: "")
-            busy.isEnabled = false
-            return busy
-        }
-        let title: String
-        let action: Selector
-        if let pending = updates.pendingInstall {
-            title = String(localized: "Install trrek \(pending.release.version.description)…", bundle: .main)
-            action = #selector(installUpdate)
-        } else if let release = updates.availableUpdate {
-            title = String(localized: "Update Available: trrek \(release.version.description)…", bundle: .main)
-            action = #selector(downloadUpdate)
-        } else {
-            return nil
-        }
-        let update = item(title, action)
-        update.attributedTitle = NSAttributedString(
-            string: title,
-            attributes: [.font: NSFont.systemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize, weight: .semibold)]
-        )
-        update.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
-        return update
+        let quit = item(String(localized: "Quit trrek", bundle: .main), #selector(quit), key: "q")
+        menu.addItem(quit)
+        updateItems.track(check: checkForUpdates, quit: quit, row: row, isBusy: coordinator.updates?.isBusy ?? false)
     }
 
     private func item(_ title: String, _ action: Selector, key: String = "", checked: Bool? = nil) -> NSMenuItem {
@@ -208,14 +182,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         coordinator?.grantAccessibility()
     }
 
-    @objc private func downloadUpdate() {
-        guard let updates = coordinator?.updates else { return }
-        Task { await updates.download() }
-    }
-
-    @objc private func installUpdate() {
-        guard let updates = coordinator?.updates else { return }
-        Task { await updates.installPending() }
+    @objc private func startUpdate() {
+        coordinator?.updates?.startUpdate()
     }
 
     @objc private func checkForUpdates() {

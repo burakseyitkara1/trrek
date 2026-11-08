@@ -49,8 +49,10 @@ final class SettingsModel {
     var lastUpdateCheck: Date?
     /// Whether an update check is running.
     var isCheckingForUpdates = false
-    /// Whether an update check or download is running; Check Now is disabled meanwhile.
+    /// Whether an update check or an update is running; Check Now is disabled meanwhile.
     var isUpdateBusy = false
+    /// The known update and how its update is going, shown as a line with a button; `nil` when none is known.
+    var updateRow: UpdateRowState?
 
     /// Looks up an app's name and icon; replaced in tests.
     @ObservationIgnored var appInfoResolver: (String) -> PausedAppInfo = PausedAppInfo.init(bundleID:)
@@ -65,6 +67,8 @@ final class SettingsModel {
     @ObservationIgnored let relaunch: () -> Void
     /// Runs a manual update check whose alert attaches to the given window.
     @ObservationIgnored private let checkForUpdates: (NSWindow?) -> Void
+    /// Starts the update (the same as choosing the menu row).
+    @ObservationIgnored private let startUpdate: () -> Void
     @ObservationIgnored private var isRefreshing = false
 
     init(
@@ -79,6 +83,7 @@ final class SettingsModel {
         lastUpdateCheck: Date? = nil,
         isCheckingForUpdates: Bool = false,
         checkForUpdates: @escaping (NSWindow?) -> Void = { _ in },
+        startUpdate: @escaping () -> Void = {},
         onChange: @escaping (AppSettings) -> Void
     ) {
         self.settings = settings
@@ -90,6 +95,7 @@ final class SettingsModel {
         self.lastUpdateCheck = lastUpdateCheck
         self.isCheckingForUpdates = isCheckingForUpdates
         self.checkForUpdates = checkForUpdates
+        self.startUpdate = startUpdate
         self.externalBrightnessAvailable = externalBrightnessAvailable
         self.accessibilityGranted = accessibilityGranted
         self.onChange = onChange
@@ -136,6 +142,11 @@ final class SettingsModel {
     /// Check Now: checks for updates, with the outcome shown as a sheet on the settings window.
     func checkForUpdatesNow() {
         checkForUpdates(window)
+    }
+
+    /// Update Now, Try Again, Update in Browser… or Relaunch next to the update line.
+    func updateNow() {
+        startUpdate()
     }
 
     /// The line under Check Now.

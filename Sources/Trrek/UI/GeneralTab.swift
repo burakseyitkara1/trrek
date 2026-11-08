@@ -70,6 +70,9 @@ struct GeneralTab: View {
                     Button("Check Now") { model.checkForUpdatesNow() }
                         .disabled(model.isUpdateBusy || model.isCheckingForUpdates)
                 }
+                if let row = model.updateRow {
+                    UpdateRowLine(row: row) { model.updateNow() }
+                }
             } footer: {
                 Text(model.updateCheckStatus)
             }
@@ -114,5 +117,29 @@ struct GeneralTab: View {
         model.accessibilityGranted
             ? String(localized: "The pointer stays still while you slide along an edge.", bundle: .main)
             : String(localized: "Needs Accessibility access.", bundle: .main)
+    }
+}
+
+/// The known update in General: its state, the download's progress and the button that starts (or retries) it.
+private struct UpdateRowLine: View {
+    let row: UpdateRowState
+    let action: () -> Void
+
+    var body: some View {
+        HStack {
+            Text(verbatim: row.statusText)
+            Spacer()
+            switch row {
+            case let .downloading(_, progress?):
+                ProgressView(value: progress).frame(width: 80)
+            case .downloading, .installing:
+                ProgressView().controlSize(.small)
+            case .available, .failed, .browser, .relaunch:
+                EmptyView()
+            }
+            if let title = row.actionTitle {
+                Button(title, action: action)
+            }
+        }
     }
 }

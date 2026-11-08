@@ -6,9 +6,9 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
-- trrek tells you when a newer version is out: it checks the public releases page at most once a day (after launch, after wake or when the menu opens), shows Update Available in the menu and posts one notification per new version; clicking either downloads the disk image to Downloads and opens it
-- Check for Updates… in the menu, and Check for Updates Automatically, Check Now and the last check time in General
-- trrek installs a downloaded update itself: it checks the new app's signature and notarization, then Install and Relaunch replaces trrek where it is and opens it again (Later keeps it as Install trrek X.Y.Z… in the menu); when trrek can't replace itself, the disk image opens as before
+- trrek tells you when a newer version is out: it checks the public releases page at most once a day (after launch, after wake or when the menu opens) and shows an arrow on the menu bar icon and Update Available at the top of the menu
+- Choosing Update Available updates trrek in the open menu: the row shows the download's progress, then trrek checks the new app's signature and notarization, replaces itself where it is and opens again; a failure shows Try Again, and when trrek can't replace itself the release page opens in the browser
+- Check for Updates… in the menu, and Check for Updates Automatically, Check Now, the last check time and Update Now in General
 
 ## [0.3.0] - 2026-11-06
 

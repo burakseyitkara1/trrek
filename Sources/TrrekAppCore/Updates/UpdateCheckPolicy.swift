@@ -16,7 +16,7 @@ public enum UpdateCheckTrigger: String, Sendable {
     }
 }
 
-/// When to check and when to notify. There is no timer: checks happen at launch, wake and menu opening, and only
+/// When to check. There is no timer: checks happen at launch, wake and menu opening, and only
 /// when this allows.
 public enum UpdateCheckPolicy {
     /// Automatic checks run at most this often after a successful one.
@@ -37,15 +37,6 @@ public enum UpdateCheckPolicy {
         guard trigger.isAutomatic else { return true }
         guard automatic else { return false }
         return isOld(lastCheck, interval, now) && isOld(lastFailure, retryInterval, now)
-    }
-
-    /// Whether to post a notification for `version`: only for an automatic check, and once per version.
-    public static func shouldNotify(
-        version: SemanticVersion,
-        trigger: UpdateCheckTrigger,
-        notifiedVersion: SemanticVersion?
-    ) -> Bool {
-        trigger.isAutomatic && notifiedVersion != version
     }
 
     private static func isOld(_ date: Date?, _ age: TimeInterval, _ now: Date) -> Bool {

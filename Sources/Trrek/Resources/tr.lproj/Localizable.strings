@@ -1,9 +1,5 @@
 /* trrek interface strings. The key is the English source text. */
 
-/* Menu bar icon (VoiceOver) */
-"trrek (Accessibility access needed)" = "trrek (Erişilebilirlik izni gerekli)";
-"trrek (hold-to-slide on)" = "trrek (basılı tutarak kaydırma açık)";
-"trrek (Accessibility access needed, hold-to-slide on)" = "trrek (Erişilebilirlik izni gerekli, basılı tutarak kaydırma açık)";
 
 /* Menu bar menu */
 "Precision Control" = "Hassas Denetim";
@@ -196,18 +192,11 @@
 
 /* Updates */
 "Check for Updates…" = "Güncellemeleri Denetle…";
-"Update Available: trrek %@…" = "Güncelleme Mevcut: trrek %@…";
 "Downloading trrek %@…" = "trrek %@ İndiriliyor…";
 "trrek %@ is available" = "trrek %@ kullanılabilir";
-"Click to download." = "İndirmek için tıklayın.";
-"You have trrek %@." = "Kullandığınız sürüm: trrek %@.";
-"Download" = "İndir";
-"Later" = "Daha Sonra";
 "trrek is up to date" = "trrek güncel";
 "trrek %@ is the latest version." = "trrek %@ en son sürüm.";
 "Couldn’t check for updates" = "Güncellemeler denetlenemedi";
-"Couldn’t download trrek %@" = "trrek %@ indirilemedi";
-"Open Download Page" = "İndirme Sayfasını Aç";
 "The update information could not be read." = "Güncelleme bilgileri okunamadı.";
 "The latest release could not be found." = "En son sürüm bulunamadı.";
 "The server answered with status %lld." = "Sunucu %lld durum koduyla yanıt verdi.";
@@ -218,29 +207,15 @@
 "Last checked: %@" = "Son denetim: %@";
 "Not checked yet" = "Henüz denetlenmedi";
 "The update information points to an unexpected address." = "Güncelleme bilgileri beklenmeyen bir adresi gösteriyor.";
-
-/* Update install */
-"trrek isn’t running from an app bundle." = "trrek bir uygulama paketinden çalışmıyor.";
-"macOS runs trrek from a temporary location. Move trrek to the Applications folder." = "macOS, trrek’i geçici bir konumdan çalıştırıyor. trrek’i Uygulamalar klasörüne taşıyın.";
-"trrek runs from a disk image or a read-only volume." = "trrek bir disk görüntüsünden ya da salt okunur bir birimden çalışıyor.";
-"trrek can’t write to the folder it’s installed in." = "trrek, yüklü olduğu klasöre yazamıyor.";
-"The disk image couldn’t be opened." = "Disk görüntüsü açılamadı.";
-"The installed app couldn’t be replaced." = "Yüklü uygulama değiştirilemedi.";
-"The update isn’t signed by trrek’s developer." = "Güncelleme, trrek’in geliştiricisi tarafından imzalanmamış.";
-"macOS didn’t accept the update: it isn’t notarized." = "macOS güncellemeyi kabul etmedi: güncelleme noter onaylı değil.";
-"The disk image doesn’t contain trrek." = "Disk görüntüsünde trrek yok.";
-"The disk image contains another version (%@)." = "Disk görüntüsünde başka bir sürüm var (%@).";
-"The update isn’t newer than this version of trrek." = "Güncelleme, trrek’in bu sürümünden daha yeni değil.";
 "Installing trrek %@…" = "trrek %@ Yükleniyor…";
-"Install trrek %@…" = "trrek %@ Sürümünü Yükle…";
-"trrek %@ is ready to install" = "trrek %@ yüklenmeye hazır";
-"trrek will quit and open again." = "trrek kapanıp yeniden açılacak.";
-"Install and Relaunch" = "Yükle ve Yeniden Başlat";
-"trrek %@ couldn’t be installed automatically" = "trrek %@ otomatik olarak yüklenemedi";
-"Drag trrek to the Applications folder in the disk image’s window." = "Disk görüntüsünün penceresinde trrek’i Uygulamalar klasörüne sürükleyin.";
-"trrek %@ couldn’t be verified" = "trrek %@ doğrulanamadı";
-"Nothing was installed. The disk image is kept in Downloads." = "Hiçbir şey yüklenmedi. Disk görüntüsü İndirilenler klasöründe duruyor.";
 "trrek %@ is installed" = "trrek %@ yüklendi";
-"Quit trrek and open it again to use the new version." = "Yeni sürümü kullanmak için trrek’ten çıkıp yeniden açın.";
-"Verifying trrek %@…" = "trrek %@ Doğrulanıyor…";
-"trrek %@ Is Ready to Install" = "trrek %@ Yüklenmeye Hazır";
+"Update Available: trrek %@" = "Güncelleme Mevcut: trrek %@";
+"Update Failed — Try Again" = "Güncelleme Başarısız — Yeniden Dene";
+"Update in Browser…" = "Tarayıcıda Güncelle…";
+"Relaunch to Finish Updating" = "Güncellemeyi Bitirmek İçin Yeniden Başlat";
+"The update failed." = "Güncelleme başarısız oldu.";
+"Update Now" = "Şimdi Güncelle";
+"Try Again" = "Yeniden Dene";
+"update available" = "güncelleme mevcut";
+"hold-to-slide on" = "basılı tutarak kaydırma açık";
+"trrek (%@)" = "trrek (%@)";

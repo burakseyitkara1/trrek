@@ -11,8 +11,8 @@ public enum UpdateCheckResult: Equatable, Sendable {
     case skipped
     /// The running version is the latest (or newer); carries the latest published version.
     case upToDate(latest: SemanticVersion)
-    /// A newer release; `notify` says whether this check should post a notification for it.
-    case available(ReleaseInfo, notify: Bool)
+    /// A newer release.
+    case available(ReleaseInfo)
     /// The check failed; carries the explanation for the alert.
     case failed(message: String)
 }
@@ -73,8 +73,8 @@ public final class UpdateChecker {
         )
     }
 
-    /// Checks the feed if `isDue` allows. A newer release is stored and marked as notified, since a notification
-    /// (automatic checks) or an alert (manual checks) tells the user about it; anything else clears the stored one.
+    /// Checks the feed if `isDue` allows. A newer release is stored (the menu bar icon and the menu show it); anything
+    /// else clears the stored one.
     public func check(_ trigger: UpdateCheckTrigger, automatic: Bool) async -> UpdateCheckResult {
         guard isDue(trigger, automatic: automatic) else { return .skipped }
         checksRunning += 1
@@ -99,15 +99,9 @@ public final class UpdateChecker {
             appLogger.notice("update check: \(release.version, privacy: .public) is the latest")
             return .upToDate(latest: release.version)
         }
-        let notify = UpdateCheckPolicy.shouldNotify(
-            version: release.version,
-            trigger: trigger,
-            notifiedVersion: state.notifiedVersion
-        )
         state.availableUpdate = release
-        state.notifiedVersion = release.version
         appLogger.notice("update check: \(release.version, privacy: .public) is available")
-        return .available(release, notify: notify)
+        return .available(release)
     }
 
     /// The text shown for a failed check or download.

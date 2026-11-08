@@ -51,14 +51,11 @@ struct UpdateInstallPolicyTests {
         #expect(try problem(id, "0.3.0", current: #require(SemanticVersion("0.4.0"))) == .notNewer)
     }
 
-    @Test func onlyAFailedVerificationKeepsTheDiskImageClosed() {
-        #expect(UpdateInstallError.location(.translocated).fallsBackToDiskImage)
-        #expect(UpdateInstallError.extraction.fallsBackToDiskImage)
-        #expect(UpdateInstallError.replacement.fallsBackToDiskImage)
-        #expect(!UpdateInstallError.verification(.signature).fallsBackToDiskImage)
-        #expect(!UpdateInstallError.extraction.message.isEmpty)
-        #expect(UpdateInstallError.verification(.notNotarized).message == UpdateVerificationFailure.notNotarized
-            .message)
+    @Test func onlyAFailedVerificationDoesNotOpenTheReleasePage() {
+        #expect(UpdateInstallError.location(.translocated).fallsBackToBrowser)
+        #expect(UpdateInstallError.extraction.fallsBackToBrowser)
+        #expect(UpdateInstallError.replacement.fallsBackToBrowser)
+        #expect(!UpdateInstallError.verification(.signature).fallsBackToBrowser)
     }
 }
 
@@ -162,15 +159,6 @@ struct UpdateInstallerTests {
         #expect(harness.stagingFolders.isEmpty)
     }
 
-    @Test func laterDiscardsTheStagedApp() async throws {
-        let harness = try Self.harness()
-        defer { try? FileManager.default.removeItem(at: harness.root) }
-        let staged = try await Self.prepare(harness).get()
-        await harness.installer.discard(staged)
-        #expect(harness.stagingFolders.isEmpty)
-        #expect(!harness.log.all.contains("swap"))
-    }
-
     @Test func aLocationIssueStopsBeforeMounting() async throws {
         for issue in [InstallLocationIssue.notAppBundle, .translocated, .diskImage, .readOnlyVolume, .notWritable] {
             let harness = try Self.harness()
@@ -208,7 +196,7 @@ struct UpdateInstallerTests {
             return
         }
         #expect(error == .verification(.signature))
-        #expect(!error.fallsBackToDiskImage)
+        #expect(!error.fallsBackToBrowser)
         #expect(harness.stagingFolders.isEmpty)
     }
 

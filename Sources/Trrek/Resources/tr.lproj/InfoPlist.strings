@@ -3,6 +3,3 @@
 
 /* The .trrek document and type name, shown as the file kind in Finder */
 "trrek Settings" = "trrek Ayarları";
-
-/* Shown when trrek first saves a downloaded update to the Downloads folder */
-"NSDownloadsFolderUsageDescription" = "trrek, güncelleme disk görüntülerini İndirilenler klasörünüze kaydeder.";
