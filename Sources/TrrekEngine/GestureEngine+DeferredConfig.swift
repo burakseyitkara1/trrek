@@ -10,7 +10,7 @@ public extension GestureEngine {
         lock.withLock {
             let busy = DeferredConfig.isBusy(stateKindLocked)
             if let now = deferredConfig.request(config, current: self.config, busy: busy) {
-                updateLocked(config: now)
+                applyDeferredLocked(now)
             }
         }
     }
@@ -23,6 +23,30 @@ extension GestureEngine {
         guard deferredConfig.pending != nil,
               let config = deferredConfig.settle(busy: DeferredConfig.isBusy(stateKindLocked))
         else { return }
-        updateLocked(config: config)
+        applyDeferredLocked(config)
+    }
+
+    /// Applies a configuration that followed the app in front. Unlike a settings change, it keeps the first tap of a
+    /// double tap when that tap still means the same: the front app often changes between the two taps (the first
+    /// one also clicks), and dropping it would swallow the double tap.
+    func applyDeferredLocked(_ new: EngineConfig) {
+        let old = config
+        let tap = lastTap
+        updateLocked(config: new)
+        if let tap, Self.tapSurvives(tap, from: old, to: new) {
+            lastTap = tap
+        }
+    }
+
+    /// Whether a pending first tap still counts after a configuration change: a corner tap while that corner keeps
+    /// its action, an edge tap while that edge still runs media control.
+    static func tapSurvives(_ tap: TapRecord, from old: EngineConfig, to new: EngineConfig) -> Bool {
+        if let corner = tap.corner {
+            return new.action(for: corner) != .off && new.action(for: corner) == old.action(for: corner)
+        }
+        if let edge = tap.edge {
+            return new.action(for: edge) == .media
+        }
+        return false
     }
 }
