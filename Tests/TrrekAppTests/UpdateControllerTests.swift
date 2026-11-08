@@ -115,7 +115,7 @@ struct UpdateControllerTests {
         }
     }
 
-    static let releases = "https://github.com/burakseyitkara1/trrek-releases/releases"
+    static let releases = "https://github.com/burakseyitkara1/trrek/releases"
 
     static func releaseJSON(_ version: String) -> Data {
         Data("""

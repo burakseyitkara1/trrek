@@ -158,7 +158,7 @@ struct SessionFileDownloaderTests {
     }
 
     private static let url =
-        URL(string: "https://github.com/burakseyitkara1/trrek-releases/releases/download/v0.4.0/trrek-v0.4.0.dmg")!
+        URL(string: "https://github.com/burakseyitkara1/trrek/releases/download/v0.4.0/trrek-v0.4.0.dmg")!
 
     @Test func reportsProgressAndKeepsTheFile() async throws {
         Stub.status = 200

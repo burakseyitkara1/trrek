@@ -63,8 +63,8 @@ public struct ReleaseInfo: Codable, Equatable, Sendable {
 
     // MARK: - Trusted links
 
-    /// The public releases repository on github.com.
-    public static let repositoryPath = "/burakseyitkara1/trrek-releases"
+    /// trrek's public repository on github.com, whose releases carry the signed disk images.
+    public static let repositoryPath = "/burakseyitkara1/trrek"
 
     /// The only disk image address accepted for `version`: the release asset of tag `vX.Y.Z` (the server then
     /// redirects to its download host).
@@ -73,8 +73,8 @@ public struct ReleaseInfo: Codable, Equatable, Sendable {
         return URL(string: "https://github.com" + path)!
     }
 
-    /// Whether `url` is a page of the releases repository's releases: https on github.com at or under
-    /// `/burakseyitkara1/trrek-releases/releases`, without credentials, port, query, fragment or `..`.
+    /// Whether `url` is a page of the repository's releases: https on github.com at or under
+    /// `/burakseyitkara1/trrek/releases`, without credentials, port, query, fragment or `..`.
     public static func isReleasePage(_ url: URL) -> Bool {
         guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
         let releases = repositoryPath + "/releases"
