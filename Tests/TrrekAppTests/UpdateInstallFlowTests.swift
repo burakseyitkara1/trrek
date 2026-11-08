@@ -215,6 +215,21 @@ struct UpdateInstallFlowTests {
         #expect(!FileManager.default.fileExists(atPath: harness.cache.path))
     }
 
+    /// A release older than the running trrek (offered while checking as an assumed older version) is refused before
+    /// anything is downloaded.
+    @Test func anOlderReleaseThanTheRunningOneIsNotDownloaded() async throws {
+        let harness = try UpdateControllerTests.harness(running: "0.5.0", suite: "trrek.tests.update-install")
+        defer { harness.tearDown() }
+        await harness.controller.checkManually()
+        #expect(harness.controller.row == .available(Self.version))
+        harness.controller.startUpdate()
+        try await waitUntil { harness.controller.row == .failed(Self.version) }
+        #expect(harness.installer.calls.isEmpty)
+        #expect(!harness.rows().contains(.downloading(Self.version, progress: 0.5)))
+        #expect(!FileManager.default.fileExists(atPath: harness.cache.path))
+        #expect(harness.relaunches() == 0)
+    }
+
     /// Disk images an interrupted update left in the cache folder are removed at launch, with mounts and backups.
     @Test func leftoversAreRemovedAtLaunch() async throws {
         let harness = try UpdateControllerTests.harness(suite: "trrek.tests.update-install")

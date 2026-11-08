@@ -30,6 +30,8 @@ final class UpdateController {
     let checker: UpdateChecker
     private let downloader: UpdateDownloader
     private let installer: any UpdateInstalling
+    /// The version of the trrek that is running; no older release is downloaded (tests pass their own).
+    private let runningVersion: SemanticVersion
     /// Quits and opens the (replaced) app bundle again; returns `false` when it could not.
     private let relaunch: () -> Bool
     private let alerts: any UpdateAlertPresenting
@@ -53,6 +55,7 @@ final class UpdateController {
         checker: UpdateChecker,
         downloader: UpdateDownloader,
         installer: any UpdateInstalling,
+        runningVersion: SemanticVersion = UpdateInstaller.runningVersion,
         relaunch: @escaping () -> Bool = { Relauncher.relaunch(reason: "update") },
         alerts: any UpdateAlertPresenting,
         cacheFolder: URL = UpdateController.defaultCacheFolder,
@@ -62,6 +65,7 @@ final class UpdateController {
         self.checker = checker
         self.downloader = downloader
         self.installer = installer
+        self.runningVersion = runningVersion
         self.relaunch = relaunch
         self.alerts = alerts
         self.cacheFolder = cacheFolder
@@ -189,7 +193,7 @@ final class UpdateController {
     private func run(_ release: ReleaseInfo) async {
         let version = release.version
         // An older release than this build is refused before anything is downloaded (the installer checks again).
-        if UpdateInstallPolicy.downgradeProblem(version: version, running: UpdateInstaller.runningVersion) != nil {
+        if UpdateInstallPolicy.downgradeProblem(version: version, running: runningVersion) != nil {
             appLogger.error("update \(version, privacy: .public) is older than this build; not downloading")
             update(version) { $0.fail() }
             return

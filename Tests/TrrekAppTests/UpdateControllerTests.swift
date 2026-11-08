@@ -128,6 +128,7 @@ struct UpdateControllerTests {
 
     static func harness(
         current: String = "0.3.0",
+        running: String = "0.3.0",
         feed: Result<Data, any Error> = .success(releaseJSON("0.4.0")),
         automatic: Bool = true,
         downloader: Downloader = Downloader(fails: false),
@@ -150,10 +151,11 @@ struct UpdateControllerTests {
             feed: fakeFeed,
             state: UpdateStateStore(defaults: defaults)
         )
-        let controller = UpdateController(
+        let controller = try UpdateController(
             checker: checker,
             downloader: UpdateDownloader(client: downloader),
             installer: installer,
+            runningVersion: #require(SemanticVersion(running)),
             relaunch: {
                 relaunches += 1
                 return relaunchSucceeds
