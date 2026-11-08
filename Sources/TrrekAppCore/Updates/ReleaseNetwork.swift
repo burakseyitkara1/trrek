@@ -2,14 +2,14 @@ import Foundation
 import TrrekEngine
 import TrrekPlatform
 
-/// The releases API's latest release of the public releases repository.
+/// The releases API's latest release of trrek's public repository.
 ///
 /// Each request uses its own ephemeral session (no cookies, no cache, no stored credentials) that is invalidated
 /// afterwards, and sends only the `Accept` and `User-Agent` headers. An answer larger than `maximumSize` is refused
 /// as it arrives.
 public struct ReleaseFeedClient: ReleaseFeed {
     public static let latestReleaseURL = URL(
-        string: "https://api.github.com/repos/burakseyitkara1/trrek-releases/releases/latest"
+        string: "https://api.github.com/repos/burakseyitkara1/trrek/releases/latest"
     )!
     public static let timeout: TimeInterval = 15
     /// The largest answer read: 1 MB, far above a release's few kilobytes of JSON.

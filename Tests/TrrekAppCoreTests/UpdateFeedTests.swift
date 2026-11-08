@@ -17,7 +17,7 @@ enum UpdateFixtures {
         try JSONSerialization.data(withJSONObject: object)
     }
 
-    static let releases = "https://github.com/burakseyitkara1/trrek-releases/releases"
+    static let releases = "https://github.com/burakseyitkara1/trrek/releases"
 
     /// A release with a disk image and a zip at the releases repository's addresses for `tag`, unless `download`
     /// gives another address for the disk image.
@@ -93,9 +93,9 @@ struct ReleaseInfoTests {
         let release = try ReleaseInfo.decode(UpdateFixtures.latestRelease)
         #expect(release.version == SemanticVersion("0.3.0"))
         #expect(release.pageURL.absoluteString
-            == "https://github.com/burakseyitkara1/trrek-releases/releases/tag/v0.3.0")
+            == "https://github.com/burakseyitkara1/trrek/releases/tag/v0.3.0")
         #expect(release.diskImageURL.absoluteString
-            == "https://github.com/burakseyitkara1/trrek-releases/releases/download/v0.3.0/trrek-v0.3.0.dmg")
+            == "https://github.com/burakseyitkara1/trrek/releases/download/v0.3.0/trrek-v0.3.0.dmg")
         #expect(release.diskImageName == "trrek-v0.3.0.dmg")
         #expect(release.notes.hasPrefix("- Export Settings…"))
     }
@@ -127,13 +127,14 @@ struct ReleaseInfoTests {
     @Test func onlyTheReleasesRepositoryIsTrusted() throws {
         let releases = UpdateFixtures.releases
         let hostileDownloads = [
-            "http://github.com/burakseyitkara1/trrek-releases/releases/download/v1.2.3/trrek-v1.2.3.dmg",
-            "https://example.com/burakseyitkara1/trrek-releases/releases/download/v1.2.3/trrek-v1.2.3.dmg",
-            "https://github.com.example.com/burakseyitkara1/trrek-releases/releases/download/v1.2.3/trrek-v1.2.3.dmg",
-            "https://evil@github.com/burakseyitkara1/trrek-releases/releases/download/v1.2.3/trrek-v1.2.3.dmg",
-            "https://github.com:8443/burakseyitkara1/trrek-releases/releases/download/v1.2.3/trrek-v1.2.3.dmg",
-            "https://github.com/someone/trrek-releases/releases/download/v1.2.3/trrek-v1.2.3.dmg",
-            "https://github.com/burakseyitkara1/trrek/releases/download/v1.2.3/trrek-v1.2.3.dmg",
+            "http://github.com/burakseyitkara1/trrek/releases/download/v1.2.3/trrek-v1.2.3.dmg",
+            "https://example.com/burakseyitkara1/trrek/releases/download/v1.2.3/trrek-v1.2.3.dmg",
+            "https://github.com.example.com/burakseyitkara1/trrek/releases/download/v1.2.3/trrek-v1.2.3.dmg",
+            "https://evil@github.com/burakseyitkara1/trrek/releases/download/v1.2.3/trrek-v1.2.3.dmg",
+            "https://github.com:8443/burakseyitkara1/trrek/releases/download/v1.2.3/trrek-v1.2.3.dmg",
+            "https://github.com/someone/trrek/releases/download/v1.2.3/trrek-v1.2.3.dmg",
+            // The releases-only repository earlier versions read is no longer trusted.
+            "https://github.com/burakseyitkara1/trrek-releases/releases/download/v1.2.3/trrek-v1.2.3.dmg",
             "\(releases)/download/v1.2.2/trrek-v1.2.3.dmg",
             "\(releases)/download/v1.2.3/trrek-v1.2.2.dmg",
             "\(releases)/download/v1.2.3/trrek-v1.2.3.dmg?x=1",
@@ -146,12 +147,13 @@ struct ReleaseInfoTests {
             }
         }
         let hostilePages = [
-            "http://github.com/burakseyitkara1/trrek-releases/releases/tag/v1.2.3",
-            "https://example.com/burakseyitkara1/trrek-releases/releases/tag/v1.2.3",
-            "https://github.com/someone/trrek-releases/releases/tag/v1.2.3",
-            "https://github.com/burakseyitkara1/trrek-releases/issues",
-            "https://github.com/burakseyitkara1/trrek-releases/releases/../../other",
-            "https://github.com/burakseyitkara1/trrek-releasesx/releases",
+            "http://github.com/burakseyitkara1/trrek/releases/tag/v1.2.3",
+            "https://example.com/burakseyitkara1/trrek/releases/tag/v1.2.3",
+            "https://github.com/someone/trrek/releases/tag/v1.2.3",
+            "https://github.com/burakseyitkara1/trrek-releases/releases/tag/v1.2.3",
+            "https://github.com/burakseyitkara1/trrek/issues",
+            "https://github.com/burakseyitkara1/trrek/releases/../../other",
+            "https://github.com/burakseyitkara1/trrekx/releases",
             "\(releases)/tag/v1.2.3#top"
         ]
         for page in hostilePages {
@@ -218,7 +220,7 @@ struct ReleaseNetworkTests {
         let request = ReleaseFeedClient.request()
         #expect(request.url == ReleaseFeedClient.latestReleaseURL)
         #expect(request.url?.absoluteString
-            == "https://api.github.com/repos/burakseyitkara1/trrek-releases/releases/latest")
+            == "https://api.github.com/repos/burakseyitkara1/trrek/releases/latest")
         #expect(request.httpMethod == "GET")
         #expect(request.allHTTPHeaderFields == [
             "Accept": "application/vnd.github+json",

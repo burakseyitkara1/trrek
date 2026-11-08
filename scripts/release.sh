@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds, signs (Developer ID + hardened runtime), notarizes and staples trrek, then tags the release and
-# publishes it on GitHub with a DMG and a zip: in this repository, and in the public releases repository
-# (burakseyitkara1/trrek-releases) that the app's update check reads, with the version's CHANGELOG.md section as
-# its notes. --no-publish publishes to neither.
+# publishes it on GitHub with a DMG and a zip and the version's CHANGELOG.md section as its notes: in this
+# repository, whose releases the app's update check reads, and in the mirror repository MIRROR_REPO, which 0.4.0 and
+# 0.4.1 read; set MIRROR_REPO to "" once those installs have updated. --no-publish publishes nowhere.
 #
 # Publishing needs a successful run of the ci workflow for the exact commit being released. Pull request runs test a
 # merge of the branch, not the squashed commit on main, so start one on main first and wait for it to pass:
@@ -39,7 +39,8 @@ done
 
 fail() { echo "release: $*" >&2; exit 1; }
 
-PUBLIC_REPO="burakseyitkara1/trrek-releases"
+# Releases-only repository that trrek 0.4.0 and 0.4.1 read for updates; "" stops mirroring.
+MIRROR_REPO="burakseyitkara1/trrek-releases"
 NOTES=""
 
 # Prints the CHANGELOG section of version $1 (file $2, CHANGELOG.md by default): the lines under its
@@ -90,8 +91,10 @@ if [[ $PUBLISH -eq 1 ]]; then
         [[ -n "$CI_RUN" ]] || fail "no successful ci run for $COMMIT; run it with 'gh workflow run ci --ref main' and wait for it to pass (or pass --allow-missing-ci)"
         echo "ci run $CI_RUN passed for $COMMIT"
     fi
-    gh repo view "$PUBLIC_REPO" >/dev/null 2>&1 || fail "the public releases repository $PUBLIC_REPO is not reachable"
-    ! gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1 || fail "$PUBLIC_REPO already has a release $TAG"
+    if [[ -n "$MIRROR_REPO" ]]; then
+        gh repo view "$MIRROR_REPO" >/dev/null 2>&1 || fail "the mirror repository $MIRROR_REPO is not reachable"
+        ! gh release view "$TAG" --repo "$MIRROR_REPO" >/dev/null 2>&1 || fail "$MIRROR_REPO already has a release $TAG"
+    fi
     NOTES="$(changelog_section "$VERSION")"
     [[ -n "$NOTES" ]] || fail "CHANGELOG.md has no section for $VERSION (a '## [$VERSION] - YYYY-MM-DD' heading with lines under it)"
 fi
@@ -182,12 +185,14 @@ fi
 
 git tag -a "$TAG" -m "trrek $VERSION"
 git push origin "$TAG"
-gh release create "$TAG" --verify-tag --title "trrek $VERSION" --generate-notes "$DMG" "$ZIP"
-echo "published $TAG"
-
-# The public copy the update check reads: the same files, the changelog section as notes.
 # The notes are kept beside the artifacts (not in $WORK, which is removed on exit) so a failed upload can be redone.
 printf '%s\n' "$NOTES" > "$NOTES_FILE"
-gh release create "$TAG" --repo "$PUBLIC_REPO" --title "trrek $VERSION" --notes-file "$NOTES_FILE" "$DMG" "$ZIP" \
-    || fail "$TAG is published here but not in $PUBLIC_REPO; rerun: gh release create $TAG --repo $PUBLIC_REPO --title \"trrek $VERSION\" --notes-file $NOTES_FILE $DMG $ZIP"
-echo "published $TAG in $PUBLIC_REPO"
+gh release create "$TAG" --verify-tag --title "trrek $VERSION" --notes-file "$NOTES_FILE" --latest "$DMG" "$ZIP"
+echo "published $TAG"
+
+# The copy that 0.4.0 and 0.4.1 read for updates: the same files and notes.
+if [[ -n "$MIRROR_REPO" ]]; then
+    gh release create "$TAG" --repo "$MIRROR_REPO" --title "trrek $VERSION" --notes-file "$NOTES_FILE" "$DMG" "$ZIP" \
+        || fail "$TAG is published here but not in $MIRROR_REPO; rerun: gh release create $TAG --repo $MIRROR_REPO --title \"trrek $VERSION\" --notes-file $NOTES_FILE $DMG $ZIP"
+    echo "published $TAG in $MIRROR_REPO"
+fi

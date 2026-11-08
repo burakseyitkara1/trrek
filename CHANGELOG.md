@@ -6,6 +6,10 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-09
+
+- trrek is open source: its code and releases are on github.com/burakseyitkara1/trrek, and the update check now reads that repository's releases
+
 ## [0.4.1] - 2026-11-09
 
 - The app is smaller: its executable ships without the build's symbol table and debug paths
