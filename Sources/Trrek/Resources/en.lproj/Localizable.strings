@@ -42,6 +42,15 @@
 "%@ — %@" = "%@ — %@";
 "Needs Accessibility access" = "Needs Accessibility access";
 
+/* Edges for one app */
+"Edges For" = "Edges For";
+"All Apps" = "All Apps";
+"Add App…" = "Add App…";
+"Choose an App" = "Choose an App";
+"These edges apply while %@ is in front." = "These edges apply while %@ is in front.";
+"Remove %@" = "Remove %@";
+"Same as All Apps (%@)" = "Same as All Apps (%@)";
+
 /* General tab */
 "Haptic Feedback" = "Haptic Feedback";
 "Slide Sensitivity" = "Slide Sensitivity";
@@ -171,6 +180,7 @@
 "Trackpad not found" = "Trackpad not found";
 "Trackpad data unavailable" = "Trackpad data unavailable";
 "Paused in %@" = "Paused in %@";
+"Edges set for %@" = "Edges set for %@";
 "trrek is active" = "trrek is active";
 
 /* Welcome window edge cards */

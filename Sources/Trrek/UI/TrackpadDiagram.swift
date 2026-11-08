@@ -21,12 +21,15 @@ struct TrackpadDiagram: View {
     let interactive: Bool
     var onChange: ((AppSettings) -> Void)?
     var height: CGFloat = TrackpadDiagram.size.height
+    /// The app whose edges the strips show; `nil` for the All Apps edges. Corners are the same for every app.
+    var bundleID: String?
 
     var body: some View {
         let edges = DiagramEdges(
             settings: settings,
             backlightAvailable: backlightAvailable,
-            accessibilityTrusted: accessibilityGranted
+            accessibilityTrusted: accessibilityGranted,
+            bundleID: bundleID
         )
         GlassEffectContainer {
             ZStack {

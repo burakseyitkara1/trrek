@@ -42,6 +42,15 @@
 "%@ — %@" = "%@ — %@";
 "Needs Accessibility access" = "Erişilebilirlik izni gerekir";
 
+/* Edges for one app */
+"Edges For" = "Kenar Ayarları";
+"All Apps" = "Tüm Uygulamalar";
+"Add App…" = "Uygulama Ekle…";
+"Choose an App" = "Bir Uygulama Seçin";
+"These edges apply while %@ is in front." = "Bu kenarlar %@ öndeyken geçerlidir.";
+"Remove %@" = "%@ Ayarlarını Kaldır";
+"Same as All Apps (%@)" = "Tüm Uygulamalarla Aynı (%@)";
+
 /* General tab */
 "Haptic Feedback" = "Dokunuş Geri Bildirimi";
 "Slide Sensitivity" = "Kaydırma Hassasiyeti";
@@ -171,6 +180,7 @@
 "Trackpad not found" = "İzleme dörtgeni bulunamadı";
 "Trackpad data unavailable" = "İzleme dörtgeni verisi alınamıyor";
 "Paused in %@" = "%@ için duraklatıldı";
+"Edges set for %@" = "Kenarlar %@ için ayarlı";
 "trrek is active" = "trrek etkin";
 
 /* Welcome window edge cards */

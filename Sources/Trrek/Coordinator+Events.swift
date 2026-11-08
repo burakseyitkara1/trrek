@@ -123,6 +123,7 @@ extension Coordinator {
             MainActor.assumeIsolated {
                 self?.frontmostPause.activated(bundleID: bundleID, isOwnApp: isOwnApp)
                 self?.updatePause()
+                self?.updateEdgesForFrontmostApp()
                 // Scrub sends arrow keys to the front app; while that is trrek's own window it sends none.
                 self?.dispatcher?.ownAppFrontmost = isOwnApp
             }
@@ -139,6 +140,13 @@ extension Coordinator {
             MainActor.assumeIsolated { self?.scheduleRestart(reason: "device change") }
         }
         hotplugObserver.start()
+    }
+
+    /// Gives the engine the edges of the app now in front. A slide in progress keeps its action: the new edges apply
+    /// once it ends (`GestureEngine.updateWhenIdle(config:)`), and when they are the same nothing changes.
+    func updateEdgesForFrontmostApp() {
+        let config = engineConfig()
+        pipeline?.withEngine { $0.updateWhenIdle(config: config) }
     }
 
     /// The first request shows the system prompt only. The system shows that prompt once per app, so a later
