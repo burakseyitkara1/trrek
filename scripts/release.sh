@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds, signs (Developer ID + hardened runtime), notarizes and staples trrek, then tags the release and
 # publishes it on GitHub with a DMG and a zip and the version's CHANGELOG.md section as its notes: in this
-# repository, whose releases the app's update check reads, and in the mirror repository MIRROR_REPO, which 0.4.0 and
-# 0.4.1 read; set MIRROR_REPO to "" once those installs have updated. --no-publish publishes nowhere.
+# repository, whose releases the app's update check reads. MIRROR_REPO, when set, also receives the release (it was
+# burakseyitkara1/trrek-releases, which 0.4.0 and 0.4.1 read, until 0.4.2). --no-publish publishes nowhere.
 #
 # Publishing needs a successful run of the ci workflow for the exact commit being released. Pull request runs test a
 # merge of the branch, not the squashed commit on main, so start one on main first and wait for it to pass:
@@ -39,8 +39,8 @@ done
 
 fail() { echo "release: $*" >&2; exit 1; }
 
-# Releases-only repository that trrek 0.4.0 and 0.4.1 read for updates; "" stops mirroring.
-MIRROR_REPO="burakseyitkara1/trrek-releases"
+# A second repository that receives every release; "" (the default) publishes only here.
+MIRROR_REPO=""
 NOTES=""
 
 # Prints the CHANGELOG section of version $1 (file $2, CHANGELOG.md by default): the lines under its
