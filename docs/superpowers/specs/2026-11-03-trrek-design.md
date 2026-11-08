@@ -38,7 +38,7 @@ Tarih: 2026-11-03 · Durum: onaylandı (otonom yürütme)
 | CI runner | `macos-26` imajı: macOS 26.6.1, Xcode 26.6, SwiftLint 0.65, SwiftFormat 0.62 |
 | Swift uyumu | `swift-tools-version: 6.0`, dil modu Swift 6; Swift 6.3+ dil özellikleri ve macOS 27 API'leri kullanılmaz |
 | Hedef platform | macOS 26.0+, yalnızca arm64 |
-| GitHub | Private depo `burakseyitkara1/trrek`, Free plan. Private depoda ruleset/dal koruması sunucu tarafında yok; zorlama yerel araçlarla (Bölüm 10) |
+| GitHub | Depo `burakseyitkara1/trrek` (herkese açık, MIT; açılmadan önceki özel depo `trrek-private` adıyla arşivli). Sürümler ayrıca `burakseyitkara1/trrek-releases` deposunda. Zorlama yerel araçlarla (Bölüm 10) |
 | macOS runner bütçesi | Ayda ~200 macOS dakikası (2000 × 1/10). CI yalnızca PR'larda ve sürüm etiketlerinde çalışır; tur hedefi 4 dk altı |
 | Private API | MultitouchSupport, CoreBrightness, IOAVService, MediaRemote. Sandbox kapalı. Her sembol `dlsym` ile çözülür; yoksa özellik kapanır |
 

@@ -90,6 +90,24 @@ Measured with `make perf` on the installed 0.1.0 build after 30 s idle: 0.0 % CP
 
 `TrrekEngine` turns raw multitouch frames into commands and has no system dependencies. A single finger that lands in an edge strip and moves along it starts a slide: each edge runs its configured action (a level, app, tab or desktop switching, video scrubbing, media, zoom or undo), one step per fixed distance of travel. A second finger cancels the slide, lifting commits it, and a finger that disappears briefly can return and continue. A quick double tap on a corner fires that corner's action, a double tap on a media edge plays or pauses, and an optional three-finger tap sends a middle click. Before any of this, contacts larger than a fingertip are dropped as palms, no new gesture starts shortly after a key press or while a required hold key is up, and a paused engine ignores every frame. All distances and timings live in `Thresholds`. Run the engine tests with `make test`: on hosts with only the Command Line Tools it passes the testing macro plugin path that a plain `swift test` can miss.
 
+## Building from source
+
+You need macOS 26 on Apple silicon and the Xcode command line tools (`xcode-select --install`); Xcode itself is not required. Clone the repository and run:
+
+```sh
+make install
+```
+
+This builds the app, signs it and copies it to `~/Applications/trrek.app`. Without a Developer ID certificate the build is signed ad hoc, so macOS asks for the Accessibility permission again after every rebuild; `scripts/make-signing-identity.sh` creates a local signing identity that keeps the grant (see "Keeping Accessibility permission across updates"). Run the tests with `make test`.
+
+## How trrek reads the trackpad
+
+macOS has no public interface that delivers raw trackpad touches to a background app, nor one that sets the keyboard backlight or an external display's brightness. trrek therefore uses a few private system frameworks for multitouch frames and haptics, keyboard backlight, built-in display brightness and DDC/CI. Every private symbol is looked up at run time in one file, `Sources/TrrekPlatform/PrivateSymbols.swift`; when a symbol is missing, the feature that needs it turns off and the rest keeps working. trrek is not sandboxed and is not distributed through the App Store. A future macOS release may change these interfaces.
+
 ## Development
 
-The project is a Swift Package Manager package without an Xcode project. Install the tools with `brew install swiftlint swiftformat`, run `make hooks` once, and run `make check` before every push. Direct pushes to `main` are blocked; changes arrive through pull requests.
+The project is a Swift Package Manager package without an Xcode project. Install the tools with `brew install swiftlint swiftformat`, run `make hooks` once, and run `make check` before every push. Changes arrive through pull requests to `main`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+trrek is released under the [MIT License](LICENSE).
