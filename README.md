@@ -76,6 +76,7 @@ By default the right edge is Volume, the left edge Brightness, the top edge Swit
 - **Freeze Cursor**: the pointer stays still and scrolling pauses while you slide
 - **Three-finger tap** for a middle click
 - **Hold-to-Slide key**: only slide while a modifier is held, or toggle edges on and off with it
+- **Edges per app**: give an app its own edge actions, such as Switch Tabs on the top edge in a browser or Scrub Video in a video player
 - **Pause in apps** where you don't want trrek, such as games or drawing apps
 - Palms and typing never trigger a slide
 - **Export and import settings** as a `.trrek` file to move them to another Mac
@@ -99,13 +100,14 @@ That's it. Put a finger on the right edge of the trackpad and slide up.
 - **Slide** along an edge strip; each step gives a light haptic click.
 - **A second finger** cancels a slide; **lifting** commits it (Switch Apps switches when you lift).
 - **Double tap** a corner for its action. A corner keeps working when an edge next to it is Off.
+- **Edges per app:** choose an app under **Edges For** in the Edges tab (or **Add App…**) and set the edges it should change; the others stay **Same as All Apps**. They apply while that app is in front, also while a trrek window is open over it, and the menu shows **Edges set for** the app. A paused app stays paused.
 
 Open **Settings** from the menu bar icon, or by opening trrek again while it runs:
 
 | Tab | What you set |
 | --- | --- |
 | **General** | Haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, language, updates, export and import, reset |
-| **Edges** | The action of each edge, strip width, Bottom Quarter Only, External Monitor Brightness |
+| **Edges** | The action of each edge, for all apps or for one app, strip width, Bottom Quarter Only, External Monitor Brightness |
 | **Corners & Taps** | The action of each corner, three-finger middle click |
 | **Advanced** | Hold-to-Slide key and mode, paused apps, Accessibility status |
 
