@@ -105,6 +105,26 @@ On each edge, put one finger on the edge strip and slide along the edge.
 - **How:** Quit trrek (`osascript -e 'quit app "trrek"'`); run `defaults write com.burakseyitkara.trrek settings -data "$(printf '{"schemaVersion":1,"swapSides":true}' | xxd -p | tr -d '\n')"`; open trrek and look at the Edges tab; slide on the right and left edges.
 - **Expected:** Left Edge shows Volume, Right Edge shows Brightness; the left edge changes the volume, the right edge changes the brightness. After a setting is changed, the decoded JSON from `defaults read com.burakseyitkara.trrek settings` has no `swapSides`, it has `leftEdge` and `rightEdge`.
 
+### 2.16 Edges per app: adding, editing, removing
+- **How:** In the Edges tab open Edges For: it lists All Apps and Add App…. Choose Add App…, pick a browser; also try picking `trrek.app` once. Set Top Edge to Switch Tabs for the browser, leave the other three on Same as All Apps. Switch Edges For back to All Apps and change Right Edge. Close and reopen the window. Do it once in the English and once in the Turkish interface.
+- **Expected:** The app chooser is a sheet on the settings window that opens in `/Applications`; trrek is not added. After adding, Edges For shows the browser with its icon and name, each edge picker starts with "Same as All Apps (<action>)", the caption under Edges For says "These edges apply while <app> is in front." and a "Remove <app>" button is on its own row below it (also with a long app name, in both languages); the diagram shows Switch Tabs on top and the All Apps actions on the other edges. The browser's Right Edge follows the All Apps change. Reopening the window starts on All Apps. Remove <app> deletes the browser's edges and returns to All Apps. The tab scrolls and every control is reachable in both languages; the Accessibility note under an edge follows the action that edge runs.
+
+### 2.17 Edges per app: switching with the front app
+- **How:** With the browser set to Switch Tabs on the top edge (2.16) and All Apps on Switch Apps, slide on the top edge in the browser, then in another app; open the menu in each. Set a corner to Mute; with tap to click on and the browser in front, double tap that corner while the pointer is over another app's window (the first tap brings that app to the front).
+- **Expected:** In the browser the top edge switches tabs and the menu shows "Edges set for <browser>" under the status line; in the other app the top edge opens the app switcher and the menu has no such line. A browser whose edges are all Same as All Apps (or set to the All Apps actions) shows no line either, and neither does any app while the status line says "Accessibility access needed" or "Trackpad not found". The double tap mutes, although the front app changed between the two taps.
+
+### 2.18 Edges per app: a slide in progress is not interrupted
+- **How:** Give an app (A) Switch Desktops on the bottom edge, with A on its own desktop and another app on the next desktop; All Apps has the bottom edge on Keyboard Backlight. In A, slide along the bottom edge across two desktops without lifting, then lift and slide on the bottom edge again.
+- **Expected:** The slide keeps switching desktops to the end even though the front app changes under the finger; there is no stray commit, haptic or cursor jump. After lifting, the next slide runs the new front app's bottom edge (the keyboard backlight).
+
+### 2.19 Edges per app: trrek window in front, paused apps
+- **How:** With the browser in front (2.17), open Settings from the menu and slide on the top edge while the window is in front. Then add the browser to Paused Apps and bring it to the front.
+- **Expected:** With the trrek window over the browser the top edge still switches the browser's tabs and the menu still says "Edges set for <browser>". Once the browser is paused, the edges do nothing in it, the status line says "Paused in <browser>" and the "Edges set for" line is gone.
+
+### 2.20 Edges per app: export, import and reset
+- **How:** Export the settings (7.4) with two apps that have their own edges; remove both, then import the file. Then press Reset to Defaults….
+- **Expected:** The file's `settings` has `appEdgeProfiles` with each app's bundle ID and only the edges it sets. After the import both apps are back in Edges For with the same edges. Reset to Defaults removes every app's edges and the Edges tab shows All Apps.
+
 ## 3. Corners
 
 ### 3.1 Corner double tap

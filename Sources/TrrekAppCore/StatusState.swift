@@ -28,6 +28,22 @@ public enum StatusText {
         }
         return String(localized: "trrek is active", bundle: .main)
     }
+
+    /// The line under the status line while the app in front runs edges of its own: "Edges set for <app>". `nil`
+    /// while trrek is not active (`isActive` is false for a trackpad issue or missing Accessibility, when the status
+    /// line says so instead), when the app (`bundleID`) is paused (pausing wins over its edges), or when its edges are
+    /// the All Apps ones (no profile, or one that sets nothing different).
+    public static func edgeProfileLine(
+        bundleID: String?,
+        appName: String,
+        settings: Settings,
+        isActive: Bool
+    ) -> String? {
+        guard isActive, let bundleID, !settings.pausedBundleIDs.contains(bundleID),
+              settings.edgeActions(for: bundleID) != settings.edgeActions(for: nil)
+        else { return nil }
+        return String(localized: "Edges set for \(appName)", bundle: .main)
+    }
 }
 
 /// Which application's pause state applies to the engine.

@@ -43,6 +43,10 @@ struct SettingsStoreTests {
         settings.holdKey = .option
         settings.holdKeyMode = .toggle
         settings.pausedBundleIDs = ["com.example.one", "com.example.two"]
+        settings.appEdgeProfiles = [
+            AppEdgeProfile(bundleID: "com.example.browser", top: .switchTabs),
+            AppEdgeProfile(bundleID: "com.example.player", left: .off, bottom: .scrubVideo)
+        ]
         settings.launchAtLogin = false
         settings.welcomeShown = true
         settings.language = .turkish
@@ -209,6 +213,7 @@ struct SettingsStoreTests {
         #expect(settings.holdKey == HoldKey.none)
         #expect(settings.holdKeyMode == .hold)
         #expect(settings.pausedBundleIDs.isEmpty)
+        #expect(settings.appEdgeProfiles.isEmpty)
         #expect(settings.launchAtLogin)
         #expect(!settings.welcomeShown)
     }

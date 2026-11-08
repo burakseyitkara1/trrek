@@ -150,7 +150,8 @@ struct UpdateInstallFlowTests {
 
     /// A click while a check runs is not lost: the update goes on with the known release.
     @Test func aClickDuringACheckStartsTheUpdate() async throws {
-        let harness = try Self.storedHarness(feedVersion: "0.4.0", feedDelay: .milliseconds(300))
+        // Long enough for the test to see the check running on a slow, busy runner.
+        let harness = try Self.storedHarness(feedVersion: "0.4.0", feedDelay: .seconds(1))
         defer { harness.tearDown() }
         harness.controller.checkAutomatically(.launch)
         try await waitUntil { harness.controller.isChecking }
@@ -168,8 +169,9 @@ struct UpdateInstallFlowTests {
         for answer in ["0.3.0", "0.5.0"] {
             let harness = try Self.storedHarness(
                 feedVersion: answer,
-                feedDelay: .milliseconds(100),
-                downloader: .init(fails: false, delay: .milliseconds(400))
+                // The check must still be running when the update starts and finish while it downloads.
+                feedDelay: .seconds(1),
+                downloader: .init(fails: false, delay: .seconds(3))
             )
             defer { harness.tearDown() }
             harness.controller.checkAutomatically(.launch)

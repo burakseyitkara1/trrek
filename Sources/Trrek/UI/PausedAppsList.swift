@@ -1,9 +1,8 @@
 import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// The apps trrek pauses in while they are in front: one row per app with its icon and name, "+" to add apps
-/// from an open panel and "−" to remove the selected row.
+/// from the app chooser and "−" to remove the selected row.
 struct PausedAppsList: View {
     @Bindable var model: SettingsModel
 
@@ -57,29 +56,13 @@ struct PausedAppsList: View {
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
-    /// Shows the open panel as a sheet on the settings window. The window comes from the model rather than
-    /// `NSApp.keyWindow`, which is `nil` when the click that reaches "+" is also the one that brings trrek to the
-    /// front.
     private func addApps() {
-        let panel = NSOpenPanel()
-        panel.title = String(localized: "Choose Apps to Pause In", bundle: .main)
-        panel.prompt = String(localized: "Add", bundle: .main)
-        panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
-        panel.allowedContentTypes = [.applicationBundle]
-        panel.allowsMultipleSelection = true
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
         let model = model
-        guard let window = model.window ?? NSApp.keyWindow, window.isVisible else {
-            if panel.runModal() == .OK {
-                model.addPausedApps(at: panel.urls)
-            }
-            return
-        }
-        panel.beginSheetModal(for: window) { response in
-            guard response == .OK else { return }
-            model.addPausedApps(at: panel.urls)
-        }
+        AppChooser.choose(
+            title: String(localized: "Choose Apps to Pause In", bundle: .main),
+            allowsMultipleSelection: true,
+            model: model
+        ) { model.addPausedApps(at: $0) }
     }
 
     private func removeSelected() {

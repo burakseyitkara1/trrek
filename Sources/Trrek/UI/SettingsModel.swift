@@ -13,6 +13,10 @@ typealias AppSettings = TrrekAppCore.Settings
 final class SettingsModel {
     var settings: AppSettings {
         didSet {
+            // An app removed elsewhere (an import, Reset to Defaults) takes the Edges tab back to All Apps.
+            if let edgeScope, settings.edgeProfile(for: edgeScope) == nil {
+                self.edgeScope = nil
+            }
             guard settings != oldValue, !isRefreshing else { return }
             onChange(settings)
         }
@@ -36,6 +40,11 @@ final class SettingsModel {
     var confirmingReset = false
     /// The bundle ID of the selected row in the paused apps list.
     var selectedPausedApp: String?
+    /// The app whose edges the Edges tab shows and edits; `nil` for All Apps. A new window starts on All Apps.
+    var edgeScope: String?
+    /// Changed when Add App… is chosen in the Edges For picker, which then rebuilds and shows the scope again
+    /// instead of the item.
+    var edgeScopePickerID = 0
     /// Settings read from a `.trrek` file for the import confirmation. Kept after the alert closes, so its title
     /// does not change while it animates out; the next import replaces it.
     var pendingImport: PendingImport?
@@ -55,11 +64,12 @@ final class SettingsModel {
     var updateRow: UpdateRowState?
 
     /// Looks up an app's name and icon; replaced in tests.
-    @ObservationIgnored var appInfoResolver: (String) -> PausedAppInfo = PausedAppInfo.init(bundleID:)
-    /// Each paused app's name and icon, resolved once per bundle ID while the window is open.
-    @ObservationIgnored private var appInfoCache: [String: PausedAppInfo] = [:]
+    @ObservationIgnored var appInfoResolver: (String) -> AppInfo = AppInfo.init(bundleID:)
+    /// Each listed app's name and icon (paused apps, apps with their own edges), resolved once per bundle ID while
+    /// the window is open.
+    @ObservationIgnored private var appInfoCache: [String: AppInfo] = [:]
 
-    /// The settings window, set by its controller; sheets such as the paused apps open panel attach to it.
+    /// The settings window, set by its controller; sheets such as the app chooser attach to it.
     @ObservationIgnored weak var window: NSWindow?
 
     @ObservationIgnored private let onChange: (AppSettings) -> Void
@@ -115,7 +125,7 @@ final class SettingsModel {
     }
 
     /// The name and icon of the app with `bundleID`, looked up on first use and cached for the window's lifetime.
-    func appInfo(for bundleID: String) -> PausedAppInfo {
+    func appInfo(for bundleID: String) -> AppInfo {
         if let cached = appInfoCache[bundleID] {
             return cached
         }
@@ -168,13 +178,18 @@ final class SettingsModel {
 }
 
 /// The name and icon of an installed app; falls back to the bundle ID and a generic icon when it is not found.
-struct PausedAppInfo {
+struct AppInfo {
     let name: String
     let icon: NSImage
+    /// The icon at menu item size, for the Edges For picker (a menu shows an image at its own size).
+    let menuIcon: NSImage
 
     init(name: String, icon: NSImage) {
         self.name = name
         self.icon = icon
+        let small = (icon.copy() as? NSImage) ?? NSImage()
+        small.size = NSSize(width: 16, height: 16)
+        menuIcon = small
     }
 
     init(bundleID: String) {

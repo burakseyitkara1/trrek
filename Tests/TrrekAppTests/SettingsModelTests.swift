@@ -130,7 +130,7 @@ struct SettingsModelTests {
         var lookups: [String] = []
         model.appInfoResolver = { id in
             lookups.append(id)
-            return PausedAppInfo(name: id.uppercased(), icon: NSImage())
+            return AppInfo(name: id.uppercased(), icon: NSImage())
         }
         #expect(model.appInfo(for: "com.example.a").name == "COM.EXAMPLE.A")
         #expect(model.appInfo(for: "com.example.a").name == "COM.EXAMPLE.A")

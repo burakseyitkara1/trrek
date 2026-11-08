@@ -94,9 +94,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             menu.addItem(item)
             menu.addItem(.separator())
         }
-        let status = NSMenuItem(title: coordinator.statusText, action: nil, keyEquivalent: "")
-        status.isEnabled = false
-        menu.addItem(status)
+        addStatusLines(coordinator: coordinator)
         menu.addItem(.separator())
 
         let precision = String(localized: "Precision Control", bundle: .main)
@@ -135,6 +133,25 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         let quit = item(String(localized: "Quit trrek", bundle: .main), #selector(quit), key: "q")
         menu.addItem(quit)
         updateItems.track(check: checkForUpdates, quit: quit, row: row, isBusy: coordinator.updates?.isBusy ?? false)
+    }
+
+    /// The status line, and under it the app in front while its own edges apply.
+    private func addStatusLines(coordinator: Coordinator) {
+        let settings = coordinator.settings
+        let isActive = coordinator.isTrusted && coordinator.trackpadIssue == nil
+        let profileLine = coordinator.pauseTargetApp.flatMap { app in
+            StatusText.edgeProfileLine(
+                bundleID: app.bundleID,
+                appName: app.name,
+                settings: settings,
+                isActive: isActive
+            )
+        }
+        for line in [coordinator.statusText, profileLine].compactMap(\.self) {
+            let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        }
     }
 
     private func item(_ title: String, _ action: Selector, key: String = "", checked: Bool? = nil) -> NSMenuItem {

@@ -20,9 +20,9 @@ public enum PipelineIssue: Sendable {
 /// Thread model:
 /// - Frames arrive on the framework's callback thread. Each is converted on the stack and handed to the engine
 ///   under one `os_unfair_lock`; the engine's commands reach its sink synchronously inside that lock.
-/// - Every other engine call (`noteKeyDown`, `setHoldKeySatisfied`, `setPaused`, `update(config:)`, `reset()`)
-///   must go through `withEngine`, which takes the same lock. The lock is not recursive: neither the sink nor a
-///   `withEngine` body may call back into the pipeline.
+/// - Every other engine call (`noteKeyDown`, `setHoldKeySatisfied`, `setPaused`, `update(config:)`,
+///   `updateWhenIdle(config:)`, `reset()`) must go through `withEngine`, which takes the same lock. The lock is not
+///   recursive: neither the sink nor a `withEngine` body may call back into the pipeline.
 /// - `start()`, `stop()` and `restart()` are called from one thread (the main thread in the app).
 /// - The first frame with touching contacts (or a contact in an unknown state) from each device is checked for
 ///   known contact states and plausible positions and sizes; a failure stops the pipeline on the main thread and is

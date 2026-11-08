@@ -23,7 +23,7 @@ final class Coordinator {
     var holdKeyTracker = HoldKeyTracker(key: .none, mode: .hold)
     var isTrusted = false
     var trackpadIssue: TrackpadIssue?
-    /// The application whose pause state applies; trrek's own windows coming to the front do not change it.
+    /// The application whose pause state and edges apply; trrek's own windows coming to the front do not change it.
     var frontmostPause = FrontmostPause()
 
     let freezer = CursorFreezerSlot()
@@ -91,6 +91,7 @@ final class Coordinator {
             isOwnApp: FrontmostObserver.isOwnAppFrontmost
         )
         updatePause()
+        updateEdgesForFrontmostApp()
         startPipeline()
         startInputMonitor()
         startObservers()
@@ -152,11 +153,13 @@ final class Coordinator {
         windows.welcomeModel?.settings = newSettings
     }
 
+    /// The engine configuration for the settings and the app whose edges apply (`frontmostPause.bundleID`).
     func engineConfig() -> EngineConfig {
         ConfigMapper.engineConfig(
             from: settings,
             backlightAvailable: backlight?.isAvailable ?? false,
-            accessibilityTrusted: isTrusted
+            accessibilityTrusted: isTrusted,
+            frontmostBundleID: frontmostPause.bundleID
         )
     }
 
