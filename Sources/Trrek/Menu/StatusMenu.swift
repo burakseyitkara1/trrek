@@ -138,8 +138,14 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     /// The status line, and under it the app in front while its own edges apply.
     private func addStatusLines(coordinator: Coordinator) {
         let settings = coordinator.settings
+        let isActive = coordinator.isTrusted && coordinator.trackpadIssue == nil
         let profileLine = coordinator.pauseTargetApp.flatMap { app in
-            StatusText.edgeProfileLine(bundleID: app.bundleID, appName: app.name, settings: settings)
+            StatusText.edgeProfileLine(
+                bundleID: app.bundleID,
+                appName: app.name,
+                settings: settings,
+                isActive: isActive
+            )
         }
         for line in [coordinator.statusText, profileLine].compactMap(\.self) {
             let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")

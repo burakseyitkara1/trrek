@@ -12,7 +12,7 @@ struct EdgesTab: View {
             Section {
                 scopePicker
                 if let bundleID = model.edgeScope {
-                    scopeFooter(name: model.appInfo(for: bundleID).name)
+                    removeButton(name: model.appInfo(for: bundleID).name)
                 }
             }
             Section {
@@ -68,7 +68,7 @@ struct EdgesTab: View {
                 }
             }
         )
-        return Picker("Edges For", selection: selection) {
+        return Picker(selection: selection) {
             Text("All Apps").tag(EdgeScopeChoice.allApps)
             if !model.settings.appEdgeProfiles.isEmpty {
                 Divider()
@@ -86,15 +86,19 @@ struct EdgesTab: View {
                 Divider()
                 Text("Add App…").tag(EdgeScopeChoice.add)
             }
+        } label: {
+            Text("Edges For")
+            // The caption says when the shown app's edges apply.
+            if let bundleID = model.edgeScope {
+                Text("These edges apply while \(model.appInfo(for: bundleID).name) is in front.")
+            }
         }
         .id(model.edgeScopePickerID)
     }
 
-    private func scopeFooter(name: String) -> some View {
-        HStack(spacing: 12) {
-            Text("These edges apply while \(name) is in front.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+    /// On its own row, so a long app name never squeezes it or the caption above.
+    private func removeButton(name: String) -> some View {
+        HStack {
             Spacer()
             Button("Remove \(name)") {
                 model.removeEdgeProfile()

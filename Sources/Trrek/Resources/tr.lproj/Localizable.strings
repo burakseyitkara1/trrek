@@ -48,7 +48,7 @@
 "Add App…" = "Uygulama Ekle…";
 "Choose an App" = "Bir Uygulama Seçin";
 "These edges apply while %@ is in front." = "Bu kenarlar %@ öndeyken geçerlidir.";
-"Remove %@" = "%@ Ayarlarını Kaldır";
+"Remove %@" = "%@ Kenar Ayarlarını Kaldır";
 "Same as All Apps (%@)" = "Tüm Uygulamalarla Aynı (%@)";
 
 /* General tab */
@@ -180,7 +180,7 @@
 "Trackpad not found" = "İzleme dörtgeni bulunamadı";
 "Trackpad data unavailable" = "İzleme dörtgeni verisi alınamıyor";
 "Paused in %@" = "%@ için duraklatıldı";
-"Edges set for %@" = "Kenarlar %@ için ayarlı";
+"Edges set for %@" = "%@ için özel kenarlar";
 "trrek is active" = "trrek etkin";
 
 /* Welcome window edge cards */

@@ -205,16 +205,23 @@ struct AppEdgeProfileTests {
         var settings = Settings()
         settings.appEdgeProfiles = [
             AppEdgeProfile(bundleID: Self.browser, top: .switchTabs),
-            AppEdgeProfile(bundleID: Self.player)
+            AppEdgeProfile(bundleID: Self.player),
+            // Set, but the same as All Apps.
+            AppEdgeProfile(bundleID: "com.example.same", right: .volume)
         ]
-        #expect(StatusText.edgeProfileLine(bundleID: Self.browser, appName: "Browser", settings: settings)
-            == "Edges set for Browser")
-        // No profile, a profile that sets nothing, or no front app: All Apps applies.
-        #expect(StatusText.edgeProfileLine(bundleID: "x.y", appName: "Other", settings: settings) == nil)
-        #expect(StatusText.edgeProfileLine(bundleID: Self.player, appName: "Player", settings: settings) == nil)
-        #expect(StatusText.edgeProfileLine(bundleID: nil, appName: "None", settings: settings) == nil)
+        func line(_ bundleID: String?, active: Bool = true) -> String? {
+            StatusText.edgeProfileLine(bundleID: bundleID, appName: "App", settings: settings, isActive: active)
+        }
+        #expect(line(Self.browser) == "Edges set for App")
+        // No profile, a profile that changes nothing, or no front app: All Apps applies.
+        #expect(line("x.y") == nil)
+        #expect(line(Self.player) == nil)
+        #expect(line("com.example.same") == nil)
+        #expect(line(nil) == nil)
+        // A trackpad issue or missing Accessibility: the status line says so and the edges cannot run.
+        #expect(line(Self.browser, active: false) == nil)
         // Pausing wins.
         settings.pausedBundleIDs = [Self.browser]
-        #expect(StatusText.edgeProfileLine(bundleID: Self.browser, appName: "Browser", settings: settings) == nil)
+        #expect(line(Self.browser) == nil)
     }
 }
