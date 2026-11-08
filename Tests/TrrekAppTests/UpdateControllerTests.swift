@@ -276,12 +276,16 @@ struct UpdateControllerTests {
 
     @Test func alertsHaveTheirTexts() throws {
         let current = try #require(SemanticVersion("0.3.0"))
-        let upToDate = SystemUpdateAlerts.makeAlert(.upToDate(current: current))
-        #expect(upToDate.messageText == "trrek is up to date")
-        #expect(upToDate.informativeText == "trrek 0.3.0 is the latest version.")
-        #expect(upToDate.buttons.map(\.title) == ["OK"])
-        let failed = SystemUpdateAlerts.makeAlert(.checkFailed(message: "Offline."))
-        #expect(failed.messageText == "Couldn’t check for updates")
-        #expect(failed.buttons.map(\.title) == ["OK"])
+        #expect(SystemUpdateAlerts.content(of: .upToDate(current: current)) == .init(
+            title: "trrek is up to date",
+            message: "trrek 0.3.0 is the latest version.",
+            buttons: ["OK"]
+        ))
+        #expect(SystemUpdateAlerts.content(of: .checkFailed(message: "Offline.")) == .init(
+            title: "Couldn’t check for updates",
+            message: "Offline.",
+            buttons: ["OK"],
+            isWarning: true
+        ))
     }
 }

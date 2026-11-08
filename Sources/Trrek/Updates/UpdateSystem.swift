@@ -17,21 +17,46 @@ struct SystemUpdateAlerts: UpdateAlertPresenting {
         panel.runModal()
     }
 
-    static func makeAlert(_ alert: UpdateAlert) -> NSAlert {
-        let panel = NSAlert()
+    /// What an update alert says: its title, text, buttons and whether it is a warning.
+    struct Content: Equatable {
+        var title: String
+        var message: String
+        var buttons: [String]
+        var isWarning = false
+    }
+
+    /// The alert's content, without creating an `NSAlert` (creating one needs the window server, which tests on a
+    /// headless runner can wait on for a long time).
+    static func content(of alert: UpdateAlert) -> Content {
+        let ok = String(localized: "OK", bundle: .main)
         switch alert {
         case let .upToDate(current):
-            panel.messageText = String(localized: "trrek is up to date", bundle: .main)
-            panel.informativeText = String(
-                localized: "trrek \(current.description) is the latest version.",
-                bundle: .main
+            return Content(
+                title: String(localized: "trrek is up to date", bundle: .main),
+                message: String(localized: "trrek \(current.description) is the latest version.", bundle: .main),
+                buttons: [ok]
             )
         case let .checkFailed(message):
-            panel.messageText = String(localized: "Couldn’t check for updates", bundle: .main)
-            panel.informativeText = message
+            return Content(
+                title: String(localized: "Couldn’t check for updates", bundle: .main),
+                message: message,
+                buttons: [ok],
+                isWarning: true
+            )
+        }
+    }
+
+    static func makeAlert(_ alert: UpdateAlert) -> NSAlert {
+        let content = content(of: alert)
+        let panel = NSAlert()
+        panel.messageText = content.title
+        panel.informativeText = content.message
+        if content.isWarning {
             panel.alertStyle = .warning
         }
-        panel.addButton(withTitle: String(localized: "OK", bundle: .main))
+        for button in content.buttons {
+            panel.addButton(withTitle: button)
+        }
         return panel
     }
 }
