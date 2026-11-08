@@ -59,6 +59,9 @@ public struct Settings: Codable, Equatable, Sendable {
     public var holdKey: HoldKey = .none
     public var holdKeyMode: HoldKeyMode = .hold
     public var pausedBundleIDs: [String] = []
+    /// Apps whose edges differ from the ones above while they are in front (see `edgeActions(for:)`); at most
+    /// `maximumEdgeProfiles`, never trrek itself, one per bundle ID.
+    public var appEdgeProfiles: [AppEdgeProfile] = []
     public var launchAtLogin = true
     public var welcomeShown = false
     /// The interface language; it takes effect at the next launch (see `LanguagePreference`).
@@ -115,6 +118,9 @@ extension Settings {
         holdKey = Self.field(container, .holdKey) ?? holdKey
         holdKeyMode = Self.field(container, .holdKeyMode) ?? holdKeyMode
         pausedBundleIDs = Self.field(container, .pausedBundleIDs) ?? pausedBundleIDs
+        // Each profile is read on its own: one that cannot be read is dropped and the others are kept.
+        let profiles: [ForgivingElement<AppEdgeProfile>]? = Self.field(container, .appEdgeProfiles)
+        appEdgeProfiles = Self.sanitized(profiles?.compactMap(\.value) ?? [])
         launchAtLogin = Self.field(container, .launchAtLogin) ?? launchAtLogin
         welcomeShown = Self.field(container, .welcomeShown) ?? welcomeShown
         language = Self.field(container, .language) ?? language
@@ -170,8 +176,8 @@ public extension Settings {
         }
     }
 
-    /// The defaults, keeping `launchAtLogin`, `welcomeShown` and `language`. Without the keyboard backlight bridge the
-    /// bottom edge starts on media control.
+    /// The defaults, keeping `launchAtLogin`, `welcomeShown` and `language`; every app's own edges are removed. Without
+    /// the keyboard backlight bridge the bottom edge starts on media control.
     func resetToDefaults(backlightAvailable: Bool) -> Settings {
         var reset = Settings()
         reset.launchAtLogin = launchAtLogin

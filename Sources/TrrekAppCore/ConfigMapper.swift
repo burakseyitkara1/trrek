@@ -6,16 +6,21 @@ public enum ConfigMapper {
     /// Without Accessibility trust, everything that posts synthetic events or needs an event tap is turned off:
     /// every edge action except the keyboard backlight (which trrek sets directly), every corner action, middle
     /// click and cursor freezing. Posted events are not delivered without the permission.
+    ///
+    /// The edges are the ones for the app with `frontmostBundleID` (`Settings.edgeActions(for:)`): its own actions
+    /// over the All Apps ones. The keyboard backlight fallback and the Accessibility gating apply to the result.
     public static func engineConfig(
         from settings: Settings,
         backlightAvailable: Bool,
-        accessibilityTrusted: Bool = true
+        accessibilityTrusted: Bool = true,
+        frontmostBundleID: String? = nil
     ) -> EngineConfig {
         var config = EngineConfig()
-        config.left = effective(settings.leftEdge, backlightAvailable: backlightAvailable)
-        config.right = effective(settings.rightEdge, backlightAvailable: backlightAvailable)
-        config.top = effective(settings.topEdge, backlightAvailable: backlightAvailable)
-        config.bottom = effective(settings.bottomEdge, backlightAvailable: backlightAvailable)
+        let edges = settings.edgeActions(for: frontmostBundleID)
+        config.left = effective(edges.left, backlightAvailable: backlightAvailable)
+        config.right = effective(edges.right, backlightAvailable: backlightAvailable)
+        config.top = effective(edges.top, backlightAvailable: backlightAvailable)
+        config.bottom = effective(edges.bottom, backlightAvailable: backlightAvailable)
         config.topLeft = settings.topLeft
         config.topRight = settings.topRight
         config.bottomLeft = settings.bottomLeft

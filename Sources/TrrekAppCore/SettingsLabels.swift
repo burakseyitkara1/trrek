@@ -200,11 +200,13 @@ public struct DiagramEdges: Equatable, Sendable {
         self.bottom = bottom
     }
 
-    public init(settings: Settings, backlightAvailable: Bool, accessibilityTrusted: Bool) {
+    /// The edges while the app with `bundleID` is in front; `nil` for the All Apps edges.
+    public init(settings: Settings, backlightAvailable: Bool, accessibilityTrusted: Bool, bundleID: String? = nil) {
         let config = ConfigMapper.engineConfig(
             from: settings,
             backlightAvailable: backlightAvailable,
-            accessibilityTrusted: accessibilityTrusted
+            accessibilityTrusted: accessibilityTrusted,
+            frontmostBundleID: bundleID
         )
         self.init(left: config.left, right: config.right, top: config.top, bottom: config.bottom)
     }

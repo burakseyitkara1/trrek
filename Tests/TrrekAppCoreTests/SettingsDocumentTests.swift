@@ -27,6 +27,10 @@ struct SettingsDocumentTests {
         settings.holdKey = .option
         settings.holdKeyMode = .toggle
         settings.pausedBundleIDs = ["com.example.one", "com.example/two"]
+        settings.appEdgeProfiles = [
+            AppEdgeProfile(bundleID: "com.example.browser", top: .switchTabs),
+            AppEdgeProfile(bundleID: "com.example.player", right: .off, bottom: .scrubVideo)
+        ]
         settings.launchAtLogin = false
         settings.welcomeShown = true
         settings.language = .turkish
