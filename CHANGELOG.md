@@ -6,8 +6,12 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-09
+
 - The app is smaller: its executable ships without the build's symbol table and debug paths
 - The update check reads at most 1 MB of release information and an update downloads at most 64 MB; anything larger is refused
+- An update never installs, or downloads, a version older than the running one
+- Error messages in the system log no longer contain file paths or device identifiers
 
 ## [0.4.0] - 2026-11-08
 
