@@ -11,6 +11,7 @@ extension GestureEngine {
 
     /// Body of `setHoldKeySatisfied(_:)`; the caller holds the lock.
     func setHoldKeySatisfiedLocked(_ satisfied: Bool) {
+        defer { settleDeferredConfigLocked() }
         holdKeySatisfied = satisfied
         guard config.holdKeyRequired, !satisfied else { return }
         switch state {
@@ -30,6 +31,7 @@ extension GestureEngine {
 
     /// Body of `setPaused(_:)`; the caller holds the lock.
     func setPausedLocked(_ paused: Bool) {
+        defer { settleDeferredConfigLocked() }
         self.paused = paused
         guard paused else { return }
         switch state {

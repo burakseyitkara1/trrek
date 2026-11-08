@@ -36,8 +36,9 @@ public final class GestureEngine: @unchecked Sendable {
     /// emitting steps on the frames that follow.
     static let maxStepsPerFrame = 64
 
-    /// Serializes every public entry point. Allocated once with the engine, never per frame.
-    private let lock = OSAllocatedUnfairLock()
+    /// Serializes every public entry point. Allocated once with the engine, never per frame. Internal for the entry
+    /// points in other files of the engine.
+    let lock = OSAllocatedUnfairLock()
     private weak var sink: CommandSink?
     // Internal rather than private so the tap and three-finger handlers in `GestureEngine+Taps.swift` reach them.
     var config: EngineConfig
@@ -45,6 +46,9 @@ public final class GestureEngine: @unchecked Sendable {
     private var activeDeviceID: UInt64 = 0
     /// The previous single tap on a corner or a media edge, waiting for its second tap.
     var lastTap: TapRecord?
+    /// A configuration from `updateWhenIdle(config:)` waiting for the gesture in progress to end. Internal rather than
+    /// private so `GestureEngine+DeferredConfig.swift` reaches it.
+    var deferredConfig = DeferredConfig()
 
     // Host signals, set through the public API and read by the gates in `GestureEngine+Gates.swift`.
     var lastKeyDown: TimeInterval = -.infinity
@@ -59,6 +63,8 @@ public final class GestureEngine: @unchecked Sendable {
     // MARK: - States
 
     private func handleIdle(_ frame: Frame) {
+        // A configuration that waited for the previous gesture applies before the next one can start.
+        settleDeferredConfigLocked()
         let touches = frame.touches
         guard touches.count >= 1 else { return }
         activeDeviceID = frame.deviceID
@@ -260,9 +266,13 @@ public extension GestureEngine {
     }
 
     /// Applies a new configuration immediately: an active slide is committed first, and a finger that is
-    /// still a candidate is dropped (it waits in `spent` until it lifts).
+    /// still a candidate is dropped (it waits in `spent` until it lifts). A configuration waiting from
+    /// `updateWhenIdle(config:)` is dropped.
     func update(config: EngineConfig) {
-        lock.withLock { updateLocked(config: config) }
+        lock.withLock {
+            deferredConfig.cancel()
+            updateLocked(config: config)
+        }
     }
 
     /// Handles one frame. `frame.timestamp` is in seconds of system uptime
@@ -306,7 +316,8 @@ public extension GestureEngine {
 
 // MARK: - Locked bodies
 
-private extension GestureEngine {
+/// Internal rather than private so `GestureEngine+DeferredConfig.swift` reaches `stateKindLocked` and `updateLocked`.
+extension GestureEngine {
     var stateKindLocked: StateKind {
         switch state {
         case .idle: .idle
@@ -341,6 +352,7 @@ private extension GestureEngine {
     /// keep new gestures from starting (see `admitsNewGesture(at:)`), and a paused engine ignores the frame
     /// altogether.
     func processLocked(_ rawFrame: Frame) {
+        defer { settleDeferredConfigLocked() }
         let frame = Self.withoutPalms(rawFrame, maxMajorAxisMM: config.thresholds.palmMajorAxisMM)
         guard !paused else { return }
         if case .idle = state {
@@ -359,6 +371,7 @@ private extension GestureEngine {
     }
 
     func tickLocked(now: TimeInterval) {
+        defer { settleDeferredConfigLocked() }
         let timeout = config.thresholds.lostTimeout
         switch state {
         case let .sliding(data) where now - data.lastFrameTime >= timeout:
@@ -373,6 +386,7 @@ private extension GestureEngine {
     }
 
     func resetLocked() {
+        defer { settleDeferredConfigLocked() }
         switch state {
         case let .sliding(data), let .lost(data, _):
             finish(data, .cancel)
