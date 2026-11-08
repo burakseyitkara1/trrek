@@ -5,7 +5,7 @@ Thanks for your interest. trrek is a small macOS menu bar app; issues and pull r
 ## Before you start
 
 - trrek targets macOS 26 or later on Apple silicon and builds with Swift Package Manager only (no Xcode project). Swift 6 language mode; please don't use Swift 6.3+ language features or macOS 27 APIs, since CI builds with Xcode 26.6.
-- Read `docs/superpowers/specs/2026-11-03-trrek-design.md` for the architecture and `docs/decisions.md` for why things are the way they are. Project documents and decision records are written in Turkish; code, comments, commit messages and the interface are in English.
+- Read `docs/superpowers/specs/2026-11-03-trrek-design.md` for the architecture and `docs/decisions.md` for why things are the way they are. Everything in the project is written in English; the interface is also translated into Turkish.
 - Private system symbols live only in `Sources/TrrekPlatform/PrivateSymbols.swift` and are resolved at run time; a missing symbol must turn a feature off, never crash.
 - Performance budget: 0% CPU and under 15 MB of memory when idle, no heap allocation per trackpad frame, no periodic timers.
 
@@ -16,7 +16,11 @@ Thanks for your interest. trrek is a small macOS menu bar app; issues and pull r
 3. Add tests. Gesture rules are tested with synthetic frames in `Tests/TrrekEngineTests`; behaviour that needs hardware goes in the manual checklist, `docs/testing.md`.
 4. Every new interface string goes into both `Sources/Trrek/Resources/en.lproj/Localizable.strings` and `tr.lproj/Localizable.strings`.
 5. Add one line to `CHANGELOG.md` under "Unreleased".
-6. Run `make check` (build, tests, format, lint) and open a pull request with a conventional commit title.
+6. Run `make check` (build, tests, format, lint) and open a pull request with a conventional commit title; the pull request template lists what to fill in.
+
+## How changes are merged
+
+`main` accepts changes only through pull requests: no direct or force pushes. A pull request is squash-merged when the `build-test` check passes on a branch that is up to date with `main`, every review thread is resolved and the maintainer has approved it. CI runs on pull requests from forks after the maintainer approves the run.
 
 ## Reporting bugs
 

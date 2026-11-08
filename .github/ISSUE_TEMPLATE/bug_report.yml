@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in trrek does not work as expected.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set the top edge to …
+        2. Slide …
+    validations:
+      required: true
+  - type: input
+    id: trrek-version
+    attributes:
+      label: trrek version
+      description: Shown in About trrek.
+      placeholder: "0.4.2"
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model and macOS version
+      placeholder: "MacBook Pro (M3), macOS 26.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: trackpad
+    attributes:
+      label: Trackpad
+      options:
+        - Built-in
+        - External
+        - Both
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        Optional. Output of `/usr/bin/log show --last 10m --predicate 'subsystem == "com.burakseyitkara.trrek"'`.
+        Check it for anything private before pasting.
+      render: text
