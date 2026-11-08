@@ -1,27 +1,27 @@
-# Aşama 0 Spike Sonuçları (TrrekProbe)
+# Phase 0 Spike Results (TrrekProbe)
 
-Tarih: 2026-11-03 · Makine: geliştirme Mac'i, macOS 27.2 · Araç: `TrrekProbe` (debug derlemesi)
+Date: 2026-11-03 · Machine: development Mac, macOS 27.2 · Tool: `TrrekProbe` (debug build)
 
-| # | Soru (spec 11) | Sonuç | Karar |
+| # | Question (spec 11) | Result | Decision |
 |---|---|---|---|
-| 1 | `MTTouch` düzeni ve yüzey birimi | 96 bayt derlemede doğrulandı (`_Static_assert`). 90 s canlı akışta: `nx` 0.41–0.84, `ny` 0.00–0.91, parmak ucu `major` 8–11.6 mm, `minor` 5–8.7 mm; `state` değerleri 1,2,3,4,5,6,7 beklendiği gibi. Yüzey `12194×7408` → 1/100 mm → 121.94×74.08 mm. | Düzen ve birim doğru; `MultitouchDevices` 100'e böler. |
-| 2 | Kalkışta sıfır dokunmalı kare | Her kalkışta `state=5` (break) → `6` → `7` (major/minor 0) ve ardından `n=0` karesi geliyor; sonra cihaz uyuyor (90 s'de 9 boşluk; kare aralığı 8 ms = 125 Hz). | Platform yalnızca state 3/4'ü `Frame`'e koyar; parmak state 5'te kaybolur → `lost`. Watchdog yedek olarak kalır. Hover (state 1/2) ikinci parmak sayılmaz. |
-| 3 | Haptik dalga formları | `actuate 4/5/6` → `ok` (dönüş 0). His, kullanıcı tarafından ayarlardan seçilir. | Light→4, Medium→5, Strong→6 (başlangıç); ayar penceresinden değiştirilebilir. |
-| 4 | Medya tuşu olayları HUD gösteriyor mu | **Doğrulanamadı.** Probe süreci Accessibility'ye güvenilir değil (`accessibility trusted: false`); macOS güvenilmeyen süreçten gelen sentetik olayları düşürüyor, ekran görüntülerinde HUD yok. | Ses/parlaklık için medya tuşu yolu tasarımda kalır (izin zaten gerekli). Klavye ışığı için **Yol B (CoreBrightness + kendi overlay)** birincil; Yol A izin alınınca denenecek. |
-| 5 | ⌥⇧ ile çeyrek adım | Aynı nedenle doğrulanamadı. | Uygulama kurulup izin verilince `docs/testing.md` ile elle kontrol. |
-| 6 | İmleç dondurma | Doğrulanamadı (izin). İnceleme notu: session düzeyinde yutulan `mouseMoved` imleci durdurmayabilir. | Tap B `.cghidEventTap` konumuna alındı (olay WindowServer'a ulaşmadan yutulur). Elle kontrol listesine eklendi. |
-| 7 | ⌘ basılı + Tab ile seçici | Doğrulanamadı (izin). | Elle kontrol listesine eklendi. |
-| 8 | Boşta bellek | `TrrekProbe mem` → phys_footprint 1.6 MB (CLI, AppKit yok). | AppKit menü çubuğu uygulaması `make perf` ile ölçülecek; bütçe 15 MB. |
+| 1 | `MTTouch` layout and surface unit | 96 bytes, verified at compile time (`_Static_assert`). In a 90 s live stream: `nx` 0.41–0.84, `ny` 0.00–0.91, fingertip `major` 8–11.6 mm, `minor` 5–8.7 mm; `state` values 1,2,3,4,5,6,7 as expected. Surface `12194×7408` → 1/100 mm → 121.94×74.08 mm. | Layout and unit are correct; `MultitouchDevices` divides by 100. |
+| 2 | Zero-touch frame on lift-off | On every lift-off the stream goes `state=5` (break) → `6` → `7` (major/minor 0) and then an `n=0` frame arrives; after that the device sleeps (9 gaps in 90 s; frame interval 8 ms = 125 Hz). | The platform puts only state 3/4 into `Frame`; a finger disappears at state 5 → `lost`. The watchdog stays as a fallback. Hover (state 1/2) does not count as a second finger. |
+| 3 | Haptic waveforms | `actuate 4/5/6` → `ok` (return 0). The user picks the feel in settings. | Light→4, Medium→5, Strong→6 (initial); changeable from the settings window. |
+| 4 | Do media key events show the HUD | **Could not be verified.** The probe process is not trusted for Accessibility (`accessibility trusted: false`); macOS drops synthetic events from an untrusted process, and there is no HUD in the screenshots. | The media key path for volume/brightness stays in the design (the permission is required anyway). For the keyboard backlight, **Path B (CoreBrightness + own overlay)** is primary; Path A will be tried once the permission is granted. |
+| 5 | Quarter step with ⌥⇧ | Could not be verified for the same reason. | Check manually with `docs/testing.md` once the app is installed and the permission is granted. |
+| 6 | Cursor freeze | Could not be verified (permission). Review note: a `mouseMoved` swallowed at session level may not stop the cursor. | Tap B was moved to the `.cghidEventTap` location (the event is swallowed before it reaches WindowServer). Added to the manual checklist. |
+| 7 | Switcher with ⌘ held + Tab | Could not be verified (permission). | Added to the manual checklist. |
+| 8 | Idle memory | `TrrekProbe mem` → phys_footprint 1.6 MB (CLI, no AppKit). | The AppKit menu bar app will be measured with `make perf`; the budget is 15 MB. |
 
-## Eşik güncellemeleri
+## Threshold updates
 
-Ölçülen parmak ucu büyük ekseni 8–11.6 mm; `palmMajorAxisMM = 20` makul bir avuç eşiği olarak kalır. Diğer eşikler değişmedi.
+The measured fingertip major axis is 8–11.6 mm; `palmMajorAxisMM = 20` remains a reasonable palm threshold. The other thresholds are unchanged.
 
-## Açık kalanlar
+## Open items
 
-- Kapandı (2026-11-04, ilk elle test turu, `trrek Local Signing` imzalı 0.1.0 derlemesi, Accessibility verili):
-  - 4: Ses ve parlaklık kenarları çalışıyor; değişim sistemin kendi göstergesiyle görünüyor.
-  - 5–7: Genel jest seti kullanıcı tarafından "genel anlamda çalışıyor" olarak doğrulandı.
-  - 6 (imleç dondurma): HID tap'inde hareket olaylarını yutmak imleci durdurmadı; dondururken fare ile imleç bağlantısı kesilip (`CGAssociateMouseAndMouseCursorPosition`) konum korununca imleç yerinde kaldı (kullanıcı doğruladı).
-- Tuş olayı zaman damgası birimi artık önemsiz: karar 25 ile varış zamanı kullanılıyor.
-- İmzalama notu: ad-hoc derlemeden sabit kimliğe geçince eski Accessibility kaydı yeni imzaya uymaz; `tccutil reset Accessibility com.burakseyitkara.trrek` ile sıfırlayıp izni bir kez yeniden vermek gerekir.
+- Closed (2026-11-04, first manual test round, 0.1.0 build signed with `trrek Local Signing`, Accessibility granted):
+  - 4: The volume and brightness edges work; the change is visible in the system's own indicator.
+  - 5–7: The user confirmed the general gesture set "works in general".
+  - 6 (cursor freeze): swallowing the move events in the HID tap did not stop the cursor; when the mouse and cursor are disconnected while freezing (`CGAssociateMouseAndMouseCursorPosition`) and the position is preserved, the cursor stayed in place (confirmed by the user).
+- The key event timestamp unit no longer matters: decision 25 uses arrival time.
+- Signing note: after switching from an ad-hoc build to a fixed identity, the old Accessibility entry does not match the new signature; reset it with `tccutil reset Accessibility com.burakseyitkara.trrek` and grant the permission once again.

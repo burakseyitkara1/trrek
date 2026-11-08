@@ -1,335 +1,335 @@
-# trrek elle test listesi
+# trrek manual test list
 
-Donanım ve sistem izni gerektiren davranışlar otomatik testlerle doğrulanamaz; her sürümden önce bu liste uygulanır. Ön koşul: `make install`, uygulama menü çubuğunda, Accessibility izni verilmiş (aksi belirtilmedikçe). Ayarlar varsayılanda başlar.
+Behavior that needs hardware and system permissions cannot be verified with automated tests; this list is run before every release. Precondition: `make install`, the app is in the menu bar, Accessibility permission is granted (unless stated otherwise). Settings start at their defaults.
 
-## 1. İlk çalıştırma
+## 1. First run
 
-### 1.1 Karşılama penceresi yalnızca ilk açılışta çıkar
-- **Nasıl:** `defaults delete com.burakseyitkara.trrek` ile ayarları sil, uygulamayı aç, kapat, tekrar aç.
-- **Beklenen:** Karşılama penceresi ilk açılışta görünür ve anahtar pencere olur (başlık çubuğu aktif görünür, Return "Done"ı tetikler); izin verilmişken ikinci açılışta görünmez.
+### 1.1 The welcome window appears only on first launch
+- **How:** Delete the settings with `defaults delete com.burakseyitkara.trrek`, open the app, quit it, open it again.
+- **Expected:** The welcome window appears on first launch and becomes the key window (the title bar looks active, Return triggers "Done"); it does not appear on the second launch when permission is granted.
 
-### 1.2 Menüden açılan pencereler anahtar pencere olur
-- **Nasıl:** Menü çubuğu simgesinden Settings'i ve Welcome'ı aç.
-- **Beklenen:** Pencere öne gelir, başlık çubuğu aktif görünür, klavye girdisi pencereye gider.
+### 1.2 Windows opened from the menu become the key window
+- **How:** Open Settings and Welcome from the menu bar icon.
+- **Expected:** The window comes to the front, the title bar looks active, keyboard input goes to the window.
 
-### 1.3 İzinsiz sonraki açılış
-- **Nasıl:** Accessibility iznini kaldır (ya da `make install` ile yeniden kur), trrek'i aç.
-- **Beklenen:** Karşılama penceresi yeniden açılır ve "trrek needs Accessibility access to change volume, brightness and the other controls." der; menü çubuğu simgesinin sağ üst köşesinde nokta vardır. İzin verilince nokta kaybolur.
+### 1.3 Later launch without permission
+- **How:** Remove the Accessibility permission (or reinstall with `make install`), open trrek.
+- **Expected:** The welcome window opens again and says "trrek needs Accessibility access to change volume, brightness and the other controls."; the menu bar icon has a dot in its top right corner. The dot disappears once permission is granted.
 
-### 1.3a Karşılama animasyonu
-- **Nasıl:** Ayarları silip trrek'i aç (karşılama penceresi); sonra Sistem Ayarları › Erişilebilirlik › Ekran › Hareketi Azalt'ı aç ve tekrarla.
-- **Beklenen:** Hareket Azaltma kapalıyken kartlar sırayla belirir; açıkken hepsi animasyonsuz, hemen görünür.
+### 1.3a Welcome animation
+- **How:** Delete the settings and open trrek (welcome window); then turn on System Settings › Accessibility › Display › Reduce Motion and repeat.
+- **Expected:** With Reduce Motion off the cards appear one after another; with it on they all appear immediately, without animation.
 
-### 1.4 Uygulamayı yeniden açmak ayarları açar
-- **Nasıl:** trrek çalışırken Uygulamalar klasöründen (`~/Applications/trrek.app`) ya da `open ~/Applications/trrek.app` ile tekrar aç.
-- **Beklenen:** Ayarlar penceresi açılır (ya da öne gelir).
+### 1.4 Reopening the app opens the settings
+- **How:** While trrek is running, open it again from the Applications folder (`~/Applications/trrek.app`) or with `open ~/Applications/trrek.app`.
+- **Expected:** The settings window opens (or comes to the front).
 
-## 2. Kenarlar
+## 2. Edges
 
-Her kenarda tek parmağı kenar şeridine koyup kenar boyunca kaydır.
+On each edge, put one finger on the edge strip and slide along the edge.
 
-### 2.1 Sağ kenar: ses
-- **Nasıl:** Sağ kenarda yukarı/aşağı kaydır.
-- **Beklenen:** Sistem ses seviyesi adım adım değişir ve sistemin kendi ses göstergesi görünür; trrek'in overlay'i görünmez.
+### 2.1 Right edge: volume
+- **How:** Slide up/down on the right edge.
+- **Expected:** The system volume changes step by step and the system's own volume indicator appears; trrek's overlay does not appear.
 
-### 2.2 Sol kenar: parlaklık
-- **Nasıl:** Sol kenarda yukarı/aşağı kaydır.
-- **Beklenen:** Ekran parlaklığı adım adım değişir ve sistemin kendi parlaklık göstergesi görünür; trrek'in overlay'i görünmez.
+### 2.2 Left edge: brightness
+- **How:** Slide up/down on the left edge.
+- **Expected:** The screen brightness changes step by step and the system's own brightness indicator appears; trrek's overlay does not appear.
 
-### 2.2a Harici monitör parlaklığı (DDC/CI destekli monitör)
-- **Nasıl:** DDC/CI destekleyen bir monitör bağla (monitörün kendi menüsünde DDC/CI açık olmalı). Edges sekmesinde External Monitor Brightness'ı aç. İmleci harici ekrana götür ve parlaklık kenarında yukarı/aşağı kaydır; sonra imleci dahili ekrana götürüp tekrarla. `swift run TrrekProbe ddc list` çıktısını not et (ekran, eşlenen servis, `brightness: <mevcut>/<maks>`).
-- **Beklenen:** İmleç harici ekrandayken o monitörün parlaklığı adım adım değişir (⌥⇧ ile ince adım); harici ekranın sağ üstünde trrek overlay'i yeni yüzdeyi gösterir; kaydırma takılmaz, diğer kenarlar gecikmeden çalışır. Monitörün kendi düğmeleriyle parlaklık değiştirilip birkaç saniye sonra tekrar kaydırılınca yeni değerden devam eder. İmleç dahili ekrandayken dahili ekranın parlaklığı sistem göstergesiyle değişir. Ayar kapalıyken harici ekranda da medya tuşu yolu kullanılır. Birden çok harici monitörde her biri yalnızca imleç üzerindeyken değişir.
+### 2.2a External monitor brightness (DDC/CI capable monitor)
+- **How:** Connect a monitor that supports DDC/CI (DDC/CI must be on in the monitor's own menu). Turn on External Monitor Brightness in the Edges tab. Move the pointer to the external display and slide up/down on the brightness edge; then move the pointer to the built-in display and repeat. Note the output of `swift run TrrekProbe ddc list` (display, matched service, `brightness: <current>/<max>`).
+- **Expected:** While the pointer is on the external display, that monitor's brightness changes step by step (fine step with ⌥⇧); trrek's overlay at the top right of the external display shows the new percentage; the slide does not hang and the other edges work without delay. If the brightness is changed with the monitor's own buttons and you slide again a few seconds later, it continues from the new value. While the pointer is on the built-in display, the built-in display's brightness changes with the system indicator. When the setting is off, the media key path is used on the external display too. With several external monitors, each one changes only while the pointer is on it.
 
-### 2.2b Harici monitör parlaklığı (DDC/CI desteklemeyen monitör)
-- **Nasıl:** DDC/CI desteklemeyen (ya da DDC/CI'ı menüsünden kapatılmış) kablolu bir monitör bağla, External Monitor Brightness açık; imleç o ekrandayken parlaklık kenarında kaydır. `swift run TrrekProbe ddc list` çıktısını not et. Sonra `log stream --predicate 'subsystem == "com.burakseyitkara.trrek"'` açıkken birkaç slide daha yap.
-- **Beklenen:** Overlay seviye çubuğu olmadan, kesilmeden "No DDC" gösterir; trrek donmaz, çökmez, dahili ekranın parlaklığı değişmez. Probe o ekran için bir hata (`no valid reply` ya da `I2C write failed …`) yazdırır. "external brightness step failed" günlük satırı her adımda değil, hata durumuna girişte bir kez görünür.
+### 2.2b External monitor brightness (monitor without DDC/CI support)
+- **How:** Connect a wired monitor that does not support DDC/CI (or has DDC/CI turned off in its menu), External Monitor Brightness on; slide on the brightness edge while the pointer is on that display. Note the output of `swift run TrrekProbe ddc list`. Then do a few more slides with `log stream --predicate 'subsystem == "com.burakseyitkara.trrek"'` open.
+- **Expected:** The overlay shows "No DDC" without a level bar and without being cut off; trrek does not freeze or crash, the built-in display's brightness does not change. The probe prints an error for that display (`no valid reply` or `I2C write failed …`). The "external brightness step failed" log line appears once on entering the error state, not on every step.
 
-### 2.2c Harici ekran, DDC servisi yok (kablosuz/sanal ekran)
-- **Nasıl:** Kablosuz yansıtma ya da sanal bir ekran ekle (DDC servisi olmayan ekran), External Monitor Brightness açık; imleç o ekrandayken parlaklık kenarında kaydır. `swift run TrrekProbe ddc list` çıktısını not et.
-- **Beklenen:** Probe o ekran için `service: none` yazdırır. "No DDC" görünmez; parlaklık kenarı medya tuşu yolunu kullanır (sistem göstergesi, ekrana göre dahili parlaklık değişebilir).
+### 2.2c External display, no DDC service (wireless/virtual display)
+- **How:** Add a wireless mirror or a virtual display (a display with no DDC service), External Monitor Brightness on; slide on the brightness edge while the pointer is on that display. Note the output of `swift run TrrekProbe ddc list`.
+- **Expected:** The probe prints `service: none` for that display. "No DDC" does not appear; the brightness edge uses the media key path (the system indicator; the built-in brightness may change depending on the display).
 
-### 2.2d Overlay imlecin ekranına gider
-- **Nasıl:** İki ekranlı düzende (en az biri harici) üst kenarı Keyboard Backlight yap; imleç bir ekrandayken kaydır, overlay görünürken imleci diğer ekrana götürüp tekrar kaydır.
-- **Beklenen:** Overlay her seferinde imlecin bulunduğu ekranın sağ üstünde görünür; görünürken bir sonraki değerle diğer ekrana taşınır.
+### 2.2d The overlay follows the pointer's display
+- **How:** With two displays (at least one external), set the top edge to Keyboard Backlight; slide while the pointer is on one display, then while the overlay is visible move the pointer to the other display and slide again.
+- **Expected:** Each time the overlay appears at the top right of the display where the pointer is; while visible it moves to the other display with the next value.
 
-### 2.3 Üst kenar: uygulama değiştirme
-- **Nasıl:** Üst kenarda sağa kaydır; kaydırma sürerken ⌘-Tab uygulama değiştiricisinin açıldığını ve seçimin ilerlediğini izle; parmağı kaldır.
-- **Beklenen:** Uygulama değiştirici açılır, kaydırma seçimi ilerletir, parmak kalkınca seçilen uygulamaya geçilir. Parmak kalkmadan ikinci parmak konursa değiştirici iptal olur ve ⌘ basılı kalmaz.
+### 2.3 Top edge: app switching
+- **How:** Slide right on the top edge; while sliding, watch the ⌘-Tab app switcher open and the selection advance; lift the finger.
+- **Expected:** The app switcher opens, sliding advances the selection, and when the finger lifts the selected app is activated. If a second finger is put down before lifting, the switcher is cancelled and ⌘ does not stay held.
 
-### 2.4 Alt kenar: klavye ışığı
-- **Nasıl:** Alt kenarda sağa/sola kaydır (alt kenar eylemi Keyboard Backlight; desteklenmeyen Mac'te seçenek devre dışı).
-- **Beklenen:** Klavye arka ışığı değişir; trrek'in overlay'i imlecin bulunduğu ekranın sağ üstünde seviye çubuğu ve yüzdeyi ("100%" kesilmeden) gösterir ve son adımdan yaklaşık 1 sn sonra kaybolur. Aralığın sonundaki davranış 2.5'te.
+### 2.4 Bottom edge: keyboard backlight
+- **How:** Slide right/left on the bottom edge (the bottom edge action is Keyboard Backlight; on a Mac that does not support it the option is disabled).
+- **Expected:** The keyboard backlight changes; trrek's overlay shows a level bar and the percentage ("100%" without being cut off) at the top right of the display where the pointer is, and disappears about 1 s after the last step. The behavior at the end of the range is in 2.5.
 
-### 2.5 Aralığın sonunda tek sınır haptiği (bütün seviye kenarları)
-- **Nasıl:** Haptik Medium. Sağ kenarda sesi en üste çıkar ve parmağı kaldırmadan aynı yönde birkaç cm daha kaydır; sonra yön değiştir; parmağı kaldırıp yeni bir slide'la tekrar en üste it. Aynısını sesi en alta indirerek (sessize almadan), sol kenarda dahili ekran parlaklığıyla (en üst ve en alt), klavye ışığı kenarıyla ve DDC/CI destekli harici monitörde (External Monitor Brightness açık, imleç harici ekranda) yap. Ayrıca ses sessize alınmışken (Mute) en altta kaydır.
-- **Beklenen:** Sınıra varan adım normal adım haptiği verir; sınırın ötesine itilen ilk adım tek bir sınır haptiği verir, sonrakiler hiç haptik vermez ve tuş göndermez (seviye "artıyor" hissi yok; overlay olan kenarlarda overlay sınır değerini göstermeye devam eder). Yön değişince adım haptikleri hemen geri gelir. Yeni slide'da sınıra itmek yine tek sınır haptiği verir. Harici monitörde sınır haptiği sınıra varan adımın sonucuyla birlikte gelir. Ses sessizdeyken seviye bilinmediği için eski davranış sürer (her adımda tuş ve haptik).
+### 2.5 A single limit haptic at the end of the range (all level edges)
+- **How:** Haptic Medium. Raise the volume to the top on the right edge and, without lifting the finger, slide a few more cm in the same direction; then change direction; lift the finger and push to the top again with a new slide. Do the same by lowering the volume to the bottom (without muting), with the built-in display brightness on the left edge (top and bottom), with the keyboard backlight edge, and on a DDC/CI capable external monitor (External Monitor Brightness on, pointer on the external display). Also slide at the bottom while the volume is muted (Mute).
+- **Expected:** The step that reaches the limit gives the normal step haptic; the first step pushed beyond the limit gives a single limit haptic, the following ones give no haptic at all and send no key (no feeling that the level is "increasing"; on edges with an overlay, the overlay keeps showing the limit value). When the direction changes, the step haptics come back immediately. Pushing to the limit in a new slide again gives a single limit haptic. On an external monitor the limit haptic comes together with the result of the step that reaches the limit. While the volume is muted the level is unknown, so the old behavior continues (a key and a haptic on every step).
 
-### 2.6 Üst/alt kenar: video sarma
-- **Nasıl:** Edges sekmesinde Top Edge'i Scrub Video yap. Tarayıcıda bir video aç ve oynat; üst kenarda sağa kaydır, sonra sola kaydır.
-- **Beklenen:** Her yaklaşık 6 mm'de video ileri (→) ya da geri (←) sarar; overlay simge ve "+15 s" / "−10 s" gibi net süreyi gösterir (çubuk yok; "+100 s" gibi uzun etiketler kesilmez). Parmak kalkınca ek tuş gitmez ve sayaç sıfırlanır. Accessibility izni yokken eylem kapalıdır.
+### 2.6 Top/bottom edge: scrub video
+- **How:** In the Edges tab set Top Edge to Scrub Video. Open a video in the browser and play it; slide right on the top edge, then slide left.
+- **Expected:** About every 6 mm the video skips forward (→) or back (←); the overlay shows an icon and the exact time such as "+15 s" / "−10 s" (no bar; long labels such as "+100 s" are not cut off). When the finger lifts no extra key is sent and the counter is reset. The action is off when the Accessibility permission is missing.
 
-### 2.7 Video sarma, Hold-to-Slide tuşu basılıyken
-- **Nasıl:** Advanced'de Hold-to-Slide Key'i Shift (Hold) yap; videoda Shift basılıyken üst kenarda kaydır. Sonra Control ile tekrarla.
-- **Beklenen:** Video düz ok tuşu davranışıyla sarar (adım başına aynı süre); metin seçimi ya da Space değişimi olmaz.
+### 2.7 Scrub video while the Hold-to-Slide key is held
+- **How:** In Advanced set Hold-to-Slide Key to Shift (Hold); slide on the top edge in the video while Shift is held. Then repeat with Control.
+- **Expected:** The video skips with plain arrow key behavior (the same time per step); there is no text selection or Space change.
 
-### 2.8 Video sarma, trrek penceresi öndeyken
-- **Nasıl:** Top Edge Scrub Video; trrek'in ayar penceresini öne getir (Edges sekmesinde bir seçici odaktayken) ve üst kenarda kaydır.
-- **Beklenen:** Hiç ok tuşu gitmez (seçici değeri ya da liste seçimi değişmez), overlay görünmez. Başka bir uygulama öne gelince sarma yeniden çalışır.
-- **Ek:** Top Edge'i sırayla Switch Tabs, Zoom ve Undo & Redo yapıp ayar penceresi öndeyken kaydır: klavye odağı kontroller arasında dolaşmaz, hiçbir ayar geri alınmaz. Switch Desktops ise pencere öndeyken de masaüstünü değiştirir.
+### 2.8 Scrub video while the trrek window is in front
+- **How:** Top Edge Scrub Video; bring trrek's settings window to the front (with a picker focused in the Edges tab) and slide on the top edge.
+- **Expected:** No arrow key is sent at all (the picker value or list selection does not change), the overlay does not appear. When another app comes to the front, scrubbing works again.
+- **Extra:** Set Top Edge in turn to Switch Tabs, Zoom and Undo & Redo and slide while the settings window is in front: keyboard focus does not move between controls, no setting is undone. Switch Desktops, on the other hand, changes the desktop even while the window is in front.
 
-### 2.9 Medya kenarı: oynat/duraklat
-- **Nasıl:** Bir kenarın eylemini Media yap; o kenarda çift dokun. Sol ya da sağ kenarda da dene.
-- **Beklenen:** Çalan medya oynar/duraklar.
+### 2.9 Media edge: play/pause
+- **How:** Set the action of one edge to Media; double tap on that edge. Also try it on the left or right edge.
+- **Expected:** The playing media plays/pauses.
 
-### 2.10 Sol ve sağ kenar seçicileri
-- **Nasıl:** Edges sekmesinde Left Edge ve Right Edge seçicilerini aç; sonra Left Edge'i Switch Apps, Right Edge'i Keyboard Backlight yap. Sol kenarda yukarı kaydır, sonra aşağı, parmağı kaldır; bir kez de parmak kalkmadan ikinci parmağı koy. Sağ kenarda klavye ışığını en üste çıkar ve itmeye devam et.
-- **Beklenen:** İki seçici de dört kenardaki aynı listeyi (Volume, Brightness, Keyboard Backlight, Switch Apps, Switch Tabs, Switch Desktops, Scrub Video, Media, Zoom, Undo & Redo, Off) gösterir; Swap Sides anahtarı yoktur. Diyagram dört kenarın eylemini gösterir. Sol kenarda yukarı = sonraki uygulama, aşağı = önceki; kalkınca seçilen uygulamaya geçilir, ikinci parmak değiştiriciyi iptal eder, ⌘ basılı kalmaz. Sağ kenarda overlay klavye ışığı seviyesini gösterir ve sınırda tek sınır haptiği gelir (2.5 gibi).
+### 2.10 Left and right edge pickers
+- **How:** Open the Left Edge and Right Edge pickers in the Edges tab; then set Left Edge to Switch Apps and Right Edge to Keyboard Backlight. Slide up on the left edge, then down, lift the finger; once also put a second finger down before lifting. On the right edge raise the keyboard backlight to the top and keep pushing.
+- **Expected:** Both pickers show the same list as the four edges (Volume, Brightness, Keyboard Backlight, Switch Apps, Switch Tabs, Switch Desktops, Scrub Video, Media, Zoom, Undo & Redo, Off); there is no Swap Sides switch. The diagram shows the action of all four edges. On the left edge up = next app, down = previous; when lifted the selected app is activated, a second finger cancels the switcher, ⌘ does not stay held. On the right edge the overlay shows the keyboard backlight level and a single limit haptic comes at the limit (as in 2.5).
 
 ### 2.11 Switch Tabs
-- **Nasıl:** Top Edge'i Switch Tabs yap; birkaç sekmeli bir tarayıcı penceresinde üst kenarda sağa, sonra sola kaydır. Sonra Right Edge'i Switch Tabs yapıp yukarı/aşağı kaydır.
-- **Beklenen:** Yaklaşık her 12 mm'de bir sekme: yatay kenarda sağa ve dikey kenarda yukarı sonraki sekme, ters yönde önceki sekme. Parmak kalkınca ek bir şey olmaz.
+- **How:** Set Top Edge to Switch Tabs; in a browser window with several tabs slide right, then left on the top edge. Then set Right Edge to Switch Tabs and slide up/down.
+- **Expected:** One tab about every 12 mm: right on a horizontal edge and up on a vertical edge is the next tab, the opposite direction is the previous tab. Nothing extra happens when the finger lifts.
 
 ### 2.12 Switch Desktops
-- **Nasıl:** Mission Control'de en az iki masaüstü oluştur; Sistem Ayarları › Klavye › Klavye Kısayolları › Mission Control'de "Bir alan sola taşı" ve "Bir alan sağa taşı" açık olsun. Bottom Edge'i Switch Desktops yap; alt kenarda sağa, sonra sola kaydır. Sonra Left Edge'i Switch Desktops yapıp yukarı/aşağı kaydır.
-- **Beklenen:** Yaklaşık her 20 mm'de bir masaüstü: sağa/yukarı sağdaki masaüstü, sola/aşağı soldaki masaüstü.
+- **How:** Create at least two desktops in Mission Control; in System Settings › Keyboard › Keyboard Shortcuts › Mission Control, "Move left a space" and "Move right a space" must be on. Set Bottom Edge to Switch Desktops; slide right, then left on the bottom edge. Then set Left Edge to Switch Desktops and slide up/down.
+- **Expected:** One desktop about every 20 mm: right/up goes to the desktop on the right, left/down goes to the desktop on the left.
 
 ### 2.13 Zoom
-- **Nasıl:** Top Edge'i Zoom yap; tarayıcıda bir sayfa açıkken üst kenarda sağa, sonra sola kaydır.
-- **Beklenen:** Yaklaşık her 8 mm'de sayfa bir kademe yakınlaşır (sağa/yukarı) ya da uzaklaşır (sola/aşağı).
+- **How:** Set Top Edge to Zoom; with a page open in the browser slide right, then left on the top edge.
+- **Expected:** About every 8 mm the page zooms in one level (right/up) or zooms out (left/down).
 
 ### 2.14 Undo & Redo
-- **Nasıl:** Bir metin düzenleyicide birkaç ayrı değişiklik yap. Top Edge'i Undo & Redo yap; üst kenarda sola kaydır, sonra sağa kaydır.
-- **Beklenen:** Yaklaşık her 10 mm'de sola/aşağı bir geri alma (⌘Z), sağa/yukarı bir yineleme (⇧⌘Z).
+- **How:** Make several separate changes in a text editor. Set Top Edge to Undo & Redo; slide left on the top edge, then slide right.
+- **Expected:** About every 10 mm one undo (⌘Z) to the left/down, one redo (⇧⌘Z) to the right/up.
 
-### 2.15 Eski ayarların taşınması (Swap Sides)
-- **Nasıl:** trrek'i kapat (`osascript -e 'quit app "trrek"'`); `defaults write com.burakseyitkara.trrek settings -data "$(printf '{"schemaVersion":1,"swapSides":true}' | xxd -p | tr -d '\n')"` çalıştır; trrek'i aç ve Edges sekmesine bak; sağ ve sol kenarda kaydır.
-- **Beklenen:** Left Edge Volume, Right Edge Brightness gösterir; sol kenar sesi, sağ kenar parlaklığı değiştirir. Bir ayar değiştirildikten sonra `defaults read com.burakseyitkara.trrek settings` çıktısının çözülmüş JSON'unda `swapSides` yoktur, `leftEdge` ve `rightEdge` vardır.
+### 2.15 Migration of old settings (Swap Sides)
+- **How:** Quit trrek (`osascript -e 'quit app "trrek"'`); run `defaults write com.burakseyitkara.trrek settings -data "$(printf '{"schemaVersion":1,"swapSides":true}' | xxd -p | tr -d '\n')"`; open trrek and look at the Edges tab; slide on the right and left edges.
+- **Expected:** Left Edge shows Volume, Right Edge shows Brightness; the left edge changes the volume, the right edge changes the brightness. After a setting is changed, the decoded JSON from `defaults read com.burakseyitkara.trrek settings` has no `swapSides`, it has `leftEdge` and `rightEdge`.
 
-## 3. Köşeler
+## 3. Corners
 
-### 3.1 Köşe çift dokunma
-- **Nasıl:** Ayarlarda bir köşeye Mute, diğerine Screenshot ata; her köşede çift dokun.
-- **Beklenen:** Mute ses kapatır/açar; Screenshot ekran görüntüsü arayüzünü açar. Köşeye tek dokunma bir şey yapmaz.
+### 3.1 Corner double tap
+- **How:** Assign Mute to one corner and Screenshot to another in settings; double tap on each corner.
+- **Expected:** Mute turns the sound off/on; Screenshot opens the screenshot interface. A single tap on a corner does nothing.
 
-### 3.1a Yeni köşe eylemleri
-- **Nasıl:** Köşelere sırayla Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen ve Screenshot Area ata ve her birinde çift dokun. Mission Control ile ilgili üçünü Sistem Ayarları › Klavye › Klavye Kısayolları › Mission Control'deki kısayollar kapalıyken de dene.
-- **Beklenen:** Play/Pause çalan medyayı oynatır/duraklatır. Mission Control bütün pencereleri, App Windows öndeki uygulamanın pencerelerini gösterir, Show Desktop masaüstünü açar (her biri kısayollar kapalıyken de çalışır; tekrar çift dokunmak ya da Esc görünümü kapatır). Spotlight arama alanını açar. Lock Screen ekranı kilitler. Screenshot Area alan seçme imlecini açar. Hata olursa trrek çökmez; `/usr/bin/log show --last 5m --predicate 'subsystem == "com.burakseyitkara.trrek"'` çıktısında "mission control" satırı görünür.
+### 3.1a New corner actions
+- **How:** Assign Play/Pause, Mission Control, App Windows, Show Desktop, Spotlight, Lock Screen and Screenshot Area to the corners in turn and double tap on each. Also try the three related to Mission Control with the shortcuts in System Settings › Keyboard › Keyboard Shortcuts › Mission Control turned off.
+- **Expected:** Play/Pause plays/pauses the playing media. Mission Control shows all windows, App Windows shows the windows of the front app, Show Desktop shows the desktop (each also works with the shortcuts turned off; double tapping again or Esc closes the view). Spotlight opens the search field. Lock Screen locks the screen. Screenshot Area opens the area selection cursor. If an error occurs trrek does not crash; the "mission control" line appears in the output of `/usr/bin/log show --last 5m --predicate 'subsystem == "com.burakseyitkara.trrek"'`.
 
-### 3.1b Kenarı Off olan köşe
-- **Nasıl:** Edges sekmesinde Left Edge'i Off yap; Corners & Taps'ta Top Left'e Mission Control ata ve sol üst köşede çift dokun. Aynı köşeden aşağı (sol kenar boyunca) ve sağa (üst kenar boyunca) kaydır. Sonra Top Edge'i de Off yapıp çift dokunmayı tekrarla.
-- **Beklenen:** Çift dokunma her iki durumda da Mission Control'ü açar. Aşağı kaydırma hiçbir şey yapmaz (imleç donmaz, haptik yok); sağa kaydırma üst kenarın eylemini (Switch Apps) çalıştırır. Sol kenarın ortasında kaydırma hiçbir şey yapmaz.
+### 3.1b A corner whose edge is Off
+- **How:** In the Edges tab set Left Edge to Off; in Corners & Taps assign Mission Control to Top Left and double tap on the top left corner. From the same corner slide down (along the left edge) and right (along the top edge). Then set Top Edge to Off as well and repeat the double tap.
+- **Expected:** The double tap opens Mission Control in both cases. Sliding down does nothing (the cursor does not freeze, no haptic); sliding right runs the action of the top edge (Switch Apps). Sliding in the middle of the left edge does nothing.
 
-### 3.2 Köşe rozeti tıklaması eylemi döndürür
-- **Nasıl:** Corners & Taps sekmesinde bir köşenin rozetine tıkla.
-- **Beklenen:** Eylem her tıklamada seçicideki sırayla ilerler (Off → Mute → Screenshot → Play/Pause → Mission Control → App Windows → Show Desktop → Spotlight → Lock Screen → Screenshot Area → Off); rozetin simgesi eylemi gösterir.
+### 3.2 Clicking the corner badge rotates the action
+- **How:** Click the badge of a corner in the Corners & Taps tab.
+- **Expected:** On each click the action advances in the order in the picker (Off → Mute → Screenshot → Play/Pause → Mission Control → App Windows → Show Desktop → Spotlight → Lock Screen → Screenshot Area → Off); the badge's icon shows the action.
 
-### 3.3 Bottom Quarter Only yan kenarları alt çeyreğe sınırlar
-- **Nasıl:** Edges sekmesinde Bottom Quarter Only'yi aç; sağ kenarın üst yarısında kaydırmayı dene, sonra alt çeyreğinde dene; üst köşeye çift dokun.
-- **Beklenen:** Yan kenarlar yalnızca alt çeyrekte yanıt verir; köşe çift dokunmaları yine de çalışır.
+### 3.3 Bottom Quarter Only limits the side edges to the bottom quarter
+- **How:** Turn on Bottom Quarter Only in the Edges tab; try sliding in the top half of the right edge, then try in its bottom quarter; double tap on a top corner.
+- **Expected:** The side edges respond only in the bottom quarter; corner double taps still work.
 
-## 4. Diğer jestler
+## 4. Other gestures
 
-### 4.1 Üç parmak dokunma: orta tık
-- **Nasıl:** Etkinleştir; bir bağlantı üzerinde üç parmakla dokun.
-- **Beklenen:** Orta tık gönderilir (bağlantı yeni sekmede açılır).
+### 4.1 Three-finger tap: middle click
+- **How:** Enable it; tap with three fingers on a link.
+- **Expected:** A middle click is sent (the link opens in a new tab).
 
-### 4.2 Precision Control ince adımlar (⌥⇧)
-- **Nasıl:** Menüden ya da General sekmesinden Precision Control'ü aç; sağ kenarda kaydır, sonra kapat ve tekrar kaydır.
-- **Beklenen:** Açıkken her adım seviyeyi çeyrek adım değiştirir (sistem, ses/parlaklık tuşunu ⌥⇧ ile gönderilmiş gibi işler); kapalıyken normal adımlar.
+### 4.2 Precision Control fine steps (⌥⇧)
+- **How:** Turn on Precision Control from the menu or the General tab; slide on the right edge, then turn it off and slide again.
+- **Expected:** When on, each step changes the level by a quarter step (the system treats it as if the volume/brightness key were sent with ⌥⇧); when off, normal steps.
 
 ### 4.2a Slide Sensitivity
-- **Nasıl:** General sekmesinde Slide Sensitivity'yi sırayla Very Low, Standard ve Very High yap; her birinde sağ kenarda (Volume) aynı mesafeyi (ör. alttan ortaya) kaydır ve adım sayısını say. Very High'da sesi en üste çıkarıp itmeye devam et; Switch Apps kenarında da dene.
-- **Beklenen:** Very Low'da en az adım, Very High'da en çok adım (Standard'a göre yaklaşık 0,6 ve 1,6 kat mesafe başına adım farkı). Slide'ın başlaması için gereken mesafe değişmez. Very High'da da sınırda tek sınır haptiği gelir, sonra sessizlik (2.5). Seçim pencere kapanıp açılınca korunur.
+- **How:** In the General tab set Slide Sensitivity in turn to Very Low, Standard and Very High; for each, slide the same distance (e.g. from the bottom to the middle) on the right edge (Volume) and count the steps. At Very High raise the volume to the top and keep pushing; also try it on a Switch Apps edge.
+- **Expected:** The fewest steps at Very Low, the most steps at Very High (about 0.6 and 1.6 times the steps per distance compared with Standard). The distance needed for the slide to start does not change. At Very High too, a single limit haptic comes at the limit, then silence (2.5). The selection is kept when the window is closed and opened.
 
-### 4.3 İmleç slide sırasında donar
-- **Nasıl:** Kenarda kaydırırken parmağın imleci de oynattığını gözle.
-- **Beklenen:** Slide süresince imleç yerinde kalır; parmak kalkınca hareket geri gelir.
+### 4.3 The cursor freezes during a slide
+- **How:** While sliding on an edge, watch whether your finger also moves the cursor.
+- **Expected:** The cursor stays in place for the duration of the slide; movement returns when the finger lifts.
 
-### 4.4 Scroll bastırma
-- **Nasıl:** Freeze Cursor açıkken sağ kenarda kaydır; arkada kaydırılabilir bir pencere açık olsun. Sonra Freeze Cursor'ı kapatıp tekrarla.
-- **Beklenen:** Freeze Cursor açıkken arkadaki pencere kaymaz; kapalıyken scroll bastırılmaz.
+### 4.4 Scroll suppression
+- **How:** With Freeze Cursor on, slide on the right edge; have a scrollable window open behind. Then turn Freeze Cursor off and repeat.
+- **Expected:** With Freeze Cursor on, the window behind does not scroll; when off, scrolling is not suppressed.
 
-## 5. Kapılar
+## 5. Gates
 
-### 5.1 Yazma kapısı
-- **Nasıl:** Yazarken (son tuştan sonra kısa süre içinde) kenara dokun.
-- **Beklenen:** Yeni jest başlamaz; yazmayı bıraktıktan kısa süre sonra jestler çalışır.
+### 5.1 Typing gate
+- **How:** While typing (within a short time after the last key), touch an edge.
+- **Expected:** A new gesture does not start; shortly after you stop typing, gestures work.
 
-### 5.2 Palm reddi
-- **Nasıl:** Kenara avuç içi ile temas et.
-- **Beklenen:** Jest başlamaz.
+### 5.2 Palm rejection
+- **How:** Touch an edge with the palm.
+- **Expected:** The gesture does not start.
 
-### 5.3 Hold modu
-- **Nasıl:** Advanced sekmesinde Hold-to-Slide Key olarak bir tuş (ör. Option) ve Mode olarak Hold seç; tuşa basmadan, sonra basılıyken kenarda kaydır.
-- **Beklenen:** Tuş basılı değilken jest yok; basılıyken çalışır. Hold modunda menüde Hold-to-Slide satırı yoktur.
+### 5.3 Hold mode
+- **How:** In the Advanced tab choose a key (e.g. Option) as Hold-to-Slide Key and Hold as Mode; slide on an edge without pressing the key, then while pressing it.
+- **Expected:** No gesture when the key is not held; it works while held. In Hold mode there is no Hold-to-Slide row in the menu.
 
-### 5.4 Toggle modu
-- **Nasıl:** Mode'u Toggle yap; menüyü aç, tuşa bir kez bas, kaydır; tekrar bas.
-- **Beklenen:** İlk basıştan sonra jestler açık, ikinci basışta kapalı. Menüde yalnızca Toggle modunda (ve bir tuş seçiliyken) "Hold-to-Slide: On" / "Hold-to-Slide: Off" satırı görünür. Tuş basılıyken tıklamak (ör. ⌘-tık) ya da başka bir modifier eklemek durumu değiştirmez.
+### 5.4 Toggle mode
+- **How:** Set Mode to Toggle; open the menu, press the key once, slide; press again.
+- **Expected:** Gestures are on after the first press and off after the second. The "Hold-to-Slide: On" / "Hold-to-Slide: Off" row appears in the menu only in Toggle mode (and when a key is selected). Clicking while the key is held (e.g. ⌘-click) or adding another modifier does not change the state.
 
 ### 5.5 Pause in app
-- **Nasıl:** Advanced › Paused Apps listesine `+` ile bir uygulama ekle; o uygulama öndeyken kenarda kaydır; `−` ile çıkar.
-- **Beklenen:** Listedeki uygulama öndeyken jestler çalışmaz, çıkarılınca çalışır. `+`/`−` listeyi doğru günceller. `+` uygulama seçicisini ayrı bir pencere olarak değil, ayarlar penceresine bağlı bir sayfa (sheet) olarak açar; seçicide `trrek.app` seçilirse listeye eklenmez.
+- **How:** Add an app to the Advanced › Paused Apps list with `+`; slide on an edge while that app is in front; remove it with `−`.
+- **Expected:** Gestures do not work while the app in the list is in front, and work once it is removed. `+`/`−` update the list correctly. `+` opens the app picker not as a separate window but as a sheet attached to the settings window; if `trrek.app` is chosen in the picker it is not added to the list.
 
-### 5.5a trrek penceresi öndeyken duraklatma korunur
-- **Nasıl:** Paused Apps listesine bir uygulama ekle ve onu öne getir; menüden Settings'i (ya da Show Welcome'ı, About trrek'i) aç ve pencere öndeyken kenarda kaydır; menünün durum satırına bak. Sonra listede olmayan bir uygulamayı öne getirip aynısını yap.
-- **Beklenen:** Duraklatılmış uygulamanın üstünde trrek penceresi öndeyken jestler çalışmamaya devam eder ve durum satırı "Paused in <uygulama>" der; listede olmayan uygulamanın üstünde jestler çalışır. Pencere öndeyken uygulama listeden `−` ile çıkarılınca jestler hemen çalışır.
+### 5.5a Pausing is kept while the trrek window is in front
+- **How:** Add an app to the Paused Apps list and bring it to the front; open Settings (or Show Welcome, About trrek) from the menu and slide on an edge while the window is in front; look at the menu's status line. Then bring an app that is not in the list to the front and do the same.
+- **Expected:** With the trrek window in front on top of the paused app, gestures keep not working and the status line says "Paused in <app>"; on top of an app that is not in the list, gestures work. If the app is removed from the list with `−` while the window is in front, gestures work immediately.
 
-## 6. Sistem olayları
+## 6. System events
 
-### 6.1 Uykudan sonra
-- **Nasıl:** Mac'i uyut, uyandır, kenarda kaydır.
-- **Beklenen:** Jestler yeniden çalışır; yeniden başlatma gerekmez. Toggle modunda açık olan Hold-to-Slide uykudan sonra da açık kalır.
+### 6.1 After sleep
+- **How:** Put the Mac to sleep, wake it, slide on an edge.
+- **Expected:** Gestures work again; no restart is needed. Hold-to-Slide that was on in Toggle mode stays on after sleep too.
 
-### 6.2 Trackpad takma/çıkarma
-- **Nasıl:** Harici bir trackpad bağla, kenarda kaydır, çıkar, tekrar bağla.
-- **Beklenen:** Harici cihazda da jestler çalışır; çıkarma sırasında takılma ya da çökme olmaz.
+### 6.2 Plugging/unplugging a trackpad
+- **How:** Connect an external trackpad, slide on an edge, unplug it, connect it again.
+- **Expected:** Gestures work on the external device too; there is no hang or crash while unplugging.
 
-### 6.2a Harici trackpad'de haptik
-- **Nasıl:** Dahili trackpad'li bir Mac'e harici bir trackpad bağla (Haptic Medium). Harici trackpad'in sağ kenarında kaydır, sonra dahili trackpad'de kaydır; köşe çift dokunmalarını ve sınır haptiğini (2.5) her iki yüzeyde dene. Sonra harici trackpad'i çıkarıp takarak ya da Mac'i uyutup uyandırarak tekrarla.
-- **Beklenen:** Haptik her seferinde parmağın kaydığı trackpad'de hissedilir; harici trackpad'de kaydırırken dahili trackpad titreşmez ve tersi. Çıkarma/takma ve uykudan sonra da her yüzey kendi haptiğini verir.
+### 6.2a Haptics on an external trackpad
+- **How:** Connect an external trackpad to a Mac with a built-in trackpad (Haptic Medium). Slide on the right edge of the external trackpad, then slide on the built-in trackpad; try corner double taps and the limit haptic (2.5) on both surfaces. Then repeat by unplugging and plugging in the external trackpad or by sleeping and waking the Mac.
+- **Expected:** The haptic is felt each time on the trackpad where the finger is sliding; when sliding on the external trackpad the built-in trackpad does not vibrate and vice versa. After unplugging/plugging and after sleep, each surface also gives its own haptic.
 
-### 6.3 Accessibility izni geri alındı / verildi
-- **Nasıl:** Sistem Ayarları › Gizlilik ve Güvenlik › Erişilebilirlik'ten trrek iznini kaldır; sonra tekrar ver.
-- **Beklenen:** Menüde durum satırı "Accessibility access needed" olur, "Grant Accessibility…" öğesi ve simgede nokta görünür. Yalnızca klavye ışığı kenarı çalışır; diğer kenarlar, köşeler, orta tık ve imleç dondurma çalışmaz ve Edges/Corners diyagramı bunları "Off" gösterir (Advanced ve General sekmeleri izin gerektiğini söyler). İzin verilince uygulamayı yeniden başlatmadan jestler geri gelir, durum satırı "trrek is active" olur, "Grant Accessibility…" ve nokta kaybolur.
+### 6.3 Accessibility permission revoked / granted
+- **How:** Remove trrek's permission in System Settings › Privacy & Security › Accessibility; then grant it again.
+- **Expected:** The status line in the menu becomes "Accessibility access needed", the "Grant Accessibility…" item and a dot on the icon appear. Only the keyboard backlight edge works; the other edges, corners, middle click and cursor freeze do not work, and the Edges/Corners diagram shows them as "Off" (the Advanced and General tabs say the permission is required). When permission is granted, gestures come back without restarting the app, the status line becomes "trrek is active", "Grant Accessibility…" and the dot disappear.
 
 ### 6.4 Launch at Login
-- **Nasıl:** General'da aç, oturumu kapat/aç; sonra kapat ve tekrar dene. Ayrıca ayarlar penceresi kapalıyken Sistem Ayarları › Giriş Öğeleri'nden trrek'i kapat, sonra ayarları aç.
-- **Beklenen:** Açıkken uygulama oturum açılışında başlar, kapalıyken başlamaz; Sistem Ayarları › Giriş Öğeleri ile tutarlıdır. Pencere açıldığında Launch at Login anahtarı sistemdeki durumu gösterir.
+- **How:** Turn it on in General, log out/in; then turn it off and try again. Also, with the settings window closed, turn trrek off in System Settings › Login Items, then open settings.
+- **Expected:** When on, the app starts at login, when off it does not; it is consistent with System Settings › Login Items. When the window opens, the Launch at Login switch shows the state in the system.
 
-### 6.5 Trackpad bulunamadı → takınca kendiliğinden başlar
-- **Nasıl:** Trackpad'i olmayan bir Mac'te (ya da harici trackpad çıkarılmışken) trrek'i aç; menüde durum satırına bak; sonra harici bir trackpad bağla.
-- **Beklenen:** Önce "Trackpad not found" görünür; trackpad bağlanınca uygulamayı yeniden başlatmadan jestler çalışır ve durum satırı "trrek is active" olur.
+### 6.5 Trackpad not found → starts by itself when plugged in
+- **How:** Open trrek on a Mac without a trackpad (or with the external trackpad unplugged); look at the status line in the menu; then connect an external trackpad.
+- **Expected:** First "Trackpad not found" appears; when a trackpad is connected, gestures work without restarting the app and the status line becomes "trrek is active".
 
-### 6.6 Uygulama değiştirme sırasında çıkış
-- **Nasıl:** Terminalde `sleep 3; osascript -e 'quit app "trrek"'` çalıştır; hemen üst kenarda Switch Apps slide'ı başlat ve parmağı trackpad'de tut.
-- **Beklenen:** trrek kapanınca uygulama değiştirici kapanır; ⌘ basılı kalmaz (sonraki tuş vuruşları ⌘ kısayolu olarak işlenmez).
+### 6.6 Quitting during app switching
+- **How:** Run `sleep 3; osascript -e 'quit app "trrek"'` in the terminal; immediately start a Switch Apps slide on the top edge and keep the finger on the trackpad.
+- **Expected:** When trrek quits, the app switcher closes; ⌘ does not stay held (later key presses are not treated as ⌘ shortcuts).
 
-### 6.6a Sinyalle çıkış (SIGTERM/SIGINT)
-- **Nasıl:** Terminalde `sleep 3; pkill -TERM -x trrek` çalıştır; hemen üst kenarda Switch Apps slide'ı başlat ve parmağı trackpad'de tut. Aynısını `pkill -INT -x trrek` ile tekrarla.
-- **Beklenen:** trrek kapanır, uygulama değiştirici kapanır, ⌘ basılı kalmaz. `/usr/bin/log show --last 1m --predicate 'subsystem == "com.burakseyitkara.trrek"'` çıktısında "signal 15; quitting" (INT için 2) satırı görünür. Komutu tam yoluyla yaz: zsh'in kendi `log` komutu sistem aracını gölgeler. trrek açıldıktan sonra birkaç saniye bekle; sinyal işleyicisi kurulmadan gelen SIGTERM uygulamayı kayıt yazmadan kapatır.
+### 6.6a Quitting by signal (SIGTERM/SIGINT)
+- **How:** Run `sleep 3; pkill -TERM -x trrek` in the terminal; immediately start a Switch Apps slide on the top edge and keep the finger on the trackpad. Repeat with `pkill -INT -x trrek`.
+- **Expected:** trrek quits, the app switcher closes, ⌘ does not stay held. The line "signal 15; quitting" (2 for INT) appears in the output of `/usr/bin/log show --last 1m --predicate 'subsystem == "com.burakseyitkara.trrek"'`. Write the command with its full path: zsh's own `log` command shadows the system tool. After trrek opens, wait a few seconds; a SIGTERM that arrives before the signal handler is installed quits the app without writing a log entry.
 
-### 6.7 Dokunmatik yüzeyli fare bağlı
-- **Nasıl:** Dokunmatik yüzeyli bir fare bağla; `swift run TrrekProbe devices` çıktısına bak; farenin yüzeyinde kenar boyunca kaydır ve köşelere çift dokun; sonra trackpad'de kaydır.
-- **Beklenen:** Fare `kind=other` olarak listelenir ve dokunuşları hiçbir şey yapmaz; trackpad jestleri etkilenmez. Yalnızca fare bağlıyken (trackpad yokken) durum satırı "Trackpad not found" der.
+### 6.7 Mouse with a touch surface connected
+- **How:** Connect a mouse with a touch surface; look at the output of `swift run TrrekProbe devices`; slide along the edge on the mouse's surface and double tap on the corners; then slide on the trackpad.
+- **Expected:** The mouse is listed as `kind=other` and its touches do nothing; trackpad gestures are not affected. Only when the mouse is connected (without a trackpad) does the status line say "Trackpad not found".
 
-## 7. Ayarlar penceresi
+## 7. Settings window
 
-### 7.1 Sekmeler
-- **Nasıl:** General, Edges, Corners & Taps ve Advanced sekmelerini gez; değerleri değiştir.
-- **Beklenen:** Değişiklikler anında etki eder, pencere kapanıp açılınca korunur.
+### 7.1 Tabs
+- **How:** Go through the General, Edges, Corners & Taps and Advanced tabs; change values.
+- **Expected:** Changes take effect immediately and are kept when the window is closed and opened.
 
-### 7.2 Seçeneklerin notları ve devre dışı olanlar
-- **Nasıl:** Edges sekmesinde Left, Right, Top ve Bottom Edge seçicilerini aç.
-- **Beklenen:** Dört seçici de aynı listeyi gösterir. Seçenek adının yanında not belirtilir: "Scrub Video — Uses ← and → in the front app", "Switch Tabs — Uses ⌃⇥ and ⌃⇧⇥ in the front app", "Switch Desktops — Uses ⌃← and ⌃→", "Zoom — Uses ⌘= and ⌘− in the front app", "Undo & Redo — Uses ⌘Z and ⇧⌘Z in the front app"; hepsi seçilebilir. Klavye arka ışığı olmayan Mac'te "Keyboard Backlight — Not available on this Mac" her seçicide devre dışıdır ve seçili değer Media olarak gösterilir.
+### 7.2 Notes on options and disabled ones
+- **How:** Open the Left, Right, Top and Bottom Edge pickers in the Edges tab.
+- **Expected:** All four pickers show the same list. A note is shown next to the option name: "Scrub Video — Uses ← and → in the front app", "Switch Tabs — Uses ⌃⇥ and ⌃⇧⇥ in the front app", "Switch Desktops — Uses ⌃← and ⌃→", "Zoom — Uses ⌘= and ⌘− in the front app", "Undo & Redo — Uses ⌘Z and ⇧⌘Z in the front app"; all are selectable. On a Mac without a keyboard backlight, "Keyboard Backlight — Not available on this Mac" is disabled in every picker and the selected value is shown as Media.
 
-### 7.2a Accessibility gerektiren kenar notu
-- **Nasıl:** Accessibility iznini kaldır; Edges sekmesinde Top Edge'i Switch Apps ya da Scrub Video, Left Edge'i Switch Tabs, Zoom ya da Undo & Redo yap.
-- **Beklenen:** Seçicinin başlığı altında "Needs Accessibility access" notu görünür; Keyboard Backlight seçiliyken görünmez. İzin verilince not kaybolur.
+### 7.2a Edge note requiring Accessibility
+- **How:** Remove the Accessibility permission; in the Edges tab set Top Edge to Switch Apps or Scrub Video, Left Edge to Switch Tabs, Zoom or Undo & Redo.
+- **Expected:** A "Needs Accessibility access" note appears under the picker's title; it does not appear while Keyboard Backlight is selected. The note disappears when permission is granted.
 
-### 7.2b External Monitor Brightness kullanılamıyor
-- **Nasıl:** DDC sembolleri olmayan bir sistemde (ya da günlükte "external brightness available: false" görülen bir derlemede) Edges sekmesini aç.
-- **Beklenen:** External Monitor Brightness anahtarı kapalı ve devre dışıdır, altında "Not available on this Mac" yazar.
+### 7.2b External Monitor Brightness unavailable
+- **How:** Open the Edges tab on a system without the DDC symbols (or in a build where the log shows "external brightness available: false").
+- **Expected:** The External Monitor Brightness switch is off and disabled, and "Not available on this Mac" is written under it.
 
 ### 7.3 Reset to Defaults
-- **Nasıl:** Birkaç ayarı değiştir; General sekmesinde Reset to Defaults…'a bas.
-- **Beklenen:** Onay uyarısı çıkar; iptal edince değişiklik olmaz, onaylayınca tüm ayarlar varsayılana döner. Launch at Login ve Language değişmez.
+- **How:** Change a few settings; press Reset to Defaults… in the General tab.
+- **Expected:** A confirmation alert appears; cancelling changes nothing, confirming returns all settings to the defaults. Launch at Login and Language do not change.
 
-### 7.4 Ayarları dışa aktarma
-- **Nasıl:** General sekmesinde Export Settings…'e bas; trrek arka plandayken de dene.
-- **Beklenen:** Kaydetme paneli ayarlar penceresine sheet olarak bağlanır, önerilen ad "trrek Settings.trrek"tir (Türkçe arayüzde "trrek Ayarları.trrek"). Kaydedilen dosya girintili JSON'dur; `format`, `formatVersion`, `appVersion` ve `settings` anahtarları vardır, `launchAtLogin` ve `welcomeShown` yoktur.
+### 7.4 Exporting settings
+- **How:** Press Export Settings… in the General tab; also try it while trrek is in the background.
+- **Expected:** The save panel is attached to the settings window as a sheet, the suggested name is "trrek Settings.trrek" (in the Turkish interface "trrek Ayarları.trrek"). The saved file is indented JSON; it has the keys `format`, `formatVersion`, `appVersion` and `settings`, and no `launchAtLogin` or `welcomeShown`.
 
-### 7.5 Ayarları içe aktarma
-- **Nasıl:** Dışa aktardıktan sonra birkaç ayarı değiştir; Import Settings…'e bas ve dosyayı seç. Bir kez Cancel, bir kez Replace de.
-- **Beklenen:** Açma paneli sheet olarak gelir ve yalnızca `.trrek` dosyaları seçilebilir. "Replace your current settings with the ones in “…”?" onayı çıkar; Cancel hiçbir şeyi değiştirmez, Replace dışa aktarılan ayarları geri getirir ve kenarlar hemen yeni ayarlarla çalışır. Launch at Login ve Language değişmez.
+### 7.5 Importing settings
+- **How:** After exporting, change a few settings; press Import Settings… and choose the file. Once also Cancel, once Replace.
+- **Expected:** The open panel comes as a sheet and only `.trrek` files can be chosen. The "Replace your current settings with the ones in “…”?" confirmation appears; Cancel changes nothing, Replace brings back the exported settings and the edges immediately work with the new settings. Launch at Login and Language do not change.
 
-### 7.6 Geçersiz dosyayı içe aktarma
-- **Nasıl:** Boş bir dosyayı, rastgele metni, 1 MB'tan büyük bir dosyayı, `"format"` değeri farklı bir JSON'u ve `"formatVersion": 2` yazılmış bir dosyayı `.trrek` uzantısıyla kaydedip sırayla içe aktar.
-- **Beklenen:** Uygulama çökmez; "“…” could not be imported." uyarısı nedenini söyler (bozuk/başka dosya ya da daha yeni sürüm) ve ayarlar değişmez.
+### 7.6 Importing an invalid file
+- **How:** Save an empty file, random text, a file larger than 1 MB, a JSON with a different `"format"` value and a file with `"formatVersion": 2` written in it, each with the `.trrek` extension, and import them in turn.
+- **Expected:** The app does not crash; the "“…” could not be imported." alert says why (corrupt/other file or newer version) and the settings do not change.
 
-### 7.7 Finder'dan çift tıklama
-- **Nasıl:** trrek çalışırken ve kapalıyken Finder'da bir `.trrek` dosyasına çift tıkla; ayarlar penceresi Edges sekmesindeyken de dene.
-- **Beklenen:** Dosyanın türü "trrek Settings" görünür; trrek açılır ya da öne gelir, ayarlar penceresi General sekmesinde açılır ve aynı onay çıkar. Kapalıyken açılışta karşılama penceresi gerekiyorsa o da çıkar, onay ayarlar penceresindedir. Onay açıkken ikinci bir `.trrek` dosyasına çift tıklamak onayı değiştirmez (yok sayılır); Replace ilk dosyayı uygular.
+### 7.7 Double-clicking from Finder
+- **How:** Double-click a `.trrek` file in Finder while trrek is running and while it is not; also try it while the settings window is on the Edges tab.
+- **Expected:** The file's kind is shown as "trrek Settings"; trrek opens or comes to the front, the settings window opens on the General tab and the same confirmation appears. If the welcome window is needed at launch when it was not running, that appears too, and the confirmation is in the settings window. Double-clicking a second `.trrek` file while the confirmation is open does not change the confirmation (it is ignored); Replace applies the first file.
 
-### 7.8 Türkçe arayüz
-- **Nasıl:** General sekmesinde Language'ı Türkçe yap. "Relaunch trrek to use the new language." satırındaki Relaunch'a bas.
-- **Beklenen:** trrek kapanıp birkaç saniye içinde yeniden açılır (menü çubuğunda tek simge kalır, ikinci bir örnek açılmaz). Şunların hepsi Türkçedir, İngilizce metin kalmaz: menü (durum satırı, "Hassas Denetim", "İmleci Dondur", bir uygulama öndeyken "… İçin Duraklat"/"… İçin Sürdür", "Ayarlar…", "Karşılamayı Göster", izin yokken "Erişilebilirlik İzni Ver…", "trrek Hakkında", "trrek’ten Çık"); ayarlar penceresinin başlığı ("trrek Ayarları") ve dört sekmesi (Genel, Kenarlar, Köşe ve Dokunma, Gelişmiş; dördü de sekme çubuğunda görünür, `>>` taşma menüsü çıkmaz) bütün seçici, seçenek, not ve alt yazılarıyla; diyagramdaki kenar adları; Reset onayı; Export/Import panellerinin başlık ve düğmeleri; içe aktarma onayı ve geçersiz dosya uyarısı (7.6); Paused Apps listesi ve "+" paneli; karşılama penceresi (başlık, kenar kartları, izin satırı, düğmeler); klavye ışığı overlay'inde yüzde "%50" biçiminde, harici ekranda hata "DDC yok"; About penceresi. Tuş simgeleri (⌘ ⌃ ⇧ ⇥ ← →) aynı kalır; Basılı Tutarak Kaydırma Tuşu seçicisinde Kontrol ve Komut, Shift ve Option görünür; scrub overlay'i "+15 sn" gösterir. Köşe ve Dokunma sekmesindeki ipucu, İzleme Dörtgeni ayarlarındaki "Araştırma ve veri algılayıcıları" ve "Tek Parmakla Kuvvetli Tıklayın" adlarıyla aynıdır. Finder'da `.trrek` dosyasının türü "trrek Ayarları" görünür. Hiçbir metin kesilmez ya da taşmaz (özellikle karşılama kartları ve segmentli seçiciler).
+### 7.8 Turkish interface
+- **How:** In the General tab set Language to Turkish. Press Relaunch in the "Relaunch trrek to use the new language." row.
+- **Expected:** trrek quits and reopens within a few seconds (a single icon remains in the menu bar, a second instance is not opened). All of the following are in Turkish, no English text remains: the menu (the status line, "Hassas Denetim", "İmleci Dondur", while an app is in front "… İçin Duraklat"/"… İçin Sürdür", "Ayarlar…", "Karşılamayı Göster", when permission is missing "Erişilebilirlik İzni Ver…", "trrek Hakkında", "trrek’ten Çık"); the title of the settings window ("trrek Ayarları") and its four tabs (Genel, Kenarlar, Köşe ve Dokunma, Gelişmiş; all four are visible in the tab bar, the `>>` overflow menu does not appear) with all their pickers, options, notes and captions; the edge names in the diagram; the Reset confirmation; the titles and buttons of the Export/Import panels; the import confirmation and the invalid file alert (7.6); the Paused Apps list and the "+" panel; the welcome window (title, edge cards, permission row, buttons); in the keyboard backlight overlay the percentage in the "%50" format, on an external display the error "DDC yok"; the About window. The key symbols (⌘ ⌃ ⇧ ⇥ ← →) stay the same; the Hold-to-Slide Key picker shows Kontrol and Komut, Shift and Option; the scrub overlay shows "+15 sn". The hint in the Köşe ve Dokunma tab is the same as the names "Araştırma ve veri algılayıcıları" and "Tek Parmakla Kuvvetli Tıklayın" in the Trackpad settings. In Finder the kind of the `.trrek` file is shown as "trrek Ayarları". No text is cut off or overflows (especially the welcome cards and segmented pickers).
 
-### 7.9 Dili sisteme döndürme
-- **Nasıl:** Türkçe arayüzde Dil'i Sistem yap ve Yeniden Başlat'a bas. Sonra Language'ı English yap, bu kez yeniden başlatmadan Sistem'e geri al.
-- **Beklenen:** Yeniden açılınca arayüz sistem dilini izler (sistem dili Türkçe değilse İngilizce). `defaults read com.burakseyitkara.trrek AppleLanguages` anahtarın olmadığını söyler. Seçim açılıştaki dile geri dönünce yeniden başlatma satırı kaybolur. Sistem dili Türkçeyken Sistem seçiliyken Türkçe'yi seçmek yeniden başlatma satırı çıkarmaz (görünen dil değişmez).
+### 7.9 Returning the language to the system
+- **How:** In the Turkish interface set "Dil" to "Sistem" and press "Yeniden Başlat". Then set Language to English, and this time return it to System without relaunching.
+- **Expected:** After reopening, the interface follows the system language (English if the system language is not Turkish). `defaults read com.burakseyitkara.trrek AppleLanguages` says the key does not exist. When the selection returns to the language at launch, the relaunch row disappears. When the system language is Turkish, choosing Turkish while System is selected does not show the relaunch row (the displayed language does not change).
 
-### 7.10 İçe aktarma dili değiştirmez
-- **Nasıl:** Language English iken ayarları dışa aktar, Language'ı Türkçe yapıp yeniden başlat, sonra dosyayı içe aktar.
-- **Beklenen:** Onay "Oturum Açıldığında Başlat ve dil ayarları değişmez." der; içe aktarmadan sonra seçici Türkçe kalır, yeniden başlatma satırı çıkmaz. Dışa aktarılan dosyada `language` anahtarı yoktur.
+### 7.10 Importing does not change the language
+- **How:** Export the settings while Language is English, set Language to Turkish and relaunch, then import the file.
+- **Expected:** The confirmation says "Oturum Açıldığında Başlat ve dil ayarları değişmez." (Launch at Login and the language settings do not change); after importing the picker stays Turkish, the relaunch row does not appear. The exported file has no `language` key.
 
-### 7.11 Dil ve Bölge › Uygulamalar'dan dil seçimi
-- **Nasıl:** trrek'te Language Sistem iken Sistem Ayarları › Genel › Dil ve Bölge › Uygulamalar'da "+" ile trrek'i ekle ve sistem dilinden farklı bir dil (Türkçe ya da English) seç; sistemin önerdiği yeniden başlatmayı kabul et. Sonra trrek'i bir kez daha kapatıp aç. En sonda Uygulamalar listesinden trrek'i kaldır (ya da trrek'te Language'ı Sistem yap).
-- **Beklenen:** trrek seçilen dilde açılır; General sekmesinde Language o dili gösterir, yeniden başlatma satırı çıkmaz. `defaults read com.burakseyitkara.trrek AppleLanguages` seçilen dili (ör. `tr` ya da `tr-TR`) gösterir; ikinci açılışta da dil değişmez ve değer üzerine yazılmaz. trrek'te Language'ı Sistem yapıp yeniden başlatınca anahtar silinir ve Uygulamalar listesindeki seçim de "Sistem Dili"ne döner.
+### 7.11 Language selection from Language & Region › Applications
+- **How:** While Language in trrek is System, add trrek with "+" in System Settings › General › Language & Region › Applications and choose a language different from the system language (Turkish or English); accept the relaunch the system suggests. Then quit and open trrek once more. Finally remove trrek from the Applications list (or set Language to System in trrek).
+- **Expected:** trrek opens in the chosen language; in the General tab Language shows that language, the relaunch row does not appear. `defaults read com.burakseyitkara.trrek AppleLanguages` shows the chosen language (e.g. `tr` or `tr-TR`); on the second launch the language does not change either and the value is not overwritten. When Language in trrek is set to System and relaunched, the key is deleted and the selection in the Applications list returns to the default.
 
-## 8. Araçlar
+## 8. Tools
 
-### 8.1 TrrekProbe tuş zamanı
-- **Nasıl:** Terminale Accessibility izni ver; `swift run TrrekProbe keys 10` çalıştır, birkaç tuşa bas ve tıkla. Satır biçimi: `arrival=<varış zamanı> event=<olayın kendi zaman damgası> keyDown` (modifier için `flagsChanged`, fare tuşu için `mouseDown`).
-- **Beklenen:** `arrival=` saniye cinsinden sistem uptime'ıdır (tap callback'i içinde okunur) ve trrek'in kullandığı tek değerdir. `event=` yalnızca merak için yazdırılır; saati belgelenmediği için trrek ona dayanmaz. `arrival=` değerleri artan sırada ve `uptime` ile aynı büyüklükte olmalıdır.
-- **Ek (kare saati):** `swift run TrrekProbe pipeline 5` başlarken tek dokunuş iste; çıktı `clock: frame timestamp X, system uptime Y (difference Z s), uptime including sleep W (difference V s)` biçimindedir. Fark sabit bir ofset olmalıdır; motor bu ofseti kendisi öğrenir.
+### 8.1 TrrekProbe key timing
+- **How:** Grant the terminal Accessibility permission; run `swift run TrrekProbe keys 10`, press and click a few keys. Line format: `arrival=<arrival time> event=<the event's own timestamp> keyDown` (`flagsChanged` for a modifier, `mouseDown` for a mouse button).
+- **Expected:** `arrival=` is the system uptime in seconds (read inside the tap callback) and is the only value trrek uses. `event=` is printed only out of curiosity; since its clock is not documented, trrek does not rely on it. The `arrival=` values must be in increasing order and of the same magnitude as `uptime`.
+- **Extra (frame clock):** When `swift run TrrekProbe pipeline 5` starts, ask for a single touch; the output has the form `clock: frame timestamp X, system uptime Y (difference Z s), uptime including sleep W (difference V s)`. The difference must be a constant offset; the engine learns this offset itself.
 
-### 8.2 TrrekProbe klavye ışığı ölçümü
-- **Nasıl:** `swift build && .build/debug/TrrekProbe backlight bench` (klavye ışığı olan Mac'te).
-- **Beklenen:** İki satır yazdırır: istemciden okuma + yazma (`raw read+write`) ve önbellekten adım (`step from cache`), her biri 50 döngünün min/avg/max değeriyle. Önbellekten adımın ortalaması 0,1 ms'nin altındadır. Son satır `failures=0 restored=<başlangıç> ok` olur ve klavye ışığı başlangıç seviyesine döner.
+### 8.2 TrrekProbe keyboard backlight measurement
+- **How:** `swift build && .build/debug/TrrekProbe backlight bench` (on a Mac with a keyboard backlight).
+- **Expected:** Prints two lines: read + write from the client (`raw read+write`) and a step from the cache (`step from cache`), each with the min/avg/max of 50 loops. The average of the step from the cache is under 0.1 ms. The last line is `failures=0 restored=<initial> ok` and the keyboard backlight returns to its initial level.
 
-## 9. Performans
+## 9. Performance
 
-### 9.1 Boşta bütçe
-- **Nasıl:** Çalışan örneği kapat; `make perf`.
-- **Beklenen:** CPU en fazla %1 (genelde 0.0), fiziksel ayak izi 15 MB altı.
+### 9.1 Idle budget
+- **How:** Quit the running instance; `make perf`.
+- **Expected:** CPU at most 1% (usually 0.0), physical footprint under 15 MB.
 
-## 10. Güncellemeler
+## 10. Updates
 
-Ön koşul: `make install`. Denetim durumu trrek'in defaults alanında tutulur (`lastUpdateCheck`, `lastFailedUpdateCheck`, `availableUpdate`); `--assume-version` ile başlatılan trrek ise kendi ayrı alanını (`com.burakseyitkara.trrek.assumed-version`) kullanır, böylece elle deneme gerçek takvimi etkilemez. O denemeyi baştan almak için `defaults delete com.burakseyitkara.trrek.assumed-version`. Günlük: `/usr/bin/log stream --predicate 'subsystem == "com.burakseyitkara.trrek" AND category == "app"'`. trrek hiçbir bildirim göndermez ve İndirilenler klasörüne dokunmaz.
+Precondition: `make install`. The check state is kept in trrek's defaults domain (`lastUpdateCheck`, `lastFailedUpdateCheck`, `availableUpdate`); a trrek started with `--assume-version` uses its own separate domain (`com.burakseyitkara.trrek.assumed-version`), so a manual trial does not affect the real schedule. To start that trial over, `defaults delete com.burakseyitkara.trrek.assumed-version`. Log: `/usr/bin/log stream --predicate 'subsystem == "com.burakseyitkara.trrek" AND category == "app"'`. trrek sends no notifications and does not touch the Downloads folder.
 
-Kurulum denemeleri hep bir **kopya** üzerinde yapılır; `~/Applications/trrek.app` değişmez. Kopya: trrek'ten çık (`osascript -e 'quit app "trrek"'`), `rm -rf /tmp/trrek-install-test && mkdir -p /tmp/trrek-install-test && ditto ~/Applications/trrek.app /tmp/trrek-install-test/trrek.app`, `defaults delete com.burakseyitkara.trrek.assumed-version`, sonra `open -a /tmp/trrek-install-test/trrek.app --args --assume-version 0.2.0`. Yayımlanmış sürüm (ör. 0.3.0) bu akışı bilmeyebilir; denenen, kopyadaki sürümün onu kurmasıdır. Bitince kopyadan çık, `rm -rf /tmp/trrek-install-test` ve `open ~/Applications/trrek.app`. Kopyanın sürümü yayımlanmış en son sürümden büyükse kurulum reddedilir (10.11); kurulum denemesi, sürümü en son yayımlanmış sürüme eşit ya da ondan küçük bir kopyayla yapılır.
+Install trials are always done on a **copy**; `~/Applications/trrek.app` does not change. The copy: quit trrek (`osascript -e 'quit app "trrek"'`), `rm -rf /tmp/trrek-install-test && mkdir -p /tmp/trrek-install-test && ditto ~/Applications/trrek.app /tmp/trrek-install-test/trrek.app`, `defaults delete com.burakseyitkara.trrek.assumed-version`, then `open -a /tmp/trrek-install-test/trrek.app --args --assume-version 0.2.0`. A released version (e.g. 0.3.0) may not know this flow; what is tried is that the version in the copy installs it. When done, quit the copy, `rm -rf /tmp/trrek-install-test` and `open ~/Applications/trrek.app`. If the copy's version is greater than the latest released version, the install is refused (10.11); the install trial is done with a copy whose version is equal to or smaller than the latest released version.
 
-### 10.1 Rozet ve menü satırı
-- **Nasıl:** Kopyayı yukarıdaki gibi aç ve 15 sn bekle; menü çubuğu simgesine bak, sonra menüyü aç. Açık ve koyu menü çubuğunda, Erişilebilirlik izni yokken (sağ üst nokta) ve basılı tutma anahtarı açıkken (sağ alt nokta) de bak.
-- **Beklenen:** Günlükte "update check assumes version 0.2.0" ve yaklaşık 10 sn sonra "update check: X.Y.Z is available" görünür; bildirim gelmez, uyarı çıkmaz. Simgenin sol üst köşesinde küçük, dolu bir yukarı ok görünür; noktalardan açıkça ayrılır ve onlarla çakışmaz. Menünün en üstünde, indirme simgeli kalın "Update Available: trrek X.Y.Z" (Türkçe: "Güncelleme Mevcut: trrek X.Y.Z") satırı, altında bir ayırıcı vardır. Fareyle ya da ok tuşlarıyla üzerine gelince satır normal menü öğesi gibi vurgulanır; VoiceOver satırı başlığıyla, simgeyi "trrek (update available)" (Türkçe: "trrek (güncelleme mevcut)") diye okur. General'da Check Now'ın altında "trrek X.Y.Z is available" satırı Update Now düğmesiyle görünür. trrek'i aynı argümanla 24 saat dolmadan yeniden başlatınca yeni istek olmaz, rozet ve satır kalır.
+### 10.1 Badge and menu row
+- **How:** Open the copy as above and wait 15 s; look at the menu bar icon, then open the menu. Look also on a light and a dark menu bar, when the Accessibility permission is missing (dot at the top right) and when the hold key switch is on (dot at the bottom right).
+- **Expected:** The log shows "update check assumes version 0.2.0" and about 10 s later "update check: X.Y.Z is available"; no notification arrives, no alert appears. A small filled up arrow appears in the top left corner of the icon; it is clearly separate from the dots and does not overlap them. At the very top of the menu there is a bold "Update Available: trrek X.Y.Z" row with a download icon (Turkish: "Güncelleme Mevcut: trrek X.Y.Z"), with a separator below it. When hovering with the mouse or arrow keys the row is highlighted like a normal menu item; VoiceOver reads the row with its title and the icon as "trrek (update available)" (Turkish: "trrek (güncelleme mevcut)"). In General a "trrek X.Y.Z is available" row appears under Check Now with an Update Now button. If trrek is restarted with the same argument before 24 hours have passed, there is no new request, the badge and row stay.
 
-### 10.2 Menüde canlı ilerleme, kurulum ve yeniden başlatma
-- **Nasıl:** 10.1'den sonra menüyü aç ve "Update Available: trrek X.Y.Z" satırına tıkla; menüyü kapatma. Bir kez de satırı ok tuşlarıyla seçip Return'e bas (menü kapanır; yeniden aç).
-- **Beklenen:** Menü açık kalır; satır yerinde "Downloading trrek X.Y.Z…" olur ve sağındaki ilerleme çubuğu (yavaş bağlantıda belirgin) dolar; menü kapanıp yeniden açılırsa satır güncel ilerlemeyi gösterir. Sonra "Installing trrek X.Y.Z…" (belirsiz çubuk) görünür, trrek kapanır ve birkaç saniye içinde aynı klasörden yeniden açılır: `pgrep -lf trrek` kopyanın yolunu (Launch Services çoğunlukla çözülmüş `/private/tmp/trrek-install-test/…` biçimini verir) `--assume-version` olmadan gösterir; `defaults read /tmp/trrek-install-test/trrek.app/Contents/Info.plist CFBundleShortVersionString` yeni sürümü verir. Hiçbir onay uyarısı çıkmaz, Finder penceresi açılmaz, Gatekeeper sormaz. `ls ~/Library/Caches/com.burakseyitkara.trrek/Updates` boştur ya da yoktur; `~/Downloads`'da yeni dosya yoktur; `hdiutil info`'da `trrek-update-` yoktur; `ls -a /tmp/trrek-install-test` yalnızca `trrek.app`'i gösterir. Erişilebilirlik izni yeniden istenmeden jestler çalışır. Rozet ve satır yeni sürümde kaybolur. Açık menüde "Check for Updates…" indirme başlar başlamaz, "Quit trrek" "Installing…" sırasında devre dışı olur. Türkçe: "trrek X.Y.Z İndiriliyor…", "trrek X.Y.Z Yükleniyor…". Bir kez de satıra, menüyü açar açmaz (menünün başlattığı denetim sürerken) tıkla: tıklama yutulmaz, indirme başlar.
+### 10.2 Live progress in the menu, install and relaunch
+- **How:** After 10.1 open the menu and click the "Update Available: trrek X.Y.Z" row; do not close the menu. Once also select the row with the arrow keys and press Return (the menu closes; reopen it).
+- **Expected:** The menu stays open; the row becomes "Downloading trrek X.Y.Z…" in place and the progress bar to its right (noticeable on a slow connection) fills; if the menu is closed and reopened the row shows the current progress. Then "Installing trrek X.Y.Z…" (indeterminate bar) appears, trrek quits and within a few seconds reopens from the same folder: `pgrep -lf trrek` shows the copy's path (Launch Services mostly gives the resolved `/private/tmp/trrek-install-test/…` form) without `--assume-version`; `defaults read /tmp/trrek-install-test/trrek.app/Contents/Info.plist CFBundleShortVersionString` gives the new version. No confirmation alert appears, no Finder window opens, Gatekeeper does not ask. `ls ~/Library/Caches/com.burakseyitkara.trrek/Updates` is empty or does not exist; there is no new file in `~/Downloads`; there is no `trrek-update-` in `hdiutil info`; `ls -a /tmp/trrek-install-test` shows only `trrek.app`. Gestures work without the Accessibility permission being requested again. The badge and row disappear in the new version. In the open menu "Check for Updates…" is disabled as soon as the download starts, "Quit trrek" is disabled during "Installing…". Turkish: "trrek X.Y.Z İndiriliyor…", "trrek X.Y.Z Yükleniyor…". Also click the row once right after opening the menu (while the check started by the menu is running): the click is not swallowed, the download starts.
 
-### 10.3 Hata satırı ve yeniden deneme
-- **Nasıl:** Kopyayı aç; satıra tıkla ve indirme sürerken Wi-Fi'ı kapat. Sonra Wi-Fi'ı aç ve satıra yeniden tıkla.
-- **Beklenen:** Satır "Update Failed — Try Again" (Türkçe: "Güncelleme Başarısız — Yeniden Dene") olur, uyarı çıkmaz; günlükte "update download failed" ve hatanın alanı ile kodu (ör. `NSURLErrorDomain -1009`) yazar, ayrıntısı `<private>` görünür; önbellek klasöründe yarım dosya kalmaz. Tıklama baştan başlatır ve 10.2'deki gibi biter. General'da "The update failed." satırı Try Again düğmesiyle görünür.
+### 10.3 Error row and retry
+- **How:** Open the copy; click the row and turn off Wi-Fi while the download is running. Then turn Wi-Fi on and click the row again.
+- **Expected:** The row becomes "Update Failed — Try Again" (Turkish: "Güncelleme Başarısız — Yeniden Dene"), no alert appears; the log says "update download failed" with the error's domain and code (e.g. `NSURLErrorDomain -1009`), its detail appears as `<private>`; no partial file is left in the cache folder. Clicking starts over and finishes as in 10.2. In General a "The update failed." row appears with a Try Again button.
 
-### 10.4 Yerinde kurulamayınca tarayıcı
-- **Nasıl:** Kopyayı oluştur, `chmod a-w /tmp/trrek-install-test` çalıştır, kopyayı aç ve satıra tıkla; sonra `chmod u+w /tmp/trrek-install-test`. Bir kez de disk görüntüsünü Finder'da bağlayıp trrek'i oradan `--assume-version 0.2.0` ile aç ve satıra tıkla.
-- **Beklenen:** Yazılamayan klasörde ve disk görüntüsünde indirme hiç başlamaz: sürüm sayfası hemen tarayıcıda açılır, satır "Update in Browser…" (Türkçe: "Tarayıcıda Güncelle…") olur; uyarı çıkmaz, disk görüntüsü açılmaz, kopya değişmez. Satıra yeniden tıklamak sayfayı yeniden açar. Günlükte "update install not possible here: notWritable" (ya da `diskImage`) yazar.
+### 10.4 Browser when it cannot be installed in place
+- **How:** Create the copy, run `chmod a-w /tmp/trrek-install-test`, open the copy and click the row; then `chmod u+w /tmp/trrek-install-test`. Also once mount the disk image in Finder, open trrek from there with `--assume-version 0.2.0` and click the row.
+- **Expected:** In the non-writable folder and on the disk image the download does not start at all: the release page opens immediately in the browser, the row becomes "Update in Browser…" (Turkish: "Tarayıcıda Güncelle…"); no alert appears, the disk image is not opened, the copy does not change. Clicking the row again reopens the page. The log says "update install not possible here: notWritable" (or `diskImage`).
 
-### 10.5 Elle denetim
-- **Nasıl:** Kopyayı `--assume-version` olmadan aç (güncel); menüden "Check for Updates…" seç, sonra General › Check Now. Ardından kopyayı `--assume-version 0.2.0` ile aç ve rozet çıkmadan önce aynı ikisini dene. Wi-Fi kapalıyken de dene.
-- **Beklenen:** Güncelken: "trrek is up to date / trrek X.Y.Z is the latest version." uyarısı (menüden uygulama modal, Check Now'dan ayarlar penceresine sheet). Denetim başarısızsa "Couldn’t check for updates" uyarısı. Yeni sürüm bulununca uyarı yoktur: rozet ve menü satırı görünür, General'da "trrek X.Y.Z is available" satırı Update Now ile çıkar; Update Now menüdeki akışı başlatır ve satır General'da da ilerlemeyi gösterir. Denetim ya da güncelleme sürerken Check for Updates… ve Check Now devre dışıdır.
+### 10.5 Manual check
+- **How:** Open the copy without `--assume-version` (up to date); choose "Check for Updates…" from the menu, then General › Check Now. Then open the copy with `--assume-version 0.2.0` and try the same two before the badge appears. Also try with Wi-Fi off.
+- **Expected:** When up to date: the "trrek is up to date / trrek X.Y.Z is the latest version." alert (modal from the menu, a sheet on the settings window from Check Now). If the check fails, the "Couldn’t check for updates" alert. When a new version is found there is no alert: the badge and menu row appear, in General the "trrek X.Y.Z is available" row appears with Update Now; Update Now starts the flow in the menu and the row also shows progress in General. While a check or update is running Check for Updates… and Check Now are disabled.
 
-### 10.6 Otomatik denetim kapalı
-- **Nasıl:** General'da "Check for Updates Automatically"ı kapat; `lastUpdateCheck` anahtarını sil, trrek'i yeniden başlat, menüyü birkaç kez aç, Mac'i uyut ve uyandır.
-- **Beklenen:** Günlükte "update check" satırı çıkmaz (istek gönderilmez). "Check for Updates…" ve Check Now yine çalışır. Ayar `.trrek` dosyasına `checkForUpdatesAutomatically` olarak yazılır; Reset to Defaults onu yeniden açar.
+### 10.6 Automatic check off
+- **How:** Turn off "Check for Updates Automatically" in General; delete the `lastUpdateCheck` key, restart trrek, open the menu a few times, sleep and wake the Mac.
+- **Expected:** No "update check" line appears in the log (no request is sent). "Check for Updates…" and Check Now still work. The setting is written to the `.trrek` file as `checkForUpdatesAutomatically`; Reset to Defaults turns it on again.
 
-### 10.7 Yeniden başlatma başlatılamazsa
-- **Nasıl:** Yalnızca günlükten ve birim testiyle (`UpdateInstallFlowTests.aFailedRelaunchOffersToRelaunch`) denetlenir; elle tetiklenmesi pratik değildir.
-- **Beklenen:** Satır "Relaunch to Finish Updating" (Türkçe: "Güncellemeyi Bitirmek İçin Yeniden Başlat") olur; tıklama yeniden başlatmayı yeniden dener.
+### 10.7 When the relaunch cannot be started
+- **How:** Checked only from the log and with the unit test (`UpdateInstallFlowTests.aFailedRelaunchOffersToRelaunch`); triggering it by hand is not practical.
+- **Expected:** The row becomes "Relaunch to Finish Updating" (Turkish: "Güncellemeyi Bitirmek İçin Yeniden Başlat"); clicking retries the relaunch.
 
-### 10.8 Değiştirilmiş güncelleme reddedilir
-- **Nasıl:** Birim ve gerçek DMG testleri (10.10) kapsar; uygulama yalnızca sabit yayın adresinden indirdiği için arayüzden değiştirilmiş bir DMG verilemez.
-- **Beklenen:** İmzasız ya da yeniden imzalanmış güncelleme kurulmaz; satır "Update Failed — Try Again" olur.
+### 10.8 A modified update is rejected
+- **How:** Covered by the unit and real DMG tests (10.10); since the app downloads only from the fixed release address, a modified DMG cannot be supplied from the UI.
+- **Expected:** An unsigned or re-signed update is not installed; the row becomes "Update Failed — Try Again".
 
-### 10.9 Yarıda kalan güncellemenin temizliği
-- **Nasıl:** Kopyada satıra tıkla ve "Installing…" sırasında `osascript -e 'quit app "trrek"'` ile çık (ya da `~/Library/Caches/com.burakseyitkara.trrek/Updates/trrek-v9.9.9.dmg` adında bir dosya ve boş bir `$TMPDIR/trrek-update-x` klasörü oluştur); kopyayı yeniden aç.
-- **Beklenen:** Açılışta önbellek klasörü silinir; `hdiutil info`'da `trrek-update-` bağlama noktası, `$TMPDIR`'de `trrek-update-*` klasörü, kopyanın yanında `.trrek-previous` kalmaz.
+### 10.9 Cleanup of an interrupted update
+- **How:** In the copy click the row and quit with `osascript -e 'quit app "trrek"'` during "Installing…" (or create a file named `~/Library/Caches/com.burakseyitkara.trrek/Updates/trrek-v9.9.9.dmg` and an empty `$TMPDIR/trrek-update-x` folder); reopen the copy.
+- **Expected:** At launch the cache folder is deleted; no `trrek-update-` mount point in `hdiutil info`, no `trrek-update-*` folder in `$TMPDIR`, no `.trrek-previous` next to the copy.
 
-### 10.10 Gerçek doğrulayıcı ve bağlayıcı (otomatik)
-- **Nasıl:** Yayımlanmış DMG'yi geçici bir klasöre indir (`curl -L -o /tmp/trrek-dmg/trrek-v0.3.0.dmg https://github.com/burakseyitkara1/trrek-releases/releases/download/v0.3.0/trrek-v0.3.0.dmg`), `make app` ile Developer ID imzalı ama notarize edilmemiş `dist/trrek.app` üret; `TRREK_UPDATE_DMG=/tmp/trrek-dmg/trrek-v0.3.0.dmg TRREK_UNNOTARIZED_APP=$PWD/dist/trrek.app make test`.
-- **Beklenen:** `UpdateInstallReleaseTests` geçer (~15 sn): imaj gizli bağlanıp kopyalanır ve çıkarılır, sürüm doğrulanır; hazırlandıktan sonra yeniden imzalanan kopya kurulumdan hemen önce reddedilir ve kurulu kopya değişmez; imzasız bir DMG bağlanmadan reddedilir; ad-hoc yeniden imzalanmış kopya ve `Info.plist` sürümü değiştirilmiş kopya imza denetiminde, `dist/trrek.app` yalnızca notarizasyon denetiminde reddedilir ("not notarized app: Optional(…notNotarized)"); geçici bir klasördeki sahte kurulu uygulama yeni sürümle değiştirilir, karantina ve yedek kalmaz. Ortam değişkeni yoksa test atlanır. Sonra `hdiutil info`'da `trrek-update-` yoktur; `rm -rf /tmp/trrek-dmg`.
+### 10.10 The real verifier and binder (automatic)
+- **How:** Download the released DMG into a temporary folder (`curl -L -o /tmp/trrek-dmg/trrek-v0.3.0.dmg https://github.com/burakseyitkara1/trrek-releases/releases/download/v0.3.0/trrek-v0.3.0.dmg`), produce a Developer ID signed but not notarized `dist/trrek.app` with `make app`; `TRREK_UPDATE_DMG=/tmp/trrek-dmg/trrek-v0.3.0.dmg TRREK_UNNOTARIZED_APP=$PWD/dist/trrek.app make test`.
+- **Expected:** `UpdateInstallReleaseTests` passes (~15 s): the image is mounted hidden, copied and ejected, the version is verified; a copy re-signed after being prepared is rejected right before installation and the installed copy does not change; an unsigned DMG is rejected without being mounted; an ad-hoc re-signed copy and a copy with a modified `Info.plist` version are rejected at the signature check, `dist/trrek.app` only at the notarization check ("not notarized app: Optional(…notNotarized)"); a fake installed app in a temporary folder is replaced with the new version, no quarantine or backup remains. If the environment variable is missing the test is skipped. After that there is no `trrek-update-` in `hdiutil info`; `rm -rf /tmp/trrek-dmg`.
 
-### 10.11 Eski sürüm kurulmaz
-- **Nasıl:** `Sources/TrrekEngine/Version.swift`'te sürümü geçici olarak `9.0.0` yap ve `make app` ile en son yayımlanmış sürümden büyük bir kopya üret (karşılaştırılan, derlenmiş `TrrekVersion`'dır; yalnızca `Info.plist` yetmez), `ditto dist/trrek.app /tmp/trrek-install-test/trrek.app` ile kopyala (yukarıdaki kopya adımları), `open -a /tmp/trrek-install-test/trrek.app --args --assume-version 0.2.0` ile aç ve "Update Available" satırına tıkla. Bitince `git checkout Sources/TrrekEngine/Version.swift` ve `make app` ile `dist/trrek.app`'i yeniden üret.
-- **Beklenen:** İndirme biter, satır "Update Failed — Try Again" olur, tarayıcı açılmaz; günlükte "update X.Y.Z is older than 9.0.0" görünür; `defaults read /tmp/trrek-install-test/trrek.app/Contents/Info.plist CFBundleShortVersionString` hâlâ `9.0.0` verir; önbellek klasöründe DMG kalmaz.
+### 10.11 An older version is not installed
+- **How:** Temporarily set the version to `9.0.0` in `Sources/TrrekEngine/Version.swift` and produce a copy greater than the latest released version with `make app` (what is compared is the compiled `TrrekVersion`; `Info.plist` alone is not enough), copy it with `ditto dist/trrek.app /tmp/trrek-install-test/trrek.app` (the copy steps above), open it with `open -a /tmp/trrek-install-test/trrek.app --args --assume-version 0.2.0` and click the "Update Available" row. When done, `git checkout Sources/TrrekEngine/Version.swift` and produce `dist/trrek.app` again with `make app`.
+- **Expected:** The download finishes, the row becomes "Update Failed — Try Again", the browser does not open; the log shows "update X.Y.Z is older than 9.0.0"; `defaults read /tmp/trrek-install-test/trrek.app/Contents/Info.plist CFBundleShortVersionString` still gives `9.0.0`; no DMG is left in the cache folder.

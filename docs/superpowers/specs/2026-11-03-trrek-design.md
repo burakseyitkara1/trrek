@@ -1,70 +1,70 @@
-# trrek — Tasarım Spesifikasyonu
+# trrek — Design Specification
 
-Tarih: 2026-11-03 · Durum: onaylandı (otonom yürütme)
+Date: 2026-11-03 · Status: approved (autonomous execution)
 
-## 1. Amaç ve kapsam
+## 1. Purpose and scope
 
-**trrek**, macOS'ta trackpad kenarlarını ve köşelerini tek parmaklı kontrollere çeviren, menü çubuğunda yaşayan bir uygulamadır. Kişisel kullanım içindir, ücretsizdir ve bu depoda sıfırdan yazılır.
+**trrek** is a menu bar app for macOS that turns the trackpad edges and corners into one-finger controls. It is for personal use, is free, and is written from scratch in this repository.
 
-**Ürün tanımı**
-- Sağ kenar, yukarı/aşağı kaydır → ses. Sol kenar → ekran parlaklığı (harici ekranlarda DDC/CI ile, isteğe bağlı).
-- Üst kenar, sola/sağa kaydır → uygulama değiştirme (sistemin ⌘-Tab seçicisi sürülür). Alt kenar → klavye arka ışığı; arka ışığı olmayan Mac'te medya.
-- Üst ve alt kenar için seçenekler: Switch Apps, Scrub Video, Keyboard Backlight, Media, Off.
-- Köşelere çift dokunma → Off, Mute ya da Screenshot (⌘⇧5). Üç parmak dokunma → orta tık (isteğe bağlı).
-- Her adımda haptik tık (Off/Light/Medium/Strong), sistemin kendi ses/parlaklık HUD'u, kaydırırken sabit imleç, hassas mod (çeyrek adım), kenar genişliği (Narrow/Standard/Wide), alt çeyrek modu, taraf değiştirme, Hold-to-Slide tuşu (Hold/Toggle), uygulama bazlı duraklatma, avuç reddi, yazarken yok sayma, uyku sonrası kendiliğinden toparlanma, girişte açılma.
-- Ayarlar ve karşılama için macOS 26 Liquid Glass tasarım dilinde SwiftUI pencereleri; menü çubuğunda hızlı anahtarlar.
+**Product definition**
+- Right edge, slide up/down → volume. Left edge → screen brightness (on external displays with DDC/CI, optional).
+- Top edge, slide left/right → app switching (the system's ⌘-Tab switcher is driven). Bottom edge → keyboard backlight; media on a Mac without a backlight.
+- Options for the top and bottom edge: Switch Apps, Scrub Video, Keyboard Backlight, Media, Off.
+- Double tap on the corners → Off, Mute or Screenshot (⌘⇧5). Three-finger tap → middle click (optional).
+- A haptic tick on every step (Off/Light/Medium/Strong), the system's own volume/brightness HUD, a fixed cursor while sliding, precision mode (quarter step), edge width (Narrow/Standard/Wide), bottom quarter mode, swapping sides, a Hold-to-Slide key (Hold/Toggle), per-app pausing, palm rejection, ignoring touches while typing, automatic recovery after sleep, launch at login.
+- SwiftUI windows in the macOS 26 Liquid Glass design language for settings and welcome; quick switches in the menu bar.
 
-**Hedefler**
-- Minimum kaynak tüketimi: boşta %0 CPU, 15 MB altı bellek, kare başına sabit zamanlı iş, heap ayırma yok.
-- Donanımsız CI'da test edilebilen jest motoru.
-- Xcode gerektirmeyen derleme (Swift Package Manager + betik).
-- Baştan sona PR ve CI disipliniyle, otonom yürütülen profesyonel geliştirme süreci.
+**Goals**
+- Minimum resource use: 0% CPU at idle, memory under 15 MB, constant-time work per frame, no heap allocation.
+- A gesture engine that can be tested in CI without hardware.
+- A build that does not need Xcode (Swift Package Manager + scripts).
+- A professional, autonomously executed development process with PR and CI discipline from start to finish.
 
-**Kapsam dışı:** Lisans, deneme, ödeme ve otomatik güncelleme mekanizmaları; web sitesi; notarizasyon; Intel; macOS 26 öncesi.
+**Out of scope:** License, trial, payment and automatic update mechanisms; a website; notarization; Intel; before macOS 26.
 
-**Başarı ölçütleri**
-1. Geliştirme Mac'inde (macOS 27.2) dört kenar, dört köşe ve üç parmak orta tık tanımlandığı gibi çalışır; ses ve parlaklıkta sistem HUD'u görünür; her adımda haptik tık hissedilir.
-2. `make perf` boşta 0 CPU ve 15 MB altı bellek raporlar.
-3. Engine testleri Bölüm 5'teki her kuralı kapsar ve CI'da geçer.
-4. `make install` ile uygulama ~/Applications'a kurulur, girişte açılır; ayar penceresi ve karşılama Liquid Glass görünümündedir.
-5. Her değişiklik PR, CI ve inceleme adımlarından geçerek main'e girer; `v0.1.0` etiketi Release olarak DMG üretir.
+**Success criteria**
+1. On the development Mac (macOS 27.2) the four edges, four corners and three-finger middle click work as defined; the system HUD is visible for volume and brightness; a haptic tick is felt on every step.
+2. `make perf` reports 0 CPU at idle and memory under 15 MB.
+3. The Engine tests cover every rule in Section 5 and pass in CI.
+4. With `make install` the app is installed to ~/Applications and opens at login; the settings window and welcome have the Liquid Glass look.
+5. Every change enters main through PR, CI and review steps; the `v0.1.0` tag produces a DMG as a Release.
 
-## 2. Ortam ve kısıtlar
+## 2. Environment and constraints
 
-| Konu | Değer |
+| Topic | Value |
 |---|---|
-| Geliştirme makinesi | Geliştirme Mac'i (Apple silicon), macOS 27.2, Force Touch trackpad (Multitouch ID `<multitouch-id>`), klavye arka ışığı var, yalnızca dahili ekran |
-| Araçlar | Command Line Tools, Swift 6.4.2, Homebrew; Xcode yok |
-| CI runner | `macos-26` imajı: macOS 26.6.1, Xcode 26.6, SwiftLint 0.65, SwiftFormat 0.62 |
-| Swift uyumu | `swift-tools-version: 6.0`, dil modu Swift 6; Swift 6.3+ dil özellikleri ve macOS 27 API'leri kullanılmaz |
-| Hedef platform | macOS 26.0+, yalnızca arm64 |
-| GitHub | Depo `burakseyitkara1/trrek` (herkese açık, MIT; açılmadan önceki özel depo `trrek-private` adıyla arşivli). Sürümler ayrıca `burakseyitkara1/trrek-releases` deposunda. Zorlama yerel araçlarla (Bölüm 10) |
-| macOS runner bütçesi | Ayda ~200 macOS dakikası (2000 × 1/10). CI yalnızca PR'larda ve sürüm etiketlerinde çalışır; tur hedefi 4 dk altı |
-| Private API | MultitouchSupport, CoreBrightness, IOAVService, MediaRemote. Sandbox kapalı. Her sembol `dlsym` ile çözülür; yoksa özellik kapanır |
+| Development machine | Development Mac (Apple silicon), macOS 27.2, Force Touch trackpad (Multitouch ID `<multitouch-id>`), has a keyboard backlight, built-in display only |
+| Tools | Command Line Tools, Swift 6.4.2, Homebrew; no Xcode |
+| CI runner | `macos-26` image: macOS 26.6.1, Xcode 26.6, SwiftLint 0.65, SwiftFormat 0.62 |
+| Swift compatibility | `swift-tools-version: 6.0`, Swift 6 language mode; no Swift 6.3+ language features and no macOS 27 APIs |
+| Target platform | macOS 26.0+, arm64 only |
+| GitHub | Repository `burakseyitkara1/trrek` (public, MIT; the private repository before it was opened is archived as `trrek-private`). Releases are also in the `burakseyitkara1/trrek-releases` repository. Enforcement with local tools (Section 10) |
+| macOS runner budget | ~200 macOS minutes per month (2000 × 1/10). CI runs only on PRs and release tags; round-trip target under 4 min |
+| Private API | MultitouchSupport, CoreBrightness, IOAVService, MediaRemote. Sandbox off. Every symbol is resolved with `dlsym`; if missing the feature turns off |
 
-## 3. Mimari genel bakış
+## 3. Architecture overview
 
-Üç katman, tek süreç, tek yönlü bağımlılık:
+Three layers, one process, one-way dependency:
 
 ```
-Trrek (AppKit + SwiftUI)  →  TrrekPlatform (private API köprüleri)  →  TrrekEngine (saf Swift)
+Trrek (AppKit + SwiftUI)  →  TrrekPlatform (private API bridges)  →  TrrekEngine (pure Swift)
 ```
 
-- **TrrekEngine** sistem çağrısı yapmaz. `Frame` alır, `GestureCommand` üretir. Yalnızca Foundation'a ve kendi kilidi için `os` modülüne bağlıdır.
-- **TrrekPlatform** Engine'in protokollerini gerçek API'lerle uygular: multitouch kaynağı, haptik, tuş ve fare olayı gönderimi, event tap, klavye ışığı, DDC, Now Playing, sistem bildirimleri.
-- **Trrek** ikisini bağlar: ayarlar, menü, ayar penceresi, overlay, karşılama, izinler, yaşam döngüsü.
+- **TrrekEngine** makes no system calls. It takes a `Frame` and produces `GestureCommand`s. It depends only on Foundation and, for its own lock, the `os` module.
+- **TrrekPlatform** implements the Engine's protocols with real APIs: the multitouch source, haptics, key and mouse event posting, event taps, keyboard backlight, DDC, Now Playing, system notifications.
+- **Trrek** connects the two: settings, menu, settings window, overlay, welcome, permissions, lifecycle.
 
-**Thread modeli**
-- Multitouch kareleri framework'ün kendi arka plan thread'inde gelir. Platform katmanı kareyi stack üzerinde `Frame`'e çevirir ve Engine'i senkron çağırır.
-- Engine'in her public metodu (`process`, `tick`, `update`, host sinyalleri, `reset`, `stateKind`) Engine'in kendi `OSAllocatedUnfairLock`'u altında çalışır; farklı thread'lerden gelen çağrılar bu kilitle sıraya girer. Host'un ayrıca kendi kilidini tutması sorun değildir. Sink kilit tutulurken çağrılır ve Engine'e geri çağrı yapmamalıdır.
-- Saat sözleşmesi: Engine'deki tüm zamanlar sistem uptime saniyesidir (`ProcessInfo.processInfo.systemUptime`, `Frame.timestamp` ile aynı saat). CGEvent zaman damgaları 1e9'a bölünerek verilir.
-- Engine komutları senkron bir sink'e verir. Sink; CGEvent gönderimi, haptik ve tap aç/kapa işlemlerini aynı thread'de yapar (hepsi thread-safe). Menü ve overlay güncellemeleri `DispatchQueue.main.async` ile ana thread'e gider.
-- Event tap callback'leri ana run loop'ta çalışır ve host sinyallerini (`noteKeyDown`, `setHoldKeySatisfied`) çağırır; bu çağrılar Engine'in kendi kilidiyle karelerle sıraya girer.
-- Periyodik zamanlayıcı yoktur. İki tek seferlik zamanlayıcı vardır: slide watchdog (slide sürerken, her karede yeniden kurulur) ve overlay gizleme (overlay görünürken).
-- Slide sürerken `ProcessInfo.beginActivity(.userInitiated)` tutulur; bitince bırakılır. Boşta App Nap'e izin verilir.
-- SwiftUI pencereleri (Settings, Welcome) yalnızca açıkken bellekte bulunur; kapanınca hosting controller ve pencere serbest bırakılır.
+**Thread model**
+- Multitouch frames arrive on the framework's own background thread. The Platform layer converts the frame to a `Frame` on the stack and calls the Engine synchronously.
+- Every public method of the Engine (`process`, `tick`, `update`, host signals, `reset`, `stateKind`) runs under the Engine's own `OSAllocatedUnfairLock`; calls from different threads are serialized by this lock. It is not a problem for the host to hold its own lock as well. The sink is called while the lock is held and must not call back into the Engine.
+- Clock contract: all times in the Engine are system uptime seconds (`ProcessInfo.processInfo.systemUptime`, the same clock as `Frame.timestamp`). CGEvent timestamps are given divided by 1e9.
+- The Engine gives commands to a synchronous sink. The sink does CGEvent posting, haptics and tap enable/disable on the same thread (all thread-safe). Menu and overlay updates go to the main thread with `DispatchQueue.main.async`.
+- Event tap callbacks run on the main run loop and call the host signals (`noteKeyDown`, `setHoldKeySatisfied`); these calls are serialized with the frames by the Engine's own lock.
+- There is no periodic timer. There are two one-shot timers: the slide watchdog (while a slide is in progress, re-armed on every frame) and overlay hiding (while the overlay is visible).
+- While a slide is in progress `ProcessInfo.beginActivity(.userInitiated)` is held; it is released when it ends. App Nap is allowed at idle.
+- SwiftUI windows (Settings, Welcome) are in memory only while open; when closed the hosting controller and window are released.
 
-## 4. Paket yapısı
+## 4. Package structure
 
 ```
 trrek/
@@ -76,16 +76,16 @@ trrek/
 │   │   ├── Types.swift          # Touch, Frame, TouchBuffer, DeviceGeometry, Edge, Corner, Zone
 │   │   ├── Config.swift         # EngineConfig, Thresholds, EdgeAction, CornerAction
 │   │   ├── Commands.swift       # GestureCommand, HapticEvent, CommandSink
-│   │   ├── Geometry.swift       # bölge tespiti, mm dönüşümleri
-│   │   └── GestureEngine.swift  # durum makinesi
+│   │   ├── Geometry.swift       # zone detection, mm conversions
+│   │   └── GestureEngine.swift  # state machine
 │   ├── TrrekPlatform/
-│   │   ├── PrivateSymbols.swift # tüm dlopen/dlsym tanımları, tek dosya
+│   │   ├── PrivateSymbols.swift # all dlopen/dlsym definitions, a single file
 │   │   ├── Multitouch/MultitouchSource.swift
 │   │   ├── Haptics/ActuatorHaptics.swift
 │   │   ├── Input/MediaKeyPoster.swift · KeyPoster.swift · MousePoster.swift · EventTapGuard.swift · EventStamp.swift
 │   │   ├── Keyboard/KeyboardBacklight.swift
-│   │   ├── Display/ExternalBrightness.swift · DisplayLocator.swift      (Aşama 2)
-│   │   ├── Media/NowPlayingBridge.swift + Resources/nowplaying-helper   (Aşama 2)
+│   │   ├── Display/ExternalBrightness.swift · DisplayLocator.swift      (Phase 2)
+│   │   ├── Media/NowPlayingBridge.swift + Resources/nowplaying-helper   (Phase 2)
 │   │   └── System/FrontmostObserver.swift · WakeObserver.swift · Permissions.swift · LaunchAtLogin.swift
 │   ├── Trrek/
 │   │   ├── main.swift · AppDelegate.swift · Coordinator.swift
@@ -94,7 +94,7 @@ trrek/
 │   │   ├── UI/SettingsWindow.swift · SettingsView.swift · EdgesTab.swift · CornersTab.swift · GeneralTab.swift · AdvancedTab.swift
 │   │   ├── UI/TrackpadDiagram.swift · WelcomeWindow.swift · WelcomeView.swift · OverlayPanel.swift · OverlayView.swift
 │   │   └── Resources/MenuIcon.pdf
-│   └── TrrekProbe/main.swift    # geliştirme aracı, .app'e girmez
+│   └── TrrekProbe/main.swift    # development tool, not in the .app
 ├── Tests/TrrekEngineTests/
 ├── Resources/AppIcon.icns · Info.plist.in · icon-1024.png
 ├── scripts/build-app.sh · make-icon.sh · install-hooks.sh · perf.sh
@@ -102,15 +102,15 @@ trrek/
 └── .github/workflows/ci.yml · release.yml · dependabot.yml · PULL_REQUEST_TEMPLATE.md
 ```
 
-`Package.swift`: platform `.macOS("26.0")`; hedefler `TrrekEngine` (library), `TrrekPlatform` (library, bağımlılık Engine), `Trrek` (executable, bağımlılık Platform), `TrrekProbe` (executable, bağımlılık Platform), `TrrekEngineTests` (test, Swift Testing). Harici paket bağımlılığı yok. Private framework'ler bağlanmaz, çalışma zamanında `dlopen` edilir.
+`Package.swift`: platform `.macOS("26.0")`; targets `TrrekEngine` (library), `TrrekPlatform` (library, depends on Engine), `Trrek` (executable, depends on Platform), `TrrekProbe` (executable, depends on Platform), `TrrekEngineTests` (test, Swift Testing). No external package dependencies. Private frameworks are not linked, they are `dlopen`ed at run time.
 
 ## 5. TrrekEngine
 
-### 5.1 Veri tipleri
+### 5.1 Data types
 
 ```swift
-public struct Touch { id: Int32; x: Float; y: Float; majorAxisMM: Float }   // x,y normalize 0...1, orijin sol alt
-public struct TouchBuffer { count: Int; storage: (Touch × 16) }               // sabit kapasite, heap yok
+public struct Touch { id: Int32; x: Float; y: Float; majorAxisMM: Float }   // x,y normalized 0...1, origin bottom left
+public struct TouchBuffer { count: Int; storage: (Touch × 16) }               // fixed capacity, no heap
 public struct DeviceGeometry { widthMM: Float; heightMM: Float; isBuiltIn: Bool }
 public struct Frame { deviceID: UInt64; timestamp: TimeInterval; geometry: DeviceGeometry; touches: TouchBuffer }
 public enum Edge { left, right, top, bottom }
@@ -118,20 +118,20 @@ public enum Corner { topLeft, topRight, bottomLeft, bottomRight }
 public enum Zone { edge(Edge), corner(Corner), none }
 ```
 
-Platform, yalnızca temas halindeki dokunmaları `Frame`'e koyar. Bir id'nin kareden kaybolması kalkma demektir. 16'dan fazla dokunma kırpılır.
+The Platform puts only touches in contact into the `Frame`. An id disappearing from a frame means lift-off. More than 16 touches are truncated.
 
-### 5.2 Yapılandırma
+### 5.2 Configuration
 
 ```swift
 public enum EdgeAction { volume, brightness, switchApps, scrubVideo, keyboardBacklight, media, off }
 public enum CornerAction { off, mute, screenshot }
-public struct Thresholds {           // başlangıç değerleri; Aşama 0 spike'ında ayarlanır
+public struct Thresholds {           // initial values; tuned in the Phase 0 spike
   edgeWidthMM: Float = 10            // Narrow 7 · Standard 10 · Wide 14
-  slideStartMM: Float = 3            // kenar ekseni boyunca
-  abortPerpendicularMM: Float = 4    // slide başlamadan kenara dik bu kadar hareket → Spent
-  stepMM: Float = 3.75               // volume, brightness, keyboardBacklight (16 adım ≈ 60 mm)
+  slideStartMM: Float = 3            // along the edge axis
+  abortPerpendicularMM: Float = 4    // movement this far perpendicular to the edge before the slide starts → Spent
+  stepMM: Float = 3.75               // volume, brightness, keyboardBacklight (16 steps ≈ 60 mm)
   appSwitchStepMM: Float = 12
-  scrubStepMM: Float = 6             // adım = 5 saniye
+  scrubStepMM: Float = 6             // step = 5 seconds
   mediaSkipStepMM: Float = 20
   tapMaxDuration: TimeInterval = 0.25
   tapMaxMoveMM: Float = 2
@@ -143,8 +143,8 @@ public struct Thresholds {           // başlangıç değerleri; Aşama 0 spike'
   typingGate: TimeInterval = 0.40
 }
 public struct EngineConfig {
-  left, right, top, bottom: EdgeAction      // varsayılan: brightness, volume, switchApps, keyboardBacklight
-  topLeft, topRight, bottomLeft, bottomRight: CornerAction   // varsayılan: off
+  left, right, top, bottom: EdgeAction      // defaults: brightness, volume, switchApps, keyboardBacklight
+  topLeft, topRight, bottomLeft, bottomRight: CornerAction   // default: off
   bottomQuarterOnly: Bool = false
   precision: Bool = false
   freezeCursor: Bool = true
@@ -154,78 +154,78 @@ public struct EngineConfig {
 }
 ```
 
-Swap Sides, uygulama katmanında `left`/`right` eylemlerini değiştirerek uygulanır; Engine ayrı bir bayrak tutmaz. (Aşama 3'te Swap Sides kalktı ve eylem listeleri genişledi; bkz. 5.9.)
+Swap Sides is applied in the app layer by swapping the `left`/`right` actions; the Engine keeps no separate flag. (In Phase 3 Swap Sides was removed and the action lists were extended; see 5.9.)
 
-### 5.3 Geometri
+### 5.3 Geometry
 
-- mm dönüşümü: `dxMM = Δx · widthMM`, `dyMM = Δy · heightMM`.
-- Kenar şeritleri: `left: x·W < w`, `right: (1−x)·W < w`, `bottom: y·H < w`, `top: (1−y)·H < w` (w = edgeWidthMM).
-- Köşe: iki şeridin kesişimi; her zaman `corner` bölgesidir. Köşede başlayan parmak hareket eksenine göre komşu kenara bağlanır (5.4); köşe eylemi Off ise çift dokunma hiçbir şey yapmaz.
-- `bottomQuarterOnly` açıkken sol/sağ şeritleri yalnızca `y < 0.25` iken kenar bölgesi üretir. Seçenek yalnızca dikey kenar slide'larını kısıtlar, köşe algılamayı değil: `y ≥ 0.25`'te dikey şerit yatay şeritle yine köşe oluşturur. Böyle bir köşe adayı dikey kenara bağlanırsa (`y0 ≥ 0.25`) slide başlamaz, aday `spent`'e gider; yatay kenara bağlanma etkilenmez.
-- Eylemi `off` olan kenarlar düz kenar bölgesi sayılmaz. Şeritler geometriyle belirlenir; iki şeridin kesişimi, kenarlarından biri ya da ikisi `off` olsa da köşe kalır (çift dokunması çalışır, `off` kenara doğru slide başlamaz; karar 48).
-- Kenar ekseni ve yön: left/right → y ekseni, yukarı = +1. top/bottom → x ekseni, sağa = +1.
+- mm conversion: `dxMM = Δx · widthMM`, `dyMM = Δy · heightMM`.
+- Edge strips: `left: x·W < w`, `right: (1−x)·W < w`, `bottom: y·H < w`, `top: (1−y)·H < w` (w = edgeWidthMM).
+- Corner: the intersection of two strips; always a `corner` zone. A finger starting in a corner is bound to the neighboring edge according to its movement axis (5.4); if the corner action is Off, a double tap does nothing.
+- When `bottomQuarterOnly` is on, the left/right strips produce an edge zone only when `y < 0.25`. The option restricts only vertical edge slides, not corner detection: at `y ≥ 0.25` the vertical strip still forms a corner with a horizontal strip. If such a corner candidate is bound to the vertical edge (`y0 ≥ 0.25`) the slide does not start, the candidate goes to `spent`; binding to the horizontal edge is not affected.
+- Edges whose action is `off` do not count as a plain edge zone. The strips are determined by geometry; the intersection of two strips stays a corner even if one or both of its edges are `off` (its double tap works, a slide toward the `off` edge does not start; decision 48).
+- Edge axis and direction: left/right → y axis, up = +1. top/bottom → x axis, right = +1.
 
-### 5.4 Durum makinesi
+### 5.4 State machine
 
-Tek durum, tüm cihazlar için ortak. `Idle` dışında bir durumdayken başka cihazdan gelen kareler yok sayılır.
+A single state, shared by all devices. While in a state other than `Idle`, frames coming from another device are ignored.
 
-| Durum | Veri |
+| State | Data |
 |---|---|
 | `idle` | — |
 | `candidate` | zone, touchID, x0, y0, t0 |
 | `sliding` | edge, action, touchID, origin (mm), accumulatedMM, stepsEmitted, lastFrameTime |
-| `lost` | sliding verisi, since |
-| `spent` | firstDownTime, başlangıç konumları |
+| `lost` | sliding data, since |
+| `spent` | firstDownTime, initial positions |
 | `threeFinger` | ids[3], tDown, maxMoveMM |
 
-Geçişler (kare başına; kapılar Bölüm 5.6'daki sırayla önce uygulanır):
+Transitions (per frame; the gates are applied first in the order in Section 5.6):
 
 1. **idle**
-   - 1 dokunma, bölge ≠ none → `candidate`.
-   - 3 dokunma, hepsi `threeFingerSettle` içinde inmiş, `middleClickEnabled` → `threeFinger`.
-   - 1 dokunma, bölge = none ya da 2 dokunma → `spent` (ilk iniş zamanı ve başlangıç konumları saklanır).
+   - 1 touch, zone ≠ none → `candidate`.
+   - 3 touches, all landed within `threeFingerSettle`, `middleClickEnabled` → `threeFinger`.
+   - 1 touch, zone = none or 2 touches → `spent` (the first landing time and initial positions are stored).
 2. **candidate**
-   - dokunma sayısı ≠ 1 → `spent` (3'e çıkarsa `spent`'teki üç parmak kuralı aynı karede uygulanır).
-   - kenar ekseni boyunca |Δ| ≥ `slideStartMM` → `sliding`; emit `freezeCursor(true)` (config.freezeCursor ise) ve `haptic(.start)`. Zone köşe ise kenar hareket eksenine göre seçilir: yatay hareket → o köşenin top/bottom kenarı, dikey hareket → left/right kenarı; seçilen kenarın eylemi `off` ise `spent`.
-   - dik eksende |Δ| ≥ `abortPerpendicularMM` → `spent`.
-   - kalkma, süre ≤ `tapMaxDuration` ve hareket ≤ `tapMaxMoveMM` → tap: köşe ise çift dokunma sayacı (aynı köşe, `doubleTapWindow` içinde ikinci tap → `mute`/`screenshot` + `haptic(.tap)`); kenar eylemi `media` ise çift dokunma → `mediaPlayPause`. → `idle`.
-   - kalkma, diğer → `idle`.
+   - touch count ≠ 1 → `spent` (if it rises to 3, the three-finger rule in `spent` is applied in the same frame).
+   - |Δ| along the edge axis ≥ `slideStartMM` → `sliding`; emit `freezeCursor(true)` (if config.freezeCursor) and `haptic(.start)`. If the zone is a corner the edge is chosen by the movement axis: horizontal movement → that corner's top/bottom edge, vertical movement → the left/right edge; if the chosen edge's action is `off` → `spent`.
+   - |Δ| on the perpendicular axis ≥ `abortPerpendicularMM` → `spent`.
+   - lift-off, duration ≤ `tapMaxDuration` and movement ≤ `tapMaxMoveMM` → tap: if a corner, the double tap counter (same corner, second tap within `doubleTapWindow` → `mute`/`screenshot` + `haptic(.tap)`); if the edge action is `media`, double tap → `mediaPlayPause`. → `idle`.
+   - lift-off, other → `idle`.
 3. **sliding**
-   - dokunma sayısı ≥ 2 → bitir(cancel) → `spent`.
-   - her karede `accumulatedMM += Δ(kenar ekseni)`; `|accumulatedMM| ≥ stepMM(action)` olduğu sürece bir adım komutu + `haptic(.step)` emit, `accumulatedMM` azalt. Adım komutları: `stepVolume(±1, fine)`, `stepBrightness(±1, fine)`, `stepKeyboardBacklight(±1, fine)`, `appSwitchStep(±1)`, `scrubStep(±1)`, `mediaNext`/`mediaPrevious`. `fine = config.precision`.
-   - `accumulatedMM` sonlu değilse (sonsuz ya da NaN koordinat) slide bitir(cancel) ile biter → `spent`; adım üretilmez. Bir karede en fazla 64 adım (`maxStepsPerFrame`) üretilir; sınıra ulaşılırsa kalan mesafe atılır (`accumulatedMM = 0`), böylece bozuk koordinat sonraki karelerde adım üretmeye devam etmez.
-   - dokunma id'si kareden kayboldu (kalkma ya da anlık düşme; ikisi ayırt edilemez) → `lost`. Spike ile doğrulandı: cihaz kalkışta state 5→6→7 ve ardından sıfır dokunmalı bir kare gönderir; platform yalnızca state 3/4'ü geçirdiği için parmak state 5'te kaybolur.
-   - kare gelmedi (watchdog `tick(now)` ile `now − lastFrameTime ≥ lostTimeout`) → bitir(commit) → `idle`.
+   - touch count ≥ 2 → finish(cancel) → `spent`.
+   - on every frame `accumulatedMM += Δ(edge axis)`; as long as `|accumulatedMM| ≥ stepMM(action)`, emit one step command + `haptic(.step)` and decrease `accumulatedMM`. Step commands: `stepVolume(±1, fine)`, `stepBrightness(±1, fine)`, `stepKeyboardBacklight(±1, fine)`, `appSwitchStep(±1)`, `scrubStep(±1)`, `mediaNext`/`mediaPrevious`. `fine = config.precision`.
+   - if `accumulatedMM` is not finite (an infinite or NaN coordinate) the slide ends with finish(cancel) → `spent`; no step is produced. At most 64 steps per frame (`maxStepsPerFrame`) are produced; if the limit is reached the remaining distance is discarded (`accumulatedMM = 0`), so a corrupt coordinate does not keep producing steps in later frames.
+   - the touch id disappeared from the frame (lift-off or a momentary drop; the two cannot be distinguished) → `lost`. Verified with the spike: at lift-off the device sends state 5→6→7 and then a frame with zero touches; since the platform passes only state 3/4, the finger disappears at state 5.
+   - no frame arrived (watchdog `tick(now)` with `now − lastFrameTime ≥ lostTimeout`) → finish(commit) → `idle`.
 4. **lost**
-   - aynı id geri geldi, `lostTimeout` içinde → `sliding`.
-   - `lostTimeout` doldu (kare ya da `tick` ile) → bitir(commit) → `idle`.
-5. **spent** — dokunma sayısı 3'e çıkmış, ilk inişten bu yana ≤ `threeFingerSettle` geçmiş, hiçbiri `tapMaxMoveMM`'den fazla hareket etmemiş ve `middleClickEnabled` → `threeFinger`. Tüm dokunmalar kalkınca → `idle`.
+   - the same id came back, within `lostTimeout` → `sliding`.
+   - `lostTimeout` expired (by frame or `tick`) → finish(commit) → `idle`.
+5. **spent** — if the touch count has risen to 3, ≤ `threeFingerSettle` has passed since the first landing, none has moved more than `tapMaxMoveMM` and `middleClickEnabled` → `threeFinger`. When all touches lift → `idle`.
 6. **threeFinger**
-   - herhangi bir dokunma `tapMaxMoveMM`'den fazla hareket etti ya da süre > `threeFingerMaxDuration` → `spent`.
-   - dördüncü dokunma → `spent`.
-   - üçü de kalktı → emit `middleClick` + `haptic(.tap)` → `idle`.
+   - any touch moved more than `tapMaxMoveMM` or duration > `threeFingerMaxDuration` → `spent`.
+   - a fourth touch → `spent`.
+   - all three lifted → emit `middleClick` + `haptic(.tap)` → `idle`.
 
-**bitir(commit/cancel):** `switchApps` → `appSwitchCommit` (cancel'da `appSwitchCancel`); `scrubVideo` → `scrubCommit` (cancel'da `scrubCancel`); diğerleri komut üretmez. `frozen` ise `freezeCursor(false)`.
+**finish(commit/cancel):** `switchApps` → `appSwitchCommit` (`appSwitchCancel` on cancel); `scrubVideo` → `scrubCommit` (`scrubCancel` on cancel); others produce no command. If `frozen`, `freezeCursor(false)`.
 
-### 5.5 Eylem eşlemesi
+### 5.5 Action mapping
 
-| EdgeAction | Adım mesafesi | +1 komutu | −1 komutu | Bırakınca |
+| EdgeAction | Step distance | +1 command | −1 command | On release |
 |---|---|---|---|---|
 | volume | stepMM | stepVolume(+1) | stepVolume(−1) | — |
 | brightness | stepMM | stepBrightness(+1) | stepBrightness(−1) | — |
 | keyboardBacklight | stepMM | stepKeyboardBacklight(+1) | stepKeyboardBacklight(−1) | — |
 | switchApps | appSwitchStepMM | appSwitchStep(+1) | appSwitchStep(−1) | appSwitchCommit |
 | scrubVideo | scrubStepMM | scrubStep(+1) (+5 s) | scrubStep(−1) | scrubCommit |
-| media | mediaSkipStepMM | mediaNext | mediaPrevious | — (çift dokunma → mediaPlayPause) |
+| media | mediaSkipStepMM | mediaNext | mediaPrevious | — (double tap → mediaPlayPause) |
 
-### 5.6 Kapılar (her karede, sırayla)
+### 5.6 Gates (on every frame, in order)
 
-1. **Avuç filtresi:** `majorAxisMM > palmMajorAxisMM` olan dokunmalar kareden çıkarılır; geriye kalanlar işlenir.
-2. **Yazma kapısı:** `now − lastKeyDown < typingGate` ise `idle` ve `candidate` durumlarında yeni jest başlamaz (mevcut `sliding` sürer).
-3. **Hold-to-Slide:** `holdKeyRequired && !holdKeySatisfied` ise yeni jest başlamaz; `sliding` sırasında tuş bırakılırsa bitir(commit).
-4. **Duraklatma:** `paused` ise `idle` dışındaki durum `idle`'a döner ve kareler yok sayılır.
+1. **Palm filter:** touches with `majorAxisMM > palmMajorAxisMM` are removed from the frame; the rest are processed.
+2. **Typing gate:** if `now − lastKeyDown < typingGate`, no new gesture starts in the `idle` and `candidate` states (an existing `sliding` continues).
+3. **Hold-to-Slide:** if `holdKeyRequired && !holdKeySatisfied`, no new gesture starts; if the key is released during `sliding`, finish(commit).
+4. **Pause:** if `paused`, any state other than `idle` returns to `idle` and frames are ignored.
 
-### 5.7 Komutlar
+### 5.7 Commands
 
 ```swift
 public enum HapticEvent { start, step, tap, limit }
@@ -240,168 +240,168 @@ public enum GestureCommand {
 public protocol CommandSink: AnyObject { func handle(_ command: GestureCommand, device: UInt64) }
 ```
 
-`limit` haptik olayı yalnızca seviyesi bilinen eylemlerde (keyboardBacklight Yol B'de, DDC'de) platform tarafından üretilir; Engine üretmez.
+The `limit` haptic event is produced by the platform only for actions whose level is known (keyboardBacklight in Path B, DDC); the Engine does not produce it.
 
-### 5.8 Host arabirimi
+### 5.8 Host interface
 
 ```swift
 public final class GestureEngine {
   init(config: EngineConfig, sink: CommandSink)
-  func update(config: EngineConfig)        // anında geçerli; sliding/lost → bitir(commit), candidate → spent
-  func process(_ frame: Frame)              // Engine kendi kilidini alır
+  func update(config: EngineConfig)        // takes effect immediately; sliding/lost → finish(commit), candidate → spent
+  func process(_ frame: Frame)              // the Engine takes its own lock
   func tick(now: TimeInterval)             // watchdog
   func noteKeyDown(at: TimeInterval)
   func setHoldKeySatisfied(_: Bool)
   func setPaused(_: Bool)
-  func reset()                              // sliding/lost → bitir(cancel); idle'a dön
+  func reset()                              // sliding/lost → finish(cancel); return to idle
 }
 ```
 
-`reset()` iptal anlamı taşır: `switchApps` → `appSwitchCancel`, `scrubVideo` → `scrubCancel`, ardından imleç dondurulmuşsa `freezeCursor(false)`, sonra `idle`; bekleyen çift dokunma kaydı silinir. `update(config:)` ise commit anlamını korur; o sırada `candidate` olan parmak `spent`'e düşer ve kalkana kadar jest üretmez. Çift dokunma kaydı Engine `spent` ya da `threeFinger` durumuna her girişte silinir.
+`reset()` means cancel: `switchApps` → `appSwitchCancel`, `scrubVideo` → `scrubCancel`, then `freezeCursor(false)` if the cursor is frozen, then `idle`; the pending double tap record is deleted. `update(config:)` keeps the commit meaning; a finger that is a `candidate` at that moment drops to `spent` and produces no gesture until it lifts. The double tap record is deleted every time the Engine enters the `spent` or `threeFinger` state.
 
-### 5.9 Kenar ve köşe eylemleri, hassasiyet (Aşama 3)
+### 5.9 Edge and corner actions, sensitivity (Phase 3)
 
-Dört kenar aynı listeyi sunar: `volume`, `brightness`, `keyboardBacklight`, `switchApps`, `switchTabs`, `switchDesktops`, `scrubVideo`, `media`, `zoom`, `undoRedo`, `off`. `Settings` sol ve sağ kenar için `leftEdge` (varsayılan `brightness`) ve `rightEdge` (varsayılan `volume`) tutar; Swap Sides kalktı. Eski `swapSides: true`, `leftEdge`/`rightEdge` yoksa sol=`volume`, sağ=`brightness` olarak okunur ve bir daha yazılmaz (karar 44). Klavye ışığı köprüsü yokken `keyboardBacklight` her kenarda `media`'ya düşer.
+All four edges offer the same list: `volume`, `brightness`, `keyboardBacklight`, `switchApps`, `switchTabs`, `switchDesktops`, `scrubVideo`, `media`, `zoom`, `undoRedo`, `off`. `Settings` keeps `leftEdge` (default `brightness`) and `rightEdge` (default `volume`) for the left and right edge; Swap Sides was removed. An old `swapSides: true`, if `leftEdge`/`rightEdge` are missing, is read as left=`volume`, right=`brightness` and is not written again (decision 44). When the keyboard backlight bridge is missing `keyboardBacklight` falls back to `media` on every edge.
 
-| EdgeAction | Adım mesafesi | +1 komutu (gönderilen) | −1 komutu (gönderilen) | Bırakınca |
+| EdgeAction | Step distance | +1 command (sent) | −1 command (sent) | On release |
 |---|---|---|---|---|
 | switchTabs | tabSwitchStepMM = 12 | tabSwitchStep(+1) (⌃⇥) | tabSwitchStep(−1) (⌃⇧⇥) | — |
 | switchDesktops | desktopSwitchStepMM = 20 | desktopSwitchStep(+1) (⌃→) | desktopSwitchStep(−1) (⌃←) | — |
 | zoom | zoomStepMM = 8 | zoomStep(+1) (⌘=) | zoomStep(−1) (⌘−) | — |
 | undoRedo | undoRedoStepMM = 10 | undoRedoStep(+1) (⇧⌘Z) | undoRedoStep(−1) (⌘Z) | — |
 
-+1 yönü 5.3'teki eksen kuralıdır: yatay kenarda sağa, dikey kenarda yukarı. trrek'in kendi penceresi öndeyken `switchTabs`, `zoom` ve `undoRedo` adımları (scrub gibi) gönderilmez; `switchDesktops` sistem genelidir ve çalışır. `switchApps` ve `keyboardBacklight` hangi kenara atanırsa atansın aynı davranır (⌘ basılı tutma, commit/cancel; overlay ve sınır haptiği dağıtıcıdadır).
+The +1 direction is the axis rule in 5.3: right on a horizontal edge, up on a vertical edge. While trrek's own window is in front, `switchTabs`, `zoom` and `undoRedo` steps (like scrub) are not sent; `switchDesktops` is system-wide and works. `switchApps` and `keyboardBacklight` behave the same whichever edge they are assigned to (holding ⌘, commit/cancel; the overlay and limit haptic are in the dispatcher).
 
-`CornerAction`: `off`, `mute`, `screenshot`, `playPause` (`mediaPlayPause`), `missionControl`, `appWindows`, `showDesktop`, `spotlight` (⌘Space), `lockScreen` (⌃⌘Q), `screenshotArea` (⇧⌘4). Mission Control, uygulama pencereleri ve masaüstünü göster, sistemin Mission Control uygulamasını `MissionControlOpening` portu üzerinden argümansız, `2` ve `1` argümanıyla açar; uygulama bulunamazsa hata günlüğe yazılır (karar 46).
+`CornerAction`: `off`, `mute`, `screenshot`, `playPause` (`mediaPlayPause`), `missionControl`, `appWindows`, `showDesktop`, `spotlight` (⌘Space), `lockScreen` (⌃⌘Q), `screenshotArea` (⇧⌘4). Mission Control, app windows and show desktop open the system's Mission Control app through the `MissionControlOpening` port with no argument, `2` and `1`; if the app cannot be found the error is written to the log (decision 46).
 
-**Hassasiyet:** `Settings.slideSensitivity` (`veryLow` 1,6 · `low` 1,25 · `standard` 1,0 · `high` 0,8 · `veryHigh` 0,6). `ConfigMapper` bütün adım mesafelerini bu çarpanla ölçekler; diğer eşikler değişmez (karar 47). Ayar General sekmesinde "Slide Sensitivity" seçicisidir. Accessibility izni yokken yeni eylemlerin hepsi kapalıdır (karar 27).
+**Sensitivity:** `Settings.slideSensitivity` (`veryLow` 1.6 · `low` 1.25 · `standard` 1.0 · `high` 0.8 · `veryHigh` 0.6). `ConfigMapper` scales all step distances by this multiplier; the other thresholds do not change (decision 47). The setting is the "Slide Sensitivity" picker in the General tab. Without the Accessibility permission all the new actions are off (decision 27).
 
 ## 6. TrrekPlatform
 
-### 6.1 Sembol yükleme politikası
+### 6.1 Symbol loading policy
 
-`PrivateSymbols.swift` tüm `dlopen`/`dlsym` çağrılarını içerir. Her sembol `lazy static` ve opsiyoneldir. Bir köprü, ihtiyaç duyduğu tüm semboller çözülmüşse `isAvailable = true` döner. Çözülemeyen sembol loglanır, özellik kapanır, çökme olmaz. Doğrudan `extern` bağlama arm64e işaretçi doğrulaması nedeniyle kullanılmaz.
+`PrivateSymbols.swift` contains all `dlopen`/`dlsym` calls. Every symbol is `lazy static` and optional. A bridge returns `isAvailable = true` if all the symbols it needs are resolved. A symbol that cannot be resolved is logged, the feature turns off, no crash. Direct `extern` linking is not used because of arm64e pointer authentication.
 
 ### 6.2 MultitouchSource
 
 - Framework: `/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport`.
-- Semboller: `MTDeviceCreateList`, `MTDeviceIsBuiltIn`, `MTDeviceGetSensorSurfaceDimensions`, `MTRegisterContactFrameCallback`, `MTUnregisterContactFrameCallback`, `MTDeviceStart`, `MTDeviceStop`, `MTDeviceRelease`.
-- Başlatma: liste alınır, her cihaz için yüzey boyutu okunur (birim 1/100 mm; spike'ta doğrulandı: dahili trackpad 12194×7408 → 121.94×74.08 mm), callback kaydedilir, `MTDeviceStart(dev, 0)`.
-- Callback imzası: `(MTDeviceRef, UnsafePointer<MTTouch>, Int32 count, Double timestamp, Int32 frame)`. `MTTouch` 96 baytlık C yapısıdır: `frame:Int32, timestamp:Double, identifier:Int32, state:Int32, fingerID:Int32, handID:Int32, normalizedPosition{x,y}:Float, normalizedVelocity{x,y}:Float, total:Float, pressure:Float, angle:Float, majorAxis:Float, minorAxis:Float, absolutePosition{x,y}:Float, absoluteVelocity{x,y}:Float, reserved:Int32×2, density:Float`. State değerleri: 3 = temas başladı, 4 = temas sürüyor; diğerleri temas değil. Düzen `TrrekProbe layout-check` ile doğrulanır.
-- İlk karede makullük denetimi: `normalizedPosition` 0...1 içinde ve `majorAxis` 0...100 mm içinde değilse kaynak durdurulur ve `layoutMismatch` hatası yayınlanır.
-- Kare dönüşümü: yalnızca state ∈ {3, 4} dokunmalar `TouchBuffer`'a yazılır; `majorAxisMM = majorAxis`. `deviceID` olarak `MTDeviceRef` işaretçisinin tamsayı değeri kullanılır.
-- Yeniden başlatma: `WakeObserver` uyanma bildiriminde ve IOKit `IOServiceAddMatchingNotification("AppleMultitouchDevice")` ile cihaz ekleme/çıkarmada `stop()` + `start()`.
-- Watchdog: slide sürerken her karede `DispatchSourceTimer` (tek seferlik, `lostTimeout`) yeniden kurulur; dolunca `engine.tick(now:)`.
+- Symbols: `MTDeviceCreateList`, `MTDeviceIsBuiltIn`, `MTDeviceGetSensorSurfaceDimensions`, `MTRegisterContactFrameCallback`, `MTUnregisterContactFrameCallback`, `MTDeviceStart`, `MTDeviceStop`, `MTDeviceRelease`.
+- Startup: the list is obtained, the surface size is read for each device (unit 1/100 mm; verified in the spike: built-in trackpad 12194×7408 → 121.94×74.08 mm), the callback is registered, `MTDeviceStart(dev, 0)`.
+- Callback signature: `(MTDeviceRef, UnsafePointer<MTTouch>, Int32 count, Double timestamp, Int32 frame)`. `MTTouch` is a 96-byte C struct: `frame:Int32, timestamp:Double, identifier:Int32, state:Int32, fingerID:Int32, handID:Int32, normalizedPosition{x,y}:Float, normalizedVelocity{x,y}:Float, total:Float, pressure:Float, angle:Float, majorAxis:Float, minorAxis:Float, absolutePosition{x,y}:Float, absoluteVelocity{x,y}:Float, reserved:Int32×2, density:Float`. State values: 3 = contact started, 4 = contact continuing; the others are not contact. The layout is verified with `TrrekProbe layout-check`.
+- Sanity check on the first frame: if `normalizedPosition` is not within 0...1 and `majorAxis` not within 0...100 mm, the source is stopped and a `layoutMismatch` error is published.
+- Frame conversion: only touches with state ∈ {3, 4} are written to the `TouchBuffer`; `majorAxisMM = majorAxis`. The integer value of the `MTDeviceRef` pointer is used as `deviceID`.
+- Restart: `stop()` + `start()` on the `WakeObserver` wake notification and on device add/remove with IOKit `IOServiceAddMatchingNotification("AppleMultitouchDevice")`.
+- Watchdog: while a slide is in progress, a `DispatchSourceTimer` (one-shot, `lostTimeout`) is re-armed on every frame; when it fires, `engine.tick(now:)`.
 
 ### 6.3 ActuatorHaptics
 
-- Semboller: `MTActuatorCreateFromDeviceID(UInt64)`, `MTActuatorOpen`, `MTActuatorActuate(actuator, Int32 waveform, UInt32 0, Float 0, Float 0)`, `MTActuatorClose`.
-- Cihaz kimliği: IORegistry `AppleMultitouchDevice` girdilerinden `Multitouch ID`; `MT Built-In == true` olan dahili, diğerleri harici. Slide hangi cihazdan geldiyse (`MTDeviceIsBuiltIn`) o aktüatör kullanılır; eşleşme yoksa ilk aktüatör.
-- Güç eşlemesi (başlangıç; spike'ta ayarlanır): Light → 4, Medium → 5, Strong → 6; Strong'da `start`/`tap` olayları iki darbe (60 ms ara). Off → hiçbir şey.
-- Yedek: aktüatör yoksa `NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)`.
+- Symbols: `MTActuatorCreateFromDeviceID(UInt64)`, `MTActuatorOpen`, `MTActuatorActuate(actuator, Int32 waveform, UInt32 0, Float 0, Float 0)`, `MTActuatorClose`.
+- Device ID: the `Multitouch ID` from the IORegistry `AppleMultitouchDevice` entries; the one with `MT Built-In == true` is built-in, the others are external. The actuator of whichever device the slide came from (`MTDeviceIsBuiltIn`) is used; if there is no match, the first actuator.
+- Strength mapping (initial; tuned in the spike): Light → 4, Medium → 5, Strong → 6; with Strong, `start`/`tap` events are two pulses (60 ms apart). Off → nothing.
+- Fallback: if there is no actuator, `NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)`.
 
 ### 6.4 MediaKeyPoster
 
-- Olay: `NSEvent.otherEvent(with: .systemDefined, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: 0, context: nil, subtype: 8, data1: (key << 16) | (0x0A << 8), data2: -1)` ardından aynı olayın `0x0B` (key up) sürümü; `event.cgEvent?.post(tap: .cghidEventTap)`.
-- Tuş kodları: SOUND_UP 0, SOUND_DOWN 1, BRIGHTNESS_UP 2, BRIGHTNESS_DOWN 3, MUTE 7, PLAY 16, NEXT 17, PREVIOUS 18, ILLUMINATION_UP 21, ILLUMINATION_DOWN 22.
-- `fine == true` → `modifierFlags = [.option, .shift]` (çeyrek adım).
-- `EventStamp`: tüm olaylar `CGEventSource(stateID: .privateState)` ile ve `userData = 0x7472726B` ("trrk") damgasıyla gönderilir; tap'ler bu damgayı görünce olayı yok sayar (kendi olaylarımız yazma kapısını tetiklemez).
+- Event: `NSEvent.otherEvent(with: .systemDefined, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: 0, context: nil, subtype: 8, data1: (key << 16) | (0x0A << 8), data2: -1)` followed by the `0x0B` (key up) version of the same event; `event.cgEvent?.post(tap: .cghidEventTap)`.
+- Key codes: SOUND_UP 0, SOUND_DOWN 1, BRIGHTNESS_UP 2, BRIGHTNESS_DOWN 3, MUTE 7, PLAY 16, NEXT 17, PREVIOUS 18, ILLUMINATION_UP 21, ILLUMINATION_DOWN 22.
+- `fine == true` → `modifierFlags = [.option, .shift]` (quarter step).
+- `EventStamp`: all events are sent with `CGEventSource(stateID: .privateState)` and stamped with `userData = 0x7472726B` ("trrk"); when the taps see this stamp they ignore the event (our own events do not trigger the typing gate).
 
 ### 6.5 EventTapGuard
 
-- **Tap A** (hep açık): `CGEvent.tapCreate(.cgSessionEventTap, .headInsertEventTap, .listenOnly, [keyDown, flagsChanged])`. keyDown → `engine.noteKeyDown`. flagsChanged → Hold-to-Slide değerlendirmesi (6.10).
-- **Tap B** (yalnızca slide sırasında): `.cghidEventTap` konumunda (olay WindowServer'a ulaşmadan yutulur, imleç yerinde kalır), `.defaultTap`, `[mouseMoved, leftMouseDragged, rightMouseDragged, otherMouseDragged, scrollWheel]`. Açıkken scrollWheel her zaman yutulur; mouseMoved/dragged yalnızca `freezeCursor` açıksa yutulur. `freezeCursor(true)` komutu `CGEvent.tapEnable(tap, true)` çağırır, `freezeCursor(false)` kapatır. Tap kapalıyken sıfır maliyet.
-- `tapDisabledByTimeout`/`tapDisabledByUserInput` gelirse tap yeniden etkinleştirilir.
-- Accessibility yoksa tap'ler kurulmaz; `isAvailable = false`.
+- **Tap A** (always on): `CGEvent.tapCreate(.cgSessionEventTap, .headInsertEventTap, .listenOnly, [keyDown, flagsChanged])`. keyDown → `engine.noteKeyDown`. flagsChanged → Hold-to-Slide evaluation (6.10).
+- **Tap B** (only during a slide): at the `.cghidEventTap` location (the event is swallowed before it reaches WindowServer, the cursor stays in place), `.defaultTap`, `[mouseMoved, leftMouseDragged, rightMouseDragged, otherMouseDragged, scrollWheel]`. While on, scrollWheel is always swallowed; mouseMoved/dragged are swallowed only if `freezeCursor` is on. The `freezeCursor(true)` command calls `CGEvent.tapEnable(tap, true)`, `freezeCursor(false)` turns it off. Zero cost while the tap is off.
+- If `tapDisabledByTimeout`/`tapDisabledByUserInput` arrives the tap is re-enabled.
+- Without Accessibility the taps are not created; `isAvailable = false`.
 
-### 6.6 KeyPoster ve MousePoster
+### 6.6 KeyPoster and MousePoster
 
-- **Switch Apps protokolü:** ilk `appSwitchStep` → ⌘ keyDown (`flagsChanged`, keycode 55, flags `.maskCommand`), ardından Tab (keycode 48) down/up `.maskCommand` ile; `−1` için `.maskCommand | .maskShift`. Sonraki adımlar yalnızca Tab. `appSwitchCommit` → ⌘ keyUp. `appSwitchCancel` → Escape (53) down/up, sonra ⌘ keyUp.
+- **Switch Apps protocol:** the first `appSwitchStep` → ⌘ keyDown (`flagsChanged`, keycode 55, flags `.maskCommand`), then Tab (keycode 48) down/up with `.maskCommand`; for `−1` `.maskCommand | .maskShift`. Later steps are only Tab. `appSwitchCommit` → ⌘ keyUp. `appSwitchCancel` → Escape (53) down/up, then ⌘ keyUp.
 - **Screenshot:** keycode 23 ('5') down/up, flags `.maskCommand | .maskShift`.
-- **Orta tık:** `CGEvent(mouseEventSource:, mouseType: .otherMouseDown, mouseCursorPosition: NSEvent.mouseLocation (CG koordinatına çevrilmiş), mouseButton: .center)`, ardından `.otherMouseUp`. Her ikisi de `.cghidEventTap`'e.
-- Tüm olaylar 6.4'teki damgalı kaynakla gönderilir.
+- **Middle click:** `CGEvent(mouseEventSource:, mouseType: .otherMouseDown, mouseCursorPosition: NSEvent.mouseLocation (converted to CG coordinates), mouseButton: .center)`, then `.otherMouseUp`. Both to `.cghidEventTap`.
+- All events are sent with the stamped source in 6.4.
 
 ### 6.7 KeyboardBacklight
 
-Aşama 0 spike sonucu: medya tuşu yolu Accessibility izni olmadan doğrulanamadı; **Yol B birincil**, Yol A izin alındıktan sonra deneme olarak kalır.
-- **Yol A (ileride):** ILLUMINATION_UP/DOWN medya tuşu olayları; macOS kendi HUD'unu gösteriyorsa bu yola geçilebilir, köprü `nativeHUD = true` döner.
-- **Yol B (birincil):** CoreBrightness `KeyboardBrightnessClient` sınıfı (`copyKeyboardBacklightIDs`, `brightnessForKeyboard:`, `setBrightness:fadeSpeed:commit:forKeyboard:`), adım 1/16, `fine` ise 1/64; seviye overlay'de gösterilir; 0 ve 1'de `haptic(.limit)`.
-- Köprü `isAvailable == false` ise ayarlarda Keyboard Backlight seçeneği gri olur ve bottom edge varsayılanı Media'ya düşer.
+Phase 0 spike result: the media key path could not be verified without the Accessibility permission; **Path B is primary**, Path A remains as a trial once permission is obtained.
+- **Path A (later):** ILLUMINATION_UP/DOWN media key events; if macOS shows its own HUD this path can be switched to, the bridge returns `nativeHUD = true`.
+- **Path B (primary):** the CoreBrightness `KeyboardBrightnessClient` class (`copyKeyboardBacklightIDs`, `brightnessForKeyboard:`, `setBrightness:fadeSpeed:commit:forKeyboard:`), step 1/16, 1/64 if `fine`; the level is shown in the overlay; `haptic(.limit)` at 0 and 1.
+- If the bridge's `isAvailable == false` the Keyboard Backlight option is grayed out in settings and the bottom edge default falls back to Media.
 
-### 6.8 ExternalBrightness ve DisplayLocator (Aşama 2)
+### 6.8 ExternalBrightness and DisplayLocator (Phase 2)
 
-- `DisplayLocator`: imleç konumu kaynaksız oluşturulan bir olayın konumundan (`CGEvent(source: nil).location`, global ekran koordinatları) alınır ve `CGGetDisplaysWithPoint` ile `CGDirectDisplayID`'ye çevrilir; `CGDisplayIsBuiltin` ise dahili.
-- Dahili → `stepBrightness` medya tuşu yoluyla. Harici ve ayar açık → DDC. Son taramada DDC servisi bulunamayan harici ekran (kablosuz/sanal ekran gibi) harici sayılmaz ve medya tuşu yolunu kullanır (karar 35).
-- DDC/CI: `IOAVServiceCreateWithService`, `IOAVServiceWriteI2C`, `IOAVServiceReadI2C` sembolleri; 7-bit adres 0x37, veri adresi 0x51, VCP kodu 0x10 (parlaklık); DDC sağlama toplamı standardına göre paket kurulur. IORegistry'deki harici `DCPAVServiceProxy` girdileri ekranlara önce EDID üretici/model/seri numarasıyla (sonra seri numarası eksikse üretici/modelle) eşlenir; eşleşmeyen ekranlar kalan servisleri sırayla alır. Tarama oluşturulurken ve her ekran yeniden yapılandırmasından sonra arka planda yapılır. Slide başında mevcut/maks değer okunur, her adımda `maks/16` (fine: `maks/64`) yazılır, overlay yüzdeyi gösterir.
-- Sembollerden biri yoksa köprü oluşturulmaz; Edges sekmesindeki ayar "Not available on this Mac" notuyla devre dışı kalır.
-- Bu Mac'te doğrulanamaz; "best effort" olarak işaretlenir. Servisi olan ekranda aktarım hatası olursa overlay "No DDC" gösterir (çubuk yok); hata her hata durumuna girişte bir kez günlüğe yazılır.
+- `DisplayLocator`: the cursor position is taken from the position of an event created without a source (`CGEvent(source: nil).location`, global display coordinates) and converted to a `CGDirectDisplayID` with `CGGetDisplaysWithPoint`; if `CGDisplayIsBuiltin` it is built-in.
+- Built-in → `stepBrightness` through the media key path. External and the setting on → DDC. An external display for which no DDC service was found in the last scan (such as a wireless/virtual display) does not count as external and uses the media key path (decision 35).
+- DDC/CI: the `IOAVServiceCreateWithService`, `IOAVServiceWriteI2C`, `IOAVServiceReadI2C` symbols; 7-bit address 0x37, data address 0x51, VCP code 0x10 (brightness); the packet is built according to the DDC checksum standard. The external `DCPAVServiceProxy` entries in the IORegistry are matched to displays first by EDID manufacturer/model/serial number (then, if the serial number is missing, by manufacturer/model); displays that do not match take the remaining services in order. The scan is done in the background while it is being created and after every display reconfiguration. At the start of a slide the current/max value is read, `max/16` (fine: `max/64`) is written on every step, and the overlay shows the percentage.
+- If one of the symbols is missing the bridge is not created; the setting in the Edges tab is disabled with the "Not available on this Mac" note.
+- It cannot be verified on this Mac; it is marked "best effort". If a transfer error occurs on a display that has a service the overlay shows "No DDC" (no bar); the error is written to the log once on each entry into the error state.
 
-### 6.9 Scrub Video (ok tuşları)
+### 6.9 Scrub Video (arrow keys)
 
-- Video sarma, öndeki uygulamaya ←/→ ok tuşu göndererek yapılır (karar 33): `scrubStep(+1)` → sağ ok (keyCode 124), `scrubStep(−1)` → sol ok (123), bayraksız. Tarayıcılar ve çoğu oynatıcı bu tuşlarla sarar; ek süreç ya da özel API gerekmez.
-- Adım boyunu uygulama belirler; overlay etiketi adım başına 5 s varsayar. `CommandDispatcher` slide başına net adım sayısını tutar ve overlay'de `"+15 s"` / `"−10 s"` / `"0 s"` gösterir (simge + etiket, seviye çubuğu yok).
-- `scrubCommit` ve `scrubCancel` yalnızca sayacı sıfırlar; tuş göndermez (adımlar zaten uygulanmıştır).
-- Öndeki uygulama trrek'in kendisiyse (ayar ya da karşılama penceresi) adımlar tuş göndermez ve sayılmaz (karar 35).
-- Sentetik olay gönderdiği için Accessibility izni yokken kapalıdır (karar 27).
+- Video scrubbing is done by sending ←/→ arrow keys to the front app (decision 33): `scrubStep(+1)` → right arrow (keyCode 124), `scrubStep(−1)` → left arrow (123), no flags. Browsers and most players scrub with these keys; no extra process or private API is needed.
+- The step size is determined by the app; the overlay label assumes 5 s per step. `CommandDispatcher` keeps the net step count per slide and shows `"+15 s"` / `"−10 s"` / `"0 s"` in the overlay (icon + label, no level bar).
+- `scrubCommit` and `scrubCancel` only reset the counter; they send no key (the steps have already been applied).
+- If the front app is trrek itself (the settings or welcome window) the steps send no key and are not counted (decision 35).
+- Since it sends synthetic events it is off without the Accessibility permission (decision 27).
 
-### 6.10 Sistem köprüleri
+### 6.10 System bridges
 
-- **FrontmostObserver:** `NSWorkspace.didActivateApplicationNotification` → bundle id; `Settings.pausedBundleIDs` içindeyse `engine.setPaused(true)`.
+- **FrontmostObserver:** `NSWorkspace.didActivateApplicationNotification` → bundle id; if it is in `Settings.pausedBundleIDs`, `engine.setPaused(true)`.
 - **WakeObserver:** `NSWorkspace.didWakeNotification` → `MultitouchSource.restart()`.
-- **Permissions:** `AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt: true])`; `DistributedNotificationCenter` `com.apple.accessibility.api` bildirimiyle durum yenilenir, tap'ler o anda kurulur. Zamanlayıcı yok.
-- **LaunchAtLogin:** `SMAppService.mainApp.register()` / `unregister()`; durum `status`tan okunur.
-- **Hold-to-Slide:** Tap A flagsChanged → seçili modifier basılı mı? *Hold* modunda `setHoldKeySatisfied(isDown)`. *Toggle* modunda modifier tek başına basılıp 300 ms içinde bırakılırsa (arada başka tuş yok) durum ters çevrilir; durum menü çubuğu ikonunda küçük bir nokta ile gösterilir.
+- **Permissions:** `AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt: true])`; the state is refreshed with the `DistributedNotificationCenter` `com.apple.accessibility.api` notification, and the taps are created at that moment. No timer.
+- **LaunchAtLogin:** `SMAppService.mainApp.register()` / `unregister()`; the state is read from `status`.
+- **Hold-to-Slide:** Tap A flagsChanged → is the selected modifier down? In *Hold* mode `setHoldKeySatisfied(isDown)`. In *Toggle* mode if the modifier is pressed alone and released within 300 ms (no other key in between) the state is flipped; the state is shown with a small dot on the menu bar icon.
 
-## 7. Trrek (uygulama)
+## 7. Trrek (the app)
 
-### 7.1 Yaşam döngüsü
+### 7.1 Lifecycle
 
-1. `SettingsStore.load()` (bozuk veri → varsayılanlar + log).
-2. `Permissions.check()`; izin yoksa Welcome açılır ve menüde "Grant Accessibility…" kalemi görünür.
-3. `Coordinator` Engine, Platform köprüleri ve `Settings`'i bağlar; `EngineConfig` üretir.
-4. `MultitouchSource.start()`; başarısızsa menüde "Trackpad not found" ve uyanma/cihaz bildirimlerinde yeniden deneme.
-5. `EventTapGuard.install()` (izin varsa).
-6. `StatusMenu` kurulur. İlk çalıştırmada (`welcomeShown == false`) Welcome ve Launch at Login kaydı.
-7. Çıkışta: ⌘ basılı kalmasın diye `appSwitchCancel` eşdeğeri temizlik, tap'ler kapatılır, multitouch durdurulur.
+1. `SettingsStore.load()` (corrupt data → defaults + log).
+2. `Permissions.check()`; if there is no permission, Welcome opens and the "Grant Accessibility…" item appears in the menu.
+3. `Coordinator` connects the Engine, the Platform bridges and `Settings`; it produces `EngineConfig`.
+4. `MultitouchSource.start()`; if it fails, "Trackpad not found" in the menu and a retry on wake/device notifications.
+5. `EventTapGuard.install()` (if permission is granted).
+6. `StatusMenu` is set up. On first run (`welcomeShown == false`) Welcome and Launch at Login registration.
+7. On exit: cleanup equivalent to `appSwitchCancel` so that ⌘ does not stay held, the taps are closed, multitouch is stopped.
 
-`Info.plist`: `LSUIElement = true`, `LSMinimumSystemVersion = 26.0`, `CFBundleIdentifier = com.burakseyitkara.trrek`, `NSHumanReadableCopyright`, `CFBundleShortVersionString` ve `CFBundleVersion` derleme betiğinden.
+`Info.plist`: `LSUIElement = true`, `LSMinimumSystemVersion = 26.0`, `CFBundleIdentifier = com.burakseyitkara.trrek`, `NSHumanReadableCopyright`, `CFBundleShortVersionString` and `CFBundleVersion` from the build script.
 
-### 7.2 Menü çubuğu menüsü
+### 7.2 Menu bar menu
 
-Menü hızlı erişim içindir; tüm yapılandırma ayar penceresindedir.
+The menu is for quick access; all configuration is in the settings window.
 
 ```
-trrek is active            (durum satırı, devre dışı; "Paused in <App>", "Accessibility access needed", "Trackpad not found")
+trrek is active            (status line, disabled; "Paused in <App>", "Accessibility access needed", "Trackpad not found")
 ─────────────
-Precision Control          ✓ anahtar
-Freeze Cursor              ✓ anahtar
-Hold-to-Slide: On/Off      (yalnızca Toggle modunda; durum)
-Pause in <Front App>       (öndeki uygulama trrek ise gizli; duraklatılmışsa "Resume in <App>")
+Precision Control          ✓ switch
+Freeze Cursor              ✓ switch
+Hold-to-Slide: On/Off      (only in Toggle mode; state)
+Pause in <Front App>       (hidden if the front app is trrek; if paused "Resume in <App>")
 ─────────────
 Settings…                  ⌘,
 Show Welcome
-Grant Accessibility…       (yalnızca izin yokken)
+Grant Accessibility…       (only when permission is missing)
 ─────────────
 About trrek
 Check for Updates…         (0.4.0)
 Quit trrek                 ⌘Q
 ```
 
-0.4.0'dan beri yeni bir sürüm biliniyorsa menünün en üstünde, ayırıcıyla, "Update Available: trrek X.Y.Z" satırı bulunur ve menü çubuğu simgesinin sol üst köşesinde dolu bir yukarı ok görünür (7.4c, karar 71). İlk tasarımdaki "Update Available: trrek X.Y.Z…" menü öğesi ve indirme akışı karar 71 ile değişti.
+Since 0.4.0, if a new version is known there is an "Update Available: trrek X.Y.Z" row at the very top of the menu, with a separator, and a filled up arrow appears in the top left corner of the menu bar icon (7.4c, decision 71). The "Update Available: trrek X.Y.Z…" menu item and the download flow in the first design were changed by decision 71.
 
-Menü `menuNeedsUpdate` ile açılırken tazelenir. İkon: `MenuIcon.pdf` şablon görüntüsü (trackpad silueti, sağ kenarı vurgulu); Toggle modunda aktifken köşede nokta.
+The menu is refreshed when it opens with `menuNeedsUpdate`. Icon: the `MenuIcon.pdf` template image (a trackpad silhouette, its right edge highlighted); a dot in the corner while active in Toggle mode.
 
-### 7.3 Ayar penceresi (SwiftUI, Liquid Glass)
+### 7.3 Settings window (SwiftUI, Liquid Glass)
 
-- Açılış: menüden "Settings…" ya da ⌘,. `NSWindow` + `NSHostingController<SettingsView>`; `titlebarAppearsTransparent`, araç çubuğu stili `.unified`; pencere kapanınca serbest bırakılır, bir sonraki açılışta yeniden kurulur.
-- Yerleşim: `TabView` ile dört sekme; her sekme `Form` + `.formStyle(.grouped)`. macOS 26'da araç çubuğu ve sekmeler sistemin Liquid Glass görünümünü alır; özel öğeler `.glassEffect(.regular, in: .rect(cornerRadius: 12))` ile camlaştırılır. Sabit boyut 640×480 pt.
-- **General:** Haptic Feedback (segment: Off/Light/Medium/Strong), Slide Sensitivity (Aşama 3), Precision Control, Freeze Cursor, Launch at Login, Language (Aşama 3; 7.4b), Export Settings…/Import Settings… (Aşama 3), Reset to Defaults… butonu.
-- **Edges:** Üstte etkileşimli `TrackpadDiagram` (cam yüzeyli trackpad silueti; dört kenar renkli şeritlerle seçili eylemleriyle etiketli; Aşama 3'te Edges sekmesinde 150 pt yüksekliğinde). Altında: Left Edge, Right Edge (Aşama 3'te Swap Sides'ın yerine), Top Edge, Bottom Edge (Picker), Edge Width (segment), Bottom Quarter Only, External Monitor Brightness (köprü yoksa devre dışı ve açıklama).
-- **Corners & Taps:** Dört köşe için Picker (Off/Mute/Screenshot; Aşama 3'te 5.9'daki eylemler eklendi) diyagram üzerinde köşe rozetleriyle; 3-Finger Tap Middle Click anahtarı ve "Look up & data detectors" ayarına dair ipucu metni.
-- **Advanced:** Hold-to-Slide Key (Picker: None/Shift/Control/Option/Command) ve mod (Hold/Toggle); Paused Apps listesi (satır başına uygulama ikonu + ad, "−" ile kaldır, "+" ile `NSOpenPanel`'dan uygulama seç); Accessibility durumu ve "Open System Settings" butonu; sürüm bilgisi.
-- Veri akışı: `SettingsView` `@Observable` bir `SettingsModel`'i gözler; her değişiklik `SettingsStore`'a yazılır ve `Coordinator` yeni `EngineConfig` uygular. Pencere açık değilken model bellekte değildir.
+- Opening: from the menu "Settings…" or ⌘,. `NSWindow` + `NSHostingController<SettingsView>`; `titlebarAppearsTransparent`, toolbar style `.unified`; released when the window closes, rebuilt on the next open.
+- Layout: four tabs with `TabView`; each tab is a `Form` + `.formStyle(.grouped)`. On macOS 26 the toolbar and tabs take the system's Liquid Glass look; custom items are made glassy with `.glassEffect(.regular, in: .rect(cornerRadius: 12))`. Fixed size 640×480 pt.
+- **General:** Haptic Feedback (segment: Off/Light/Medium/Strong), Slide Sensitivity (Phase 3), Precision Control, Freeze Cursor, Launch at Login, Language (Phase 3; 7.4b), Export Settings…/Import Settings… (Phase 3), Reset to Defaults… button.
+- **Edges:** At the top an interactive `TrackpadDiagram` (a trackpad silhouette with a glass surface; the four edges labeled with colored strips and their selected actions; in Phase 3 150 pt high in the Edges tab). Below: Left Edge, Right Edge (in Phase 3 in place of Swap Sides), Top Edge, Bottom Edge (Picker), Edge Width (segment), Bottom Quarter Only, External Monitor Brightness (disabled with an explanation if there is no bridge).
+- **Corners & Taps:** A Picker for the four corners (Off/Mute/Screenshot; in Phase 3 the actions in 5.9 were added) with corner badges on the diagram; the 3-Finger Tap Middle Click switch and a hint text about the "Look up & data detectors" setting.
+- **Advanced:** Hold-to-Slide Key (Picker: None/Shift/Control/Option/Command) and mode (Hold/Toggle); the Paused Apps list (per row the app icon + name, "−" removes, "+" picks an app from `NSOpenPanel`); Accessibility status and an "Open System Settings" button; version information.
+- Data flow: `SettingsView` observes an `@Observable` `SettingsModel`; every change is written to `SettingsStore` and `Coordinator` applies a new `EngineConfig`. The model is not in memory while the window is not open.
 
-### 7.4 Ayarlar
+### 7.4 Settings
 
 ```swift
 struct Settings: Codable, Equatable {
@@ -409,140 +409,140 @@ struct Settings: Codable, Equatable {
   var hapticStrength: HapticStrength = .medium
   var edgeWidth: EdgeWidth = .standard
   var precision = false, freezeCursor = true, bottomQuarterOnly = false
-  var slideSensitivity: SlideSensitivity = .standard   // Aşama 3
+  var slideSensitivity: SlideSensitivity = .standard   // Phase 3
   var externalMonitorBrightness = false
-  var leftEdge: EdgeAction = .brightness              // Aşama 3; eski swapSides yalnızca okunur
+  var leftEdge: EdgeAction = .brightness              // Phase 3; the old swapSides is read only
   var rightEdge: EdgeAction = .volume
   var topEdge: EdgeAction = .switchApps
-  var bottomEdge: EdgeAction = .keyboardBacklight     // köprü yoksa ilk çalıştırmada .media
-  var corners: [Corner: CornerAction] = tümü .off
+  var bottomEdge: EdgeAction = .keyboardBacklight     // .media on first run if there is no bridge
+  var corners: [Corner: CornerAction] = all .off
   var middleClick = false
   var holdKey: HoldKey = .none, holdKeyMode: HoldKeyMode = .hold
   var pausedBundleIDs: [String] = []
   var launchAtLogin = true
   var welcomeShown = false
-  var language: AppLanguage = .system                 // Aşama 3: system, english, turkish
+  var language: AppLanguage = .system                 // Phase 3: system, english, turkish
 }
 ```
 
-`UserDefaults.standard` içinde `settings` anahtarında JSON. `schemaVersion` ileride göç için. Reset to Defaults: onay; `launchAtLogin`, `welcomeShown` ve `language` korunur.
+JSON under the `settings` key in `UserDefaults.standard`. `schemaVersion` is for future migration. Reset to Defaults: confirmation; `launchAtLogin`, `welcomeShown` and `language` are kept.
 
-#### 7.4a Dışa ve içe aktarma (Aşama 3)
+#### 7.4a Export and import (Phase 3)
 
-`TrrekAppCore.SettingsDocument` ayarları `.trrek` dosyasına yazar ve okur: girintili, anahtarları sıralı JSON, `{"appVersion", "format": "trrek-settings", "formatVersion": 1, "settings": {…}}`. `launchAtLogin`, `welcomeShown` ve (Aşama 3, 7.4b) `language` bu Mac'e aittir; dışa aktarılmaz, içe aktarmada mevcut değerleri korunur. `settings` forgiving decoder ile okunur. 1 MB'tan büyük, JSON olmayan, `format` farklı ya da `formatVersion` < 1 olan dosya `notSettingsFile`, `formatVersion` > 1 ya da `settings.schemaVersion` bu derlemeden yeni olan dosya `newerFormat` hatasıdır; ikisinde de ayarlar değişmez ve uyarı çıkar. General sekmesindeki Export/Import düğmeleri panelleri ayarlar penceresine sheet olarak açar; içe aktarma onaydan sonra `SettingsModel` → `onChange` → `Coordinator.apply` yolundan geçer. `Info.plist` `com.burakseyitkara.trrek.settings` türünü dışa aktarır (`public.json`'a uyar, uzantı `trrek`) ve onu Viewer rolüyle açar; Finder'dan açılan dosya `application(_:open:)` ile ayarlar penceresini General sekmesinde açıp aynı onayı gösterir (karar 43).
+`TrrekAppCore.SettingsDocument` writes and reads the settings to a `.trrek` file: indented JSON with sorted keys, `{"appVersion", "format": "trrek-settings", "formatVersion": 1, "settings": {…}}`. `launchAtLogin`, `welcomeShown` and (Phase 3, 7.4b) `language` belong to this Mac; they are not exported and on import their current values are kept. `settings` is read with the forgiving decoder. A file larger than 1 MB, not JSON, with a different `format` or `formatVersion` < 1 is a `notSettingsFile` error, a file with `formatVersion` > 1 or `settings.schemaVersion` newer than this build is a `newerFormat` error; in both the settings do not change and an alert appears. The Export/Import buttons in the General tab open the panels as sheets on the settings window; after confirmation, import goes through the `SettingsModel` → `onChange` → `Coordinator.apply` path. `Info.plist` exports the `com.burakseyitkara.trrek.settings` type (conforms to `public.json`, extension `trrek`) and opens it with the Viewer role; a file opened from Finder opens the settings window on the General tab with `application(_:open:)` and shows the same confirmation (decision 43).
 
-#### 7.4b Dil ve yerelleştirme (Aşama 3)
+#### 7.4b Language and localization (Phase 3)
 
-Arayüz metinleri İngilizce yazılır; çeviriler `Sources/Trrek/Resources/{en,tr}.lproj/Localizable.strings` dosyalarındadır ve anahtar İngilizce kaynak metindir. `build-app.sh` bu klasörü paketin `Contents/Resources` klasörüne kopyalar; SwiftPM hedefi klasörü dışarıda bırakır (`exclude`). `Info.plist`: `CFBundleDevelopmentRegion` `en`, `CFBundleLocalizations` `[en, tr]`; `InfoPlist.strings` `.trrek` türünün adını çevirir. SwiftUI'da literal metinler (`Text("…")`, `Button("…")` …) kendiliğinden, `TrrekAppCore` ve AppKit metinleri `String(localized:bundle: .main)` ile çevrilir. Overlay'in "No DDC" etiketi gösterilirken anahtar olarak aranır, scrub etiketinin birimi ("+15 s") `"%@ s"` biçimiyle çevrilir (Türkçe "sn"). `Settings.language` (`system`, `english`, `turkish`) General sekmesindeki Language seçicisidir; bu Mac'in kullanıcısına aittir, dışa aktarılmaz, içe aktarma ve Reset onu korur. Değişince uygulamanın kendi defaults alanındaki `AppleLanguages` yazılır (`system` için silinir); seçimin çözüldüğü yerelleştirme (`system` için global `AppleLanguages`'a göre) açılıştakinden farklıysa "Relaunch trrek to use the new language." satırı Relaunch düğmesiyle çıkar; düğme trrek'in çıkmasını bekleyip aynı paketi yeniden açan kısa bir kabuk başlatır ve uygulamadan çıkar. Açılışta ayar ile tercih farklıysa tercih ayara göre yazılır (karar 49, 50).
+Interface texts are written in English; the translations are in the `Sources/Trrek/Resources/{en,tr}.lproj/Localizable.strings` files and the key is the English source text. `build-app.sh` copies this folder to the bundle's `Contents/Resources` folder; the SwiftPM target leaves the folder out (`exclude`). `Info.plist`: `CFBundleDevelopmentRegion` `en`, `CFBundleLocalizations` `[en, tr]`; `InfoPlist.strings` translates the name of the `.trrek` type. In SwiftUI literal texts (`Text("…")`, `Button("…")` …) are translated automatically, `TrrekAppCore` and AppKit texts with `String(localized:bundle: .main)`. The overlay's "No DDC" label is looked up as a key when shown, and the unit of the scrub label ("+15 s") is translated with the `"%@ s"` format (Turkish "sn"). `Settings.language` (`system`, `english`, `turkish`) is the Language picker in the General tab; it belongs to this Mac's user, is not exported, and import and Reset keep it. When it changes the `AppleLanguages` in the app's own defaults domain is written (deleted for `system`); if the localization the selection resolves to (for `system` according to the global `AppleLanguages`) differs from the one at launch, the "Relaunch trrek to use the new language." row appears with a Relaunch button; the button starts a short shell that waits for trrek to quit and reopens the same bundle, and quits the app. If at launch the setting and the preference differ, the preference is written according to the setting (decisions 49, 50).
 
-#### 7.4c Güncelleme denetimi (0.4.0)
+#### 7.4c Update check (0.4.0)
 
-trrek, herkese açık `burakseyitkara1/trrek-releases` deposunun `releases/latest` uç noktasını okur (ephemeral oturum, yalnızca `Accept` ve `User-Agent: trrek/<sürüm>`, 15 sn). Saf mantık `TrrekAppCore`'dadır: `SemanticVersion`, `ReleaseInfo` (etiket, sayfa, `trrek-vX.Y.Z.dmg`, notlar; taslak/ön sürüm reddedilir; DMG adresi tam olarak deponun `releases/download/vX.Y.Z/trrek-vX.Y.Z.dmg` adresi, sayfa deponun `releases` altında olmalıdır, kayıtlı güncelleme okunurken de aynı denetim yapılır), `UpdateCheckPolicy` (elle her zaman; otomatik en fazla 24 saatte bir, başarısızlıktan sonra 1 saat), `UpdateStateStore` (ayarlardan ayrı defaults anahtarları) ve `UpdateChecker` (besleme `ReleaseFeed` protokolü arkasında). Uygulama tarafında `UpdateController` açılıştan ve uyanmadan 10 sn sonra tek seferlik, menü açılınca ve elle denetler; zamanlayıcı yoktur. Menü: yeni sürüm biliniyorsa en üstte kalın "Update Available: trrek X.Y.Z…" (indirirken devre dışı "Downloading trrek X.Y.Z…"), About'un altında her zaman "Check for Updates…". İndirme `~/Downloads/trrek-vX.Y.Z.dmg`'ye yapılır (ilk seferde sistem `NSDownloadsFolderUsageDescription` açıklamasıyla izin ister), karantinaya alınır ve açılır (karantina yazılamazsa yalnızca Finder'da gösterilir); hata, izin reddi dahil, "Open Download Page" sunar. Otomatik denetim yeni sürümü ilk bulduğunda tek bir bildirim gönderir (izin ilk gerektiğinde istenir); tıklama indirir. General: "Check for Updates Automatically" (`Settings.checkForUpdatesAutomatically`, dışa aktarılır), Check Now ve son denetim zamanı. `--assume-version X.Y.Z` yalnızca denetleyicinin karşılaştırdığı sürümü değiştirir. `release.sh` aynı DMG/zip'i CHANGELOG bölümüyle bu depoya da yayınlar (karar 52–64).
+trrek reads the `releases/latest` endpoint of the public `burakseyitkara1/trrek-releases` repository (ephemeral session, only `Accept` and `User-Agent: trrek/<version>`, 15 s). The pure logic is in `TrrekAppCore`: `SemanticVersion`, `ReleaseInfo` (tag, page, `trrek-vX.Y.Z.dmg`, notes; drafts/prereleases are rejected; the DMG address must be exactly the repository's `releases/download/vX.Y.Z/trrek-vX.Y.Z.dmg` address and the page under the repository's `releases`, and the same check is made when a recorded update is read), `UpdateCheckPolicy` (manual always; automatic at most once in 24 hours, 1 hour after a failure), `UpdateStateStore` (defaults keys separate from the settings) and `UpdateChecker` (the feed is behind the `ReleaseFeed` protocol). On the app side `UpdateController` checks once as a one-shot 10 s after launch and wake, when the menu opens and manually; there is no timer. Menu: if a new version is known, a bold "Update Available: trrek X.Y.Z…" at the top (while downloading, a disabled "Downloading trrek X.Y.Z…"), and always "Check for Updates…" under About. The download goes to `~/Downloads/trrek-vX.Y.Z.dmg` (the first time the system asks for permission with the `NSDownloadsFolderUsageDescription` description), is quarantined and opened (if the quarantine cannot be written it is only shown in Finder); an error, including a permission denial, offers "Open Download Page". When the automatic check first finds a new version it sends a single notification (the permission is requested when first needed); clicking downloads. General: "Check for Updates Automatically" (`Settings.checkForUpdatesAutomatically`, exported), Check Now and the last check time. `--assume-version X.Y.Z` changes only the version the checker compares. `release.sh` also publishes the same DMG/zip to this repository with the CHANGELOG section (decisions 52–64).
 
-*Yukarıdaki menü öğesi, İndirilenler, bildirim ve "Open Download Page" akışı ilk tasarımdır; 0.4.0 yayımlanmadan önce karar 65–72 ile şöyle değişti:* bilinen güncelleme simgede sol üst köşede dolu bir yukarı okla ve menünün en üstünde özel görünümlü bir satırla ("Update Available: trrek X.Y.Z") gösterilir; bildirim yoktur, İndirilenler'e dokunulmaz (`NSDownloadsFolderUsageDescription` yok). Satıra tıklamak menüyü kapatmadan güncellemeyi başlatır: satır yerinde "Downloading trrek X.Y.Z…" (belirli ilerleme), "Installing trrek X.Y.Z…" olur; DMG `~/Library/Caches/com.burakseyitkara.trrek/Updates`'e iner, imzası denetlenip gizli ve salt okunur bağlanır, uygulama kopyalanıp Developer ID imzası, notarizasyonu, kimliği ve sürümü doğrulanır, takastan hemen önce ve sonra yeniden doğrulanıp yerinde değiştirilir, onay sorulmadan yeniden başlatılır. Hata satırı "Update Failed — Try Again" yapar; trrek kendini değiştiremiyorsa sürüm sayfası tarayıcıda açılır ("Update in Browser…"). Elle denetim yalnızca güncelken ya da başarısızken uyarı gösterir; General aynı durumu Update Now düğmesiyle gösterir. Durumlar `TrrekAppCore.UpdateRowState`'te, kurulum `UpdateInstaller`'dadır.
+*The menu item, Downloads, notification and "Open Download Page" flow above is the first design; before 0.4.0 was released it changed with decisions 65–72 as follows:* a known update is shown with a filled up arrow in the top left corner of the icon and with a row with a custom view at the top of the menu ("Update Available: trrek X.Y.Z"); there is no notification, Downloads is not touched (no `NSDownloadsFolderUsageDescription`). Clicking the row starts the update without closing the menu: the row becomes "Downloading trrek X.Y.Z…" (determinate progress), "Installing trrek X.Y.Z…" in place; the DMG goes to `~/Library/Caches/com.burakseyitkara.trrek/Updates`, its signature is checked and it is mounted hidden and read-only, the app is copied and its Developer ID signature, notarization, identity and version are verified, it is re-verified right before and after the swap and replaced in place, and relaunched without asking for confirmation. An error makes the row "Update Failed — Try Again"; if trrek cannot replace itself the release page opens in the browser ("Update in Browser…"). A manual check shows an alert only when up to date or on failure; General shows the same state with an Update Now button. The states are in `TrrekAppCore.UpdateRowState`, the install is in `UpdateInstaller`.
 
 ### 7.5 OverlayPanel
 
 - `NSPanel(styleMask: [.borderless, .nonactivatingPanel])`, `level = .statusBar`, `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]`, `ignoresMouseEvents = true`, `hasShadow = false`.
-- İçerik: `NSHostingView<OverlayView>`; SwiftUI görünümü `.glassEffect(.regular, in: .capsule)` ile SF Symbol ikon + 16 bölmeli seviye çubuğu + yüzde; etiketli değerlerde (scrub süresi, "No DDC") çubuk yoktur ve etiket doğal genişliğini alır (karar 35).
-- Konum: imlecin bulunduğu ekranın sağ üstü, 16 pt kenar boşluğu, 240×56 pt (yüzdeli satır ve en geniş etiketler sığsın diye 220'den genişletildi).
-- Kullanım: keyboardBacklight Yol B, DDC, Scrub Video. İlk ihtiyaçta oluşturulur; son güncellemeden 1,0 s sonra gizlenir (tek seferlik `DispatchWorkItem`).
+- Content: `NSHostingView<OverlayView>`; the SwiftUI view with `.glassEffect(.regular, in: .capsule)` an SF Symbol icon + a 16-segment level bar + percentage; for labeled values (scrub time, "No DDC") there is no bar and the label takes its natural width (decision 35).
+- Position: top right of the display where the cursor is, 16 pt margin, 240×56 pt (widened from 220 so that the percentage row and the widest labels fit).
+- Use: keyboardBacklight Path B, DDC, Scrub Video. Created on first need; hidden 1.0 s after the last update (one-shot `DispatchWorkItem`).
 
-### 7.6 Karşılama penceresi (SwiftUI, Liquid Glass)
+### 7.6 Welcome window (SwiftUI, Liquid Glass)
 
-`NSWindow` + `NSHostingController<WelcomeView>`, 560×440 pt, araç çubuğu yok, arka plan sistem materyali. İçerik: başlık, `TrackpadDiagram` (aynı bileşen, salt okunur), dört kenarı anlatan cam kartlar (ikon + bir satır), Accessibility durumu ve "Grant Accessibility Access" butonu (`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`), "Open Settings" ve "Done". Aşama 2'de kartlar sırayla belirir (hafif animasyon).
+`NSWindow` + `NSHostingController<WelcomeView>`, 560×440 pt, no toolbar, system material background. Content: a title, `TrackpadDiagram` (the same component, read-only), glass cards describing the four edges (icon + one line), the Accessibility status and a "Grant Accessibility Access" button (`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`), "Open Settings" and "Done". In Phase 2 the cards appear one after another (a light animation).
 
-### 7.7 Günlük
+### 7.7 Logging
 
-`os.Logger(subsystem: "com.burakseyitkara.trrek", category:)`; kategoriler `engine`, `platform`, `app`. Kare başına log yok. Sembol çözümleme sonuçları, cihaz başlatma, izin durumu ve hatalar `info`/`error` seviyesinde.
+`os.Logger(subsystem: "com.burakseyitkara.trrek", category:)`; categories `engine`, `platform`, `app`. No logging per frame. Symbol resolution results, device startup, permission state and errors at the `info`/`error` level.
 
-### 7.8 Paketleme
+### 7.8 Packaging
 
-- `scripts/build-app.sh [--version X.Y.Z] [--build N]`: `swift build -c release --arch arm64`, `dist/trrek.app` ağacı, ikili, `Info.plist.in` değişken değişimi, `AppIcon.icns`, kaynaklar, `codesign --force --sign - --deep`.
-- `scripts/make-icon.sh`: `Resources/icon-1024.png` → `sips` ile boyutlar → `iconutil` → `AppIcon.icns`. 1024 px kaynak görsel `scripts/render-icon.swift` ile CoreGraphics'ten üretilir (cam yüzeyli trackpad silueti, sağ kenarı parlak).
-- `make install`: `dist/trrek.app` → `~/Applications/trrek.app`, `lsregister` ile kayıt.
-- `TrrekProbe` paketlenmez.
+- `scripts/build-app.sh [--version X.Y.Z] [--build N]`: `swift build -c release --arch arm64`, the `dist/trrek.app` tree, the binary, variable substitution in `Info.plist.in`, `AppIcon.icns`, resources, `codesign --force --sign - --deep`.
+- `scripts/make-icon.sh`: `Resources/icon-1024.png` → sizes with `sips` → `iconutil` → `AppIcon.icns`. The 1024 px source image is produced from CoreGraphics with `scripts/render-icon.swift` (a trackpad silhouette with a glass surface, its right edge bright).
+- `make install`: `dist/trrek.app` → `~/Applications/trrek.app`, registered with `lsregister`.
+- `TrrekProbe` is not packaged.
 
-## 8. Hata yönetimi
+## 8. Error handling
 
-| Durum | Davranış |
+| Situation | Behavior |
 |---|---|
-| Private sembol yok | Köprü `isAvailable=false`; ilgili ayar devre dışı; log `error` |
-| MTTouch düzeni makul değil | Bir cihazın temas içeren ilk karesinde normalize konum -0,05…1,05 dışında ya da sonlu değilse, veya majorAxis 0…100 dışındaysa kaynak hemen kareleri bırakır, ana iş parçacığında durur; menü durum satırı "Trackpad data unavailable"; log. Sonraki kareler kontrol edilmez. Uyanma ve cihaz bildirimlerinde yeniden dener |
-| Trackpad olmayan multitouch cihaz (ör. dokunmatik yüzeyli fare) | Akışa alınmaz, jest üretmez ve "trrek is active" için sayılmaz. Tür, I/O Registry'deki genel HID özelliklerinden (`HIDPointerAccelerationType`, `DeviceUsagePairs`) belirlenir; ikisi de yoksa cihaz kullanılır (fail open) ve log yazılır |
-| Trackpad listesi boş | Durum satırı "Trackpad not found" (yalnızca trackpad olmayan cihazlar bağlıyken de); uyanma ve cihaz bildirimlerinde yeniden dener |
-| Accessibility yok | Tap'ler kurulmaz; motor çalışır. İzinsiz sentetik olaylar teslim edilmediği için klavye ışığı dışındaki bütün kenar eylemleri, bütün köşeler, orta tık ve imleç dondurma kapalıdır; yazma kapısı ve hold tuşu da çalışmaz. Diyagram etkin (kapatılmış) eylemleri gösterir, karşılama kartları izin gerektiğini söyler. Menüde "Grant Accessibility…", menü simgesinde nokta; sonraki açılışlarda karşılama penceresi yeniden açılır |
-| Tap sistem tarafından kapatıldı | Callback içinde yeniden etkinleştirilir |
-| DDC/Now Playing başarısız | Overlay "No DDC" / "No media"; log |
-| Ayar verisi bozuk | Varsayılanlar; log `error` |
-| Uygulama çıkışı slide sırasında | ⌘ bırakılır, tap'ler kapatılır |
+| Private symbol missing | The bridge `isAvailable=false`; the related setting is disabled; log `error` |
+| MTTouch layout not sane | If on the first frame of a device that contains a contact the normalized position is outside -0.05…1.05 or not finite, or majorAxis is outside 0…100, the source immediately drops frames and stops on the main thread; the menu status line "Trackpad data unavailable"; log. Later frames are not checked. It retries on wake and device notifications |
+| A multitouch device that is not a trackpad (e.g. a mouse with a touch surface) | It is not taken into the stream, produces no gestures and does not count for "trrek is active". The kind is determined from the generic HID properties in the I/O Registry (`HIDPointerAccelerationType`, `DeviceUsagePairs`); if neither is present the device is used (fail open) and a log is written |
+| Trackpad list empty | Status line "Trackpad not found" (also when only non-trackpad devices are connected); retries on wake and device notifications |
+| No Accessibility | The taps are not created; the engine runs. Since synthetic events sent without permission are not delivered, all edge actions other than the keyboard backlight, all corners, middle click and cursor freeze are off; the typing gate and the hold key also do not work. The diagram shows the effective (turned off) actions, the welcome cards say the permission is needed. "Grant Accessibility…" in the menu, a dot on the menu icon; on later launches the welcome window opens again |
+| Tap was disabled by the system | Re-enabled inside the callback |
+| DDC/Now Playing fails | Overlay "No DDC" / "No media"; log |
+| Settings data corrupt | Defaults; log `error` |
+| App exit during a slide | ⌘ is released, the taps are closed |
 
-## 9. Test stratejisi
+## 9. Test strategy
 
-### 9.1 Engine birim testleri (Swift Testing, CI'da)
+### 9.1 Engine unit tests (Swift Testing, in CI)
 
-Sentetik `Frame` üreten bir yardımcı (`FrameBuilder`) ile; her kural bir test:
+With a helper that produces synthetic `Frame`s (`FrameBuilder`); each rule is a test:
 
-| # | Test | Kural |
+| # | Test | Rule |
 |---|---|---|
-| 1 | Kenar şeridi dışından başlayan hareket komut üretmez | 5.3 |
-| 2 | 3 mm altı hareket slide başlatmaz | slideStartMM |
-| 3 | 60 mm yukarı → 16 `stepVolume(+1)`, 16 `haptic(.step)` | stepMM |
-| 4 | Aşağı → −1 | yön |
+| 1 | Movement starting outside the edge strip produces no command | 5.3 |
+| 2 | Movement under 3 mm does not start a slide | slideStartMM |
+| 3 | 60 mm up → 16 `stepVolume(+1)`, 16 `haptic(.step)` | stepMM |
+| 4 | Down → −1 | direction |
 | 5 | precision → `fine: true` | 5.5 |
-| 6 | Dik 4 mm hareket → spent, sonraki kareler yok sayılır | abortPerpendicularMM |
-| 7 | İkinci parmak slide'ı iptal eder, kalkana kadar spent | 5.4 |
-| 8 | Parmak kaybolup 170 ms içinde dönerse slide sürer; 181 ms sonra commit ve freezeCursor(false) | lostTimeout |
+| 6 | 4 mm perpendicular movement → spent, later frames are ignored | abortPerpendicularMM |
+| 7 | A second finger cancels the slide, spent until it lifts | 5.4 |
+| 8 | If the finger disappears and returns within 170 ms the slide continues; after 181 ms commit and freezeCursor(false) | lostTimeout |
 | 9 | Watchdog `tick` → commit | 5.4 |
-| 10 | Tap: 250 ms, 2 mm → komut yok | tap |
-| 11 | Köşe çift dokunma 350 ms içinde → mute/screenshot; 351 ms → yok | doubleTapWindow |
-| 12 | Media kenarı çift dokunma → mediaPlayPause; 20 mm slide → mediaNext | 5.5 |
-| 13 | Üç parmak tap → middleClick; açık değilse yok; hareket varsa yok; parmaklar ayrı karelerde inse de çalışır | threeFinger |
-| 14 | majorAxis 21 mm → aday olmaz; 19 mm → olur | palm |
-| 15 | keyDown'dan 400 ms içinde jest başlamaz; süren slide devam eder | typingGate |
-| 16 | holdKeyRequired && !satisfied → jest yok; sliding'de bırakma → commit | 5.6 |
-| 17 | paused → her şey yok sayılır, aktif slide biter | 5.6 |
-| 18 | bottomQuarterOnly → y=0.5'ten sol kenar aday olmaz, y=0.2 olur | 5.3 |
-| 19 | Narrow/Wide şerit genişliği sınırı | edgeWidthMM |
-| 20 | left/right eylemleri değişince (swap) komut türü değişir | 5.2 |
-| 21 | switchApps: 24 mm → 2 `appSwitchStep(+1)`; kalkınca commit; ikinci parmak → cancel | 5.5 |
-| 22 | scrubVideo: 12 mm → 2 `scrubStep(+1)`; kalkınca scrubCommit | 5.5 |
-| 23 | `update(config:)` sliding sırasında → commit ve freezeCursor(false) | 5.8 |
-| 24 | Başka cihazdan gelen kare sliding'i etkilemez | 5.4 |
-| 25 | Her slide'da freezeCursor(true) bir kez, sonunda (false) bir kez | 5.4 |
-| 26 | Köşe adayı dikey hareketle sağ/sol kenarda slide başlatır | 5.4 |
+| 10 | Tap: 250 ms, 2 mm → no command | tap |
+| 11 | Corner double tap within 350 ms → mute/screenshot; 351 ms → none | doubleTapWindow |
+| 12 | Media edge double tap → mediaPlayPause; 20 mm slide → mediaNext | 5.5 |
+| 13 | Three-finger tap → middleClick; none if not enabled; none if there is movement; works even if the fingers land in separate frames | threeFinger |
+| 14 | majorAxis 21 mm → not a candidate; 19 mm → is | palm |
+| 15 | No gesture starts within 400 ms of keyDown; a slide in progress continues | typingGate |
+| 16 | holdKeyRequired && !satisfied → no gesture; release during sliding → commit | 5.6 |
+| 17 | paused → everything is ignored, an active slide ends | 5.6 |
+| 18 | bottomQuarterOnly → the left edge is not a candidate from y=0.5, it is from y=0.2 | 5.3 |
+| 19 | Narrow/Wide strip width boundary | edgeWidthMM |
+| 20 | When the left/right actions change (swap) the command type changes | 5.2 |
+| 21 | switchApps: 24 mm → 2 `appSwitchStep(+1)`; commit on lift; second finger → cancel | 5.5 |
+| 22 | scrubVideo: 12 mm → 2 `scrubStep(+1)`; scrubCommit on lift | 5.5 |
+| 23 | `update(config:)` during sliding → commit and freezeCursor(false) | 5.8 |
+| 24 | A frame from another device does not affect sliding | 5.4 |
+| 25 | freezeCursor(true) once in each slide, (false) once at the end | 5.4 |
+| 26 | A corner candidate starts a slide on the right/left edge with vertical movement | 5.4 |
 
-### 9.2 TrrekProbe (yerel)
+### 9.2 TrrekProbe (local)
 
-Alt komutlar: `devices` (liste, yüzey boyutu, built-in), `frames` (ham kare akışı, Ctrl-C ile çıkış), `layout-check`, `haptic <id>` (dalga formu), `key <name>` (medya tuşu olayı: volume-up, brightness-up, illumination-up, play…), `switcher` (⌘ basılı + Tab × 2 + bırak), `freeze <saniye>` (Tap B'yi açıp imleci dondurur), `mem` (kendi RSS'ini yazdırır). Aşama 0'da ve her macOS güncellemesinden sonra çalıştırılır.
+Subcommands: `devices` (list, surface size, built-in), `frames` (raw frame stream, exit with Ctrl-C), `layout-check`, `haptic <id>` (waveform), `key <name>` (media key event: volume-up, brightness-up, illumination-up, play…), `switcher` (⌘ held + Tab × 2 + release), `freeze <seconds>` (turns on Tap B and freezes the cursor), `mem` (prints its own RSS). Run in Phase 0 and after every macOS update.
 
-### 9.3 Elle kontrol listesi
+### 9.3 Manual checklist
 
-`docs/testing.md`: her kenar ve köşe, orta tık, precision, imleç dondurma, yazma kapısı, Hold/Toggle, pause in app, uyku sonrası, ayar penceresi ve karşılama görünümü, harici trackpad takma (varsa), dokunmatik yüzeyli fare (varsa). PR şablonunda işaretlenir.
+`docs/testing.md`: each edge and corner, middle click, precision, cursor freeze, typing gate, Hold/Toggle, pause in app, after sleep, the settings window and welcome look, plugging in an external trackpad (if available), a mouse with a touch surface (if available). Checked off in the PR template.
 
-### 9.4 Kaynak ölçümü
+### 9.4 Resource measurement
 
-`scripts/perf.sh`: uygulamayı başlatır, 30 s bekler, `footprint` ve `ps -o %cpu,rss` çıktısını yazdırır; eşik: RSS < 15 MB, CPU 0.0. Sonuç README'ye işlenir.
+`scripts/perf.sh`: starts the app, waits 30 s, prints the `footprint` and `ps -o %cpu,rss` output; threshold: RSS < 15 MB, CPU 0.0. The result is recorded in the README.
 
-Not: Bellek RSS yerine fiziksel ayak izi (`phys_footprint`, `vmmap --summary`) olarak ölçülür; RSS paylaşılan sistem çerçevesi sayfalarını da saydığı için uygulamanın kendi maliyetini göstermez (karar 22). Eşik 15 MB ayak izi ve %1 CPU'dur. Ölçüm `--skip-first-run` ile başlatılır ki karşılama penceresi ölçümü bozmasın.
+Note: memory is measured as the physical footprint (`phys_footprint`, `vmmap --summary`) instead of RSS; since RSS also counts shared system framework pages it does not show the app's own cost (decision 22). The threshold is a 15 MB footprint and 1% CPU. The measurement is started with `--skip-first-run` so that the welcome window does not spoil the measurement.
 
-## 10. Git, CI/CD ve geliştirme süreci
+## 10. Git, CI/CD and development process
 
-### 10.1 Dal modeli
+### 10.1 Branch model
 
-- `main` her zaman derlenir ve yeşildir. Doğrudan commit yok; değişiklik `feat/`, `fix/`, `docs/`, `ci/`, `chore/`, `test/` dallarından PR ile gelir. Squash merge, dal silinir.
-- Commit mesajları İngilizce conventional commits; PR gövdeleri Türkçe.
-- **Zorlama:** `scripts/install-hooks.sh` iki yerel hook kurar: `pre-push` (`main`'e doğrudan push'u reddeder) ve `pre-commit` (`swiftformat --lint` + `swiftlint`). Merge yalnızca `gh pr merge --squash --delete-branch` ile ve CI yeşilken yapılır. Depo public yapılırsa ya da plan yükseltilirse aynı kurallar ruleset olarak eklenir (gerekli kontrol: `ci / build-test`).
+- `main` always builds and is green. No direct commits; changes come by PR from `feat/`, `fix/`, `docs/`, `ci/`, `chore/`, `test/` branches. Squash merge, the branch is deleted.
+- Commit messages are English conventional commits; PR titles and bodies are in English and follow `.github/pull_request_template.md` (decision 85).
+- **Enforcement:** `scripts/install-hooks.sh` installs two local hooks: `pre-push` (rejects a direct push to `main`) and `pre-commit` (`swiftformat --lint` + `swiftlint`). A merge is made only with `gh pr merge --squash --delete-branch` and while CI is green. If the repository is made public or the plan is upgraded, the same rules are added as a ruleset (required check: `ci / build-test`).
 
-### 10.2 PR yaşam döngüsü (otonom)
+### 10.2 PR life cycle (autonomous)
 
-1. Dal aç, görevi TDD ile uygula, `make check` yerelde geçsin.
-2. Push, `gh pr create` (şablona göre: özet, değişiklik türü, test notları, elle kontrol listesi).
-3. CI'yı bekle; kırmızıysa düzelt.
-4. Bağımsız inceleme: değişikliği görmemiş bir inceleyici (ayrı bağlam) diff'i spec ve CLAUDE.md'ye göre okur; bulgular düzeltilir, inceleme özeti PR'a yorum olarak yazılır ("Review: …", bulgular ve sonuç).
-5. `main` ilerlediyse `gh pr update-branch`, CI tekrar yeşil olsun.
-6. `gh pr merge --squash --delete-branch`; CHANGELOG satırı aynı PR içinde gelmiş olmalı.
-7. Kilometre taşlarında etiket: `v0.1.0` (Aşama 1 sonu), `v0.2.0` (Aşama 2 sonu).
+1. Open a branch, implement the task with TDD, `make check` must pass locally.
+2. Push, `gh pr create` (per the template: summary, change type, test notes, manual checklist).
+3. Wait for CI; if red, fix.
+4. Independent review: a reviewer who has not seen the change (a separate context) reads the diff against the spec and CLAUDE.md; findings are fixed, the review summary is written to the PR as a comment ("Review: …", findings and result).
+5. If `main` has advanced, `gh pr update-branch`, CI must be green again.
+6. `gh pr merge --squash --delete-branch`; the CHANGELOG line must have come in the same PR.
+7. Tags at milestones: `v0.1.0` (end of Phase 1), `v0.2.0` (end of Phase 2).
 
 ### 10.3 ci.yml
 
@@ -557,46 +557,46 @@ jobs:
     timeout-minutes: 20
     steps: checkout → actions/cache (.build; key: ${{ runner.os }}-swift-${{ hashFiles('Package.swift','Package.resolved') }})
            → swift build -c release --arch arm64 → swift test → swiftformat --lint . → swiftlint lint --strict
-           → scripts/build-app.sh --version 0.0.0 --build ${{ github.run_number }} → zip dist/trrek.app → upload-artifact (7 gün)
+           → scripts/build-app.sh --version 0.0.0 --build ${{ github.run_number }} → zip dist/trrek.app → upload-artifact (7 days)
 ```
 
-Push-to-main tetikleyicisi yoktur (squash merge içeriği PR başıyla aynıdır; dakika bütçesi korunur).
+There is no push-to-main trigger (the content of a squash merge is the same as the PR head; the minute budget is preserved).
 
 ### 10.4 release.yml
 
-`push: tags: ['v*.*.*']` → aynı derleme ve test → `scripts/build-app.sh --version ${TAG#v} --build ${{ github.run_number }}` → `ditto -c -k --keepParent dist/trrek.app trrek-${TAG}.zip` ve `hdiutil create` ile DMG → `gh release create "$TAG" --generate-notes trrek-*.zip trrek-*.dmg` (`permissions: contents: write`).
+`push: tags: ['v*.*.*']` → the same build and test → `scripts/build-app.sh --version ${TAG#v} --build ${{ github.run_number }}` → `ditto -c -k --keepParent dist/trrek.app trrek-${TAG}.zip` and a DMG with `hdiutil create` → `gh release create "$TAG" --generate-notes trrek-*.zip trrek-*.dmg` (`permissions: contents: write`).
 
-### 10.5 Diğer
+### 10.5 Other
 
-- `dependabot.yml`: `github-actions`, haftalık.
-- `PULL_REQUEST_TEMPLATE.md`: özet, değişiklik türü, test notları, kontrol listesi (build, test, lint, `docs/testing.md`, perf etkisi, CHANGELOG).
-- `Makefile`: `build`, `test`, `lint`, `format`, `app`, `install`, `check` (= CI adımları), `perf`, `probe`, `hooks`.
-- `CHANGELOG.md`: sürüm ve tarih başlıkları; her PR "Unreleased" altına satır ekler.
+- `dependabot.yml`: `github-actions`, weekly.
+- `PULL_REQUEST_TEMPLATE.md`: summary, change type, test notes, checklist (build, test, lint, `docs/testing.md`, perf impact, CHANGELOG).
+- `Makefile`: `build`, `test`, `lint`, `format`, `app`, `install`, `check` (= the CI steps), `perf`, `probe`, `hooks`.
+- `CHANGELOG.md`: version and date headings; each PR adds a line under "Unreleased".
 
-## 11. Aşamalar
+## 11. Phases
 
-**Aşama 0 — Spike (TrrekProbe):** Sonuçlar: [spike-results](2026-11-03-spike-results.md). Şu kararlar netleşmeden Aşama 1'in platform işleri başlamaz (Engine işleri bağımsızdır):
-1. `MTTouch` düzeni ve yüzey boyutu birimi.
-2. Kalkma anında sıfır dokunmalı kare geliyor mu (watchdog yine de kalır).
-3. Haptik dalga formu kimlikleri ve Light/Medium/Strong hissi.
-4. BRIGHTNESS ve ILLUMINATION medya tuşu olayları macOS 27.2'de HUD gösteriyor mu (6.7 yol seçimi).
-5. ⌥⇧ ile çeyrek adım çalışıyor mu.
-6. Tap B ile imleç dondurmanın gecikmesi ve etkisi.
-7. ⌘ basılı tutup Tab göndermenin seçiciyi açtığı.
-8. Boş bir LSUIElement uygulamasının boşta belleği (bütçe doğrulaması).
+**Phase 0 — Spike (TrrekProbe):** Results: [spike-results](2026-11-03-spike-results.md). The Platform work of Phase 1 does not start until these decisions are clear (the Engine work is independent):
+1. The `MTTouch` layout and the surface size unit.
+2. Whether a zero-touch frame arrives at lift-off (the watchdog stays anyway).
+3. The haptic waveform IDs and the Light/Medium/Strong feel.
+4. Whether the BRIGHTNESS and ILLUMINATION media key events show the HUD on macOS 27.2 (the 6.7 path choice).
+5. Whether the quarter step with ⌥⇧ works.
+6. The latency and effect of freezing the cursor with Tap B.
+7. That holding ⌘ and sending Tab opens the switcher.
+8. The idle memory of an empty LSUIElement app (budget verification).
 
-**Aşama 1 — Çekirdek:** Engine + 26 test; Platform 6.1–6.7, 6.10; uygulama 7.1–7.8 (Scrub Video ve External Monitor Brightness ayarlarda devre dışı); CI/CD 10.x; README, CHANGELOG, lisans. Bitiş: başarı ölçütleri 1–5, etiket `v0.1.0`.
+**Phase 1 — Core:** Engine + 26 tests; Platform 6.1–6.7, 6.10; app 7.1–7.8 (Scrub Video and External Monitor Brightness disabled in settings); CI/CD 10.x; README, CHANGELOG, license. Finish: success criteria 1–5, tag `v0.1.0`.
 
-**Aşama 2 — Tamamlayıcılar:** 6.8 DDC, 6.9 Scrub Video, karşılama animasyonu, overlay ve diyagram cilası, harici trackpad ile elle doğrulama (cihaz bulunursa). Etiket `v0.2.0`.
+**Phase 2 — Completers:** 6.8 DDC, 6.9 Scrub Video, the welcome animation, overlay and diagram polish, manual verification with an external trackpad (if a device is found). Tag `v0.2.0`.
 
-## 12. Riskler
+## 12. Risks
 
-| Risk | Etki | Önlem |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| macOS güncellemesi private sembolleri değiştirir | Özellik kaybı | dlsym + `isAvailable`, `TrrekProbe layout-check`, çökme yok |
-| Medya tuşu olayı HUD göstermez | Sistem HUD'u hedefi | Spike 4; gerekirse CoreBrightness/CoreDisplay + kendi overlay |
-| Haptik dalga formları farklı hissettirir | His | Spike 3; ayarlardan güç seçimi |
-| Private depoda dal koruması yok | Disiplin | Yerel hook'lar; public/plan seçeneği açık |
-| macOS runner dakikası | CI kesintisi | PR-only tetikleme, paths-ignore, cache, concurrency; aşılırsa self-hosted runner |
-| DDC doğrulanamaz | Aşama 2 eksik kalabilir | Best effort; harici ekran bulununca doğrulanır |
-| SwiftUI pencereleri bellek bütçesini zorlar | Perf hedefi | Pencereler kapanınca serbest; `make perf` pencereler kapalıyken ölçer |
+| A macOS update changes the private symbols | Feature loss | dlsym + `isAvailable`, `TrrekProbe layout-check`, no crash |
+| The media key event does not show the HUD | The system HUD goal | Spike 4; if needed CoreBrightness/CoreDisplay + our own overlay |
+| Haptic waveforms feel different | Feel | Spike 3; strength choice in settings |
+| No branch protection in the private repository | Discipline | Local hooks; the public/plan option is open |
+| macOS runner minutes | CI interruption | PR-only trigger, paths-ignore, cache, concurrency; if exceeded a self-hosted runner |
+| DDC cannot be verified | Phase 2 may stay incomplete | Best effort; verified when an external display is found |
+| SwiftUI windows strain the memory budget | Perf goal | Windows are released when closed; `make perf` measures with the windows closed |
