@@ -113,7 +113,7 @@ Open **Settings** from the menu bar icon, or by opening trrek again while it run
 
 ## Updates and privacy
 
-trrek checks this repository's releases at most once a day. When a new version is out, the menu bar icon shows a small arrow and the menu offers **Update Available**. Choose it and the menu shows the download's progress; trrek then installs the new version in place and reopens. You can turn automatic checks off in General.
+trrek checks this repository's releases at most once a day. When a new version is out, the menu bar icon shows a small arrow and the menu offers **Update Available**. Choose it and the menu shows the download's progress; trrek then installs the new version in place and reopens. If GitHub is briefly unavailable, trrek tries again on its own a couple of times; if the update still fails, General says why. You can turn automatic checks off in General.
 
 - The only network request is that check: one HTTPS request to GitHub's releases API that sends trrek's version and nothing else. No analytics, no accounts, no identifiers.
 - Settings stay on your Mac.
