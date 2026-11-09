@@ -33,7 +33,10 @@ final class SettingsModel {
     /// Whether the DDC/CI bridge exists on this Mac; without it the External Monitor Brightness toggle is disabled.
     let externalBrightnessAvailable: Bool
     var accessibilityGranted: Bool
-    var selectedTab: SettingsTab = .general
+    var selectedTab: SettingsTab = .general {
+        // A tab switched from the keyboard never sends the diagram's hover end.
+        didSet { hoveredDiagramControl = nil }
+    }
 
     /// Whether the Reset to Defaults confirmation is showing. Window state lives here rather than in view state,
     /// so it goes away with the window.

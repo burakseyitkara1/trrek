@@ -2,10 +2,11 @@ import SwiftUI
 import TrrekAppCore
 import TrrekEngine
 
-/// An edge's label as a menu of the edge actions; for an app, Same as All Apps comes first.
+/// An edge (its strip and label) as a menu of the edge actions; for an app, Same as All Apps comes first.
 struct EdgeMenu: View {
     let model: SettingsModel
     let edge: TrrekEngine.Edge
+    let stripLength: CGFloat
 
     var body: some View {
         let item = model.diagramEdge(edge)
@@ -36,26 +37,23 @@ struct EdgeMenu: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            EdgeLabel(
-                edge: edge,
-                action: item.action,
-                dimmed: item.isInherited || item.action == .off || item.note == .needsAccessibility,
-                note: item.note,
-                hovered: model.hoveredDiagramControl == .edge(edge)
-            )
+            EdgeUnit(item: item, hovered: model.hoveredDiagramControl == .edge(edge), stripLength: stripLength)
+                .contentShape(.rect)
         }
         .diagramMenu(model: model, control: .edge(edge))
-        .help(DiagramHelp.text(title: SettingsLabels.title(for: edge), value: item.valueTitle, note: item.note))
+        .help(DiagramHelp.text(title: SettingsLabels.title(for: edge), value: item.valueTitle, notes: item.notes))
         .accessibilityLabel(SettingsLabels.title(for: edge))
         .accessibilityValue(item.valueTitle)
-        .accessibilityHint(item.note?.text ?? "")
+        .accessibilityHint(DiagramHelp.hint(item.notes))
     }
 }
 
-/// A corner's badge as a menu of the corner actions, Off first.
+/// A corner's badge as a menu of the corner actions, Off first. The menu also opens from a margin around the badge,
+/// so the small badge is easy to hit.
 struct CornerMenu: View {
     let model: SettingsModel
     let corner: Corner
+    private static let hitMargin: CGFloat = 6
 
     var body: some View {
         let item = model.diagramCorner(corner)
@@ -85,27 +83,36 @@ struct CornerMenu: View {
                 action: item.action,
                 note: item.note,
                 hovered: model.hoveredDiagramControl == .corner(corner),
+                flat: false,
                 alignment: TrackpadDiagram.alignment(of: corner)
             )
+            .padding(Self.hitMargin)
+            .contentShape(.rect)
         }
         .diagramMenu(model: model, control: .corner(corner))
+        // The margin reaches past the badge's place, so the badge stays where it is.
+        .padding(-Self.hitMargin)
         .help(DiagramHelp.text(
             title: SettingsLabels.title(for: corner),
             value: SettingsLabels.title(for: item.action),
-            note: item.note
+            notes: item.note.map { [$0] } ?? []
         ))
         .accessibilityLabel(SettingsLabels.title(for: corner))
         .accessibilityValue(SettingsLabels.title(for: item.action))
-        .accessibilityHint(item.note?.text ?? "")
+        .accessibilityHint(DiagramHelp.hint(item.note.map { [$0] } ?? []))
     }
 }
 
-/// The tooltip of an edge or corner: "Left Edge: Brightness", and on a second line why it does not run as chosen.
+/// The tooltip and accessibility hint of an edge or corner.
 private enum DiagramHelp {
-    static func text(title: String, value: String, note: DiagramNote?) -> String {
-        let line = "\(title): \(value)"
-        guard let note else { return line }
-        return line + "\n" + note.text
+    /// "Left Edge: Brightness", then a line for each reason it does not run as chosen.
+    static func text(title: String, value: String, notes: [DiagramNote]) -> String {
+        (["\(title): \(value)"] + notes.map(\.text)).joined(separator: "\n")
+    }
+
+    /// Every reason it does not run as chosen, one sentence each; empty when it runs.
+    static func hint(_ notes: [DiagramNote]) -> String {
+        notes.map(\.text).joined(separator: ". ")
     }
 }
 

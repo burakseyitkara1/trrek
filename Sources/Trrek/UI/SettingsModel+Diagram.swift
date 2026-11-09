@@ -42,7 +42,7 @@ struct EdgeMenuOption: Hashable, Identifiable {
     }
 }
 
-/// What the diagram shows on one edge in the Edges tab.
+/// What the diagram shows on one edge in the Edges and Corners & Taps tabs.
 struct DiagramEdgeItem: Equatable {
     let edge: Edge
     /// The action chosen for the shown scope, as it runs on this Mac (the keyboard backlight as media control while
@@ -50,13 +50,24 @@ struct DiagramEdgeItem: Equatable {
     let action: EdgeAction
     /// Whether the shown app uses the All Apps action for this edge.
     let isInherited: Bool
-    let note: DiagramNote?
+    /// Every reason the edge does not run as chosen, the most pressing first; the label's badge shows the first.
+    let notes: [DiagramNote]
 
     /// "Brightness", or "Same as All Apps (Brightness)" for an app's edge that uses the All Apps action.
     let valueTitle: String
+
+    /// The note the label's badge shows.
+    var note: DiagramNote? {
+        notes.first
+    }
+
+    /// The edge's colour: grey while it waits for Accessibility, since it does not run.
+    var stripAction: EdgeAction {
+        note == .needsAccessibility ? .off : action
+    }
 }
 
-/// What the diagram shows on one corner in the Corners & Taps tab.
+/// What the diagram shows on one corner in the Edges and Corners & Taps tabs.
 struct DiagramCornerItem: Equatable {
     let corner: Corner
     let action: CornerAction
@@ -93,7 +104,9 @@ extension SettingsModel {
     }
 
     /// Sets `edge` in the shown scope; `nil` makes an app's edge the same as All Apps (and is ignored for All Apps).
+    /// The menu has taken the pointer, so the hover state is cleared.
     func chooseEdgeAction(_ action: EdgeAction?, for edge: Edge) {
+        hoveredDiagramControl = nil
         if edgeScope == nil {
             guard let action else { return }
             settings[edge: edge] = action
@@ -105,19 +118,19 @@ extension SettingsModel {
     func diagramEdge(_ edge: Edge) -> DiagramEdgeItem {
         let chosen = settings.edgeActions(for: edgeScope)[edge]
         let shown = shownEdgeAction(edge)
-        let note: DiagramNote? = if ConfigMapper.gated(shown, accessibilityTrusted: accessibilityGranted) != shown {
-            .needsAccessibility
-        } else if chosen != shown {
-            .backlightUnavailable
-        } else {
-            nil
+        var notes: [DiagramNote] = []
+        if ConfigMapper.gated(shown, accessibilityTrusted: accessibilityGranted) != shown {
+            notes.append(.needsAccessibility)
+        }
+        if chosen != shown {
+            notes.append(.backlightUnavailable)
         }
         let isInherited = edgeScope != nil && edgeOverride(edge) == nil
         return DiagramEdgeItem(
             edge: edge,
             action: shown,
             isInherited: isInherited,
-            note: note,
+            notes: notes,
             valueTitle: isInherited ? inheritedEdgeTitle(for: edge) : SettingsLabels.title(for: shown)
         )
     }
@@ -129,7 +142,9 @@ extension SettingsModel {
         CornerAction.allCases
     }
 
+    /// Sets `corner`; the menu has taken the pointer, so the hover state is cleared.
     func chooseCornerAction(_ action: CornerAction, for corner: Corner) {
+        hoveredDiagramControl = nil
         settings[corner: corner] = action
     }
 
@@ -141,7 +156,7 @@ extension SettingsModel {
 
     /// Whether any edge of the shown scope waits for Accessibility access.
     var diagramEdgesNeedAccessibility: Bool {
-        Edge.allCases.contains { diagramEdge($0).note == .needsAccessibility }
+        Edge.allCases.contains { diagramEdge($0).notes.contains(.needsAccessibility) }
     }
 
     /// Whether any corner waits for Accessibility access.

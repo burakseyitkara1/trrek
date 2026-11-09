@@ -178,8 +178,8 @@ public enum EdgeChoices {
         }
     }
 
-    /// The option a picker shows: the keyboard backlight appears as media control, which is what runs while its
-    /// bridge is unavailable.
+    /// The action an edge's menu checks and the diagram shows: the keyboard backlight appears as media control,
+    /// which is what runs while its bridge is unavailable.
     public static func displayed(_ action: EdgeAction, backlightAvailable: Bool) -> EdgeAction {
         action == .keyboardBacklight && !backlightAvailable ? .media : action
     }

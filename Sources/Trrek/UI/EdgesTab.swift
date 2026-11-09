@@ -34,6 +34,7 @@ struct EdgesTab: View {
                         backlightAvailable: model.backlightAvailable,
                         accessibilityGranted: model.accessibilityGranted,
                         editing: .edges(model),
+                        height: TrackpadDiagram.compactHeight,
                         bundleID: model.edgeScope
                     ),
                     caption: String(localized: "Click an edge in the diagram to change its action.", bundle: .main),

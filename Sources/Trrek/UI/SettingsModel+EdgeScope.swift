@@ -58,13 +58,13 @@ extension SettingsModel {
         settings.updateEdgeProfile(for: edgeScope) { $0[edge: edge] = action }
     }
 
-    /// The action `edge` runs in the shown scope, as its picker shows it (the keyboard backlight as media control
+    /// The action `edge` runs in the shown scope, as the diagram shows it (the keyboard backlight as media control
     /// while its bridge is unavailable).
     func shownEdgeAction(_ edge: Edge) -> EdgeAction {
         EdgeChoices.displayed(settings.edgeActions(for: edgeScope)[edge], backlightAvailable: backlightAvailable)
     }
 
-    /// The first option of an app's edge picker: "Same as All Apps (<the All Apps action>)".
+    /// The first item of an app's edge menu on the diagram: "Same as All Apps (<the All Apps action>)".
     func inheritedEdgeTitle(for edge: Edge) -> String {
         let action = EdgeChoices.displayed(settings[edge: edge], backlightAvailable: backlightAvailable)
         let name = SettingsLabels.title(for: action)

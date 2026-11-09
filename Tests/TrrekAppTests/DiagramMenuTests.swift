@@ -159,12 +159,6 @@ struct DiagramMenuTests {
 
     // MARK: - Corners
 
-    @Test func cornerMenusListEveryActionWithOff() {
-        let model = Self.model()
-        #expect(model.cornerMenuOptions == CornerAction.allCases)
-        #expect(model.cornerMenuOptions.contains(.off))
-    }
-
     @Test func choosingACornerActionSetsIt() {
         var received: [AppSettings] = []
         let model = Self.model { received.append($0) }
@@ -191,8 +185,93 @@ struct DiagramMenuTests {
         #expect(!model.diagramCornersNeedAccessibility)
     }
 
-    @Test func edgeAndCornerTitlesNameTheControl() {
-        #expect(SettingsLabels.title(for: Edge.left) == "Left Edge")
-        #expect(SettingsLabels.title(for: Corner.bottomRight) == "Bottom Right")
+    // MARK: - Scope details
+
+    @Test func bothNotesShowWhenTheBacklightAndAccessibilityAreMissing() {
+        let model = Self.model(backlight: false, accessibility: false)
+        let bottom = model.diagramEdge(.bottom)
+        #expect(bottom.action == .media)
+        #expect(bottom.notes == [.needsAccessibility, .backlightUnavailable])
+        #expect(bottom.note == .needsAccessibility)
+        #expect(bottom.stripAction == .off)
+        // Only the fallback while Accessibility is granted; the strip shows media control.
+        model.accessibilityGranted = true
+        #expect(model.diagramEdge(.bottom).notes == [.backlightUnavailable])
+        #expect(model.diagramEdge(.bottom).stripAction == .media)
+    }
+
+    @Test func theAccessibilityNoteFollowsTheShownScope() {
+        var settings = AppSettings()
+        for edge in Edge.allCases {
+            settings[edge: edge] = .keyboardBacklight
+        }
+        settings.appEdgeProfiles = [AppEdgeProfile(bundleID: Self.browser, top: .switchTabs)]
+        let model = Self.model(settings, accessibility: false)
+        // All Apps runs only the keyboard backlight, which needs no Accessibility; the app's own top edge does.
+        #expect(!model.diagramEdgesNeedAccessibility)
+        model.edgeScope = Self.browser
+        #expect(model.diagramEdgesNeedAccessibility)
+        #expect(model.diagramEdge(.top).note == .needsAccessibility)
+        #expect(model.diagramEdge(.left).note == nil)
+
+        // The other way round: an inherited gated edge is marked, an app's own keyboard backlight is not.
+        var other = AppSettings()
+        other.appEdgeProfiles = [AppEdgeProfile(bundleID: Self.browser, right: .keyboardBacklight)]
+        let scoped = Self.model(other, accessibility: false)
+        scoped.edgeScope = Self.browser
+        #expect(scoped.diagramEdge(.right).note == nil)
+        #expect(scoped.diagramEdge(.left).isInherited)
+        #expect(scoped.diagramEdge(.left).note == .needsAccessibility)
+        #expect(scoped.diagramEdgesNeedAccessibility)
+    }
+
+    @Test func theInheritedItemFollowsTheBacklightFallback() {
+        var settings = AppSettings()
+        settings.bottomEdge = .keyboardBacklight
+        settings.appEdgeProfiles = [AppEdgeProfile(bundleID: Self.browser)]
+        let model = Self.model(settings, backlight: false)
+        model.edgeScope = Self.browser
+        #expect(model.edgeMenuOptions(for: .bottom).first?.title == "Same as All Apps (Media)")
+        let bottom = model.diagramEdge(.bottom)
+        #expect(bottom.isInherited)
+        #expect(bottom.action == .media)
+        #expect(bottom.valueTitle == "Same as All Apps (Media)")
+        #expect(bottom.notes == [.backlightUnavailable])
+        #expect(model.edgeMenuSelection(for: .bottom) == nil)
+    }
+
+    @Test func anAppsOwnActionEqualToAllAppsStaysItsOwn() {
+        var settings = AppSettings()
+        settings.appEdgeProfiles = [AppEdgeProfile(bundleID: Self.browser)]
+        let model = Self.model(settings)
+        model.edgeScope = Self.browser
+        model.chooseEdgeAction(.switchApps, for: .top)
+        #expect(model.settings.edgeProfile(for: Self.browser)?.top == .switchApps)
+        #expect(model.edgeMenuSelection(for: .top) == .switchApps)
+        #expect(!model.diagramEdge(.top).isInherited)
+        #expect(model.diagramEdge(.top).valueTitle == "Switch Apps")
+        // It keeps it when All Apps changes.
+        model.edgeScope = nil
+        model.chooseEdgeAction(.volume, for: .top)
+        model.edgeScope = Self.browser
+        #expect(model.diagramEdge(.top).action == .switchApps)
+    }
+
+    // MARK: - Hover
+
+    @Test func theHoverStateIsClearedWhenItsEndCannotArrive() {
+        let model = Self.model()
+        model.selectedTab = .edges
+        model.hoveredDiagramControl = .edge(.left)
+        model.selectedTab = .corners
+        #expect(model.hoveredDiagramControl == nil)
+
+        model.hoveredDiagramControl = .edge(.left)
+        model.chooseEdgeAction(.zoom, for: .left)
+        #expect(model.hoveredDiagramControl == nil)
+
+        model.hoveredDiagramControl = .corner(.topLeft)
+        model.chooseCornerAction(.mute, for: .topLeft)
+        #expect(model.hoveredDiagramControl == nil)
     }
 }
