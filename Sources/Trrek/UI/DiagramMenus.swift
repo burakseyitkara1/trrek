@@ -87,7 +87,6 @@ struct CornerMenu: View {
                 action: item.action,
                 note: item.note,
                 hovered: model.hoveredDiagramControl == .corner(corner),
-                flat: false,
                 alignment: TrackpadDiagram.alignment(of: corner)
             )
             .padding(Self.hitMargin)

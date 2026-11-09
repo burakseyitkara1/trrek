@@ -189,17 +189,13 @@ struct TrackpadDiagram: View {
         switch editing {
         case let .corners(model):
             CornerMenu(model: model, corner: corner)
-        case let .edges(model):
-            let item = model.diagramCorner(corner)
-            let alignment = Self.alignment(of: corner)
-            CornerBadge(action: item.action, note: item.note, hovered: false, flat: true, alignment: alignment)
-                .opacity(Self.readOnlyOpacity)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(SettingsLabels.title(for: corner))
-                .accessibilityValue(SettingsLabels.title(for: item.action))
+        case .edges:
+            // The Edges tab does not edit corners: only their faded zones show, no labels, which would not fit the
+            // corner squares at Narrow and would cross the edge zones.
+            EmptyView()
         case nil:
             let action = ConfigMapper.gated(settings[corner: corner], accessibilityTrusted: accessibilityGranted)
-            CornerBadge(action: action, note: nil, hovered: false, flat: false, alignment: Self.alignment(of: corner))
+            CornerBadge(action: action, note: nil, hovered: false, alignment: Self.alignment(of: corner))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(SettingsLabels.title(for: corner))
                 .accessibilityValue(SettingsLabels.title(for: action))

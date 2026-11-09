@@ -187,13 +187,11 @@ struct EdgeLabel: View {
 }
 
 /// A small glass badge with the corner action's symbol, or "Off"; a note adds a warning symbol at its outer corner
-/// and the hover state a chevron on its inner side. Flat (without glass) where corners cannot be changed.
+/// and the hover state a chevron on its inner side.
 struct CornerBadge: View {
     let action: CornerAction
     let note: DiagramNote?
     let hovered: Bool
-    /// Drawn without its glass, for a tab where corners cannot be changed, so it does not look like a button.
-    let flat: Bool
     /// The corner it sits in; the chevron goes on the side towards the middle of the trackpad.
     let alignment: Alignment
 
@@ -210,7 +208,7 @@ struct CornerBadge: View {
         .padding(.horizontal, 6)
         .frame(minWidth: 34, minHeight: 24)
         .contentShape(.rect(cornerRadius: 12))
-        .glassEffect(flat ? .identity : .regular.interactive(hovered), in: .rect(cornerRadius: 12))
+        .glassEffect(.regular.interactive(hovered), in: .rect(cornerRadius: 12))
         .overlay(alignment: alignment) {
             if let note {
                 NoteSymbol(note: note)
