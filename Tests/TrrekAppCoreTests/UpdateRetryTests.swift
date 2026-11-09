@@ -118,6 +118,58 @@ struct RetryPolicyTests {
         #expect(waits.all == [.seconds(2), .seconds(5)])
     }
 
+    /// The restart is announced before the wait, so the row shows no stale progress while it waits.
+    @Test func theRestartIsAnnouncedBeforeTheWait() async throws {
+        final class Events: @unchecked Sendable {
+            private let lock = NSLock()
+            private var values: [String] = []
+
+            func add(_ event: String) {
+                lock.withLock { values.append(event) }
+            }
+
+            var all: [String] {
+                lock.withLock { values }
+            }
+        }
+        let events = Events()
+        let policy = RetryPolicy(sleep: { _ in events.add("wait") })
+        var attempts = 0
+        _ = try await policy.run(
+            "test",
+            onRetry: { events.add("restart") },
+            operation: { () async throws -> Int in
+                attempts += 1
+                events.add("try")
+                if attempts < 3 {
+                    throw URLError(.timedOut)
+                }
+                return attempts
+            }
+        )
+        #expect(events.all == ["try", "restart", "wait", "try", "restart", "wait", "try"])
+    }
+
+    /// A timeout at the end of the whole download's time is not retried; an idle stall before it is.
+    @Test func theDownloadTimeLimitIsNotRetried() {
+        let limit = SessionFileDownloader.resourceTimeout
+        let late = SessionFileDownloader.finalError(URLError(.timedOut), elapsed: .seconds(limit), limit: limit)
+        #expect(late is DownloadTimeLimitReached)
+        #expect(!UpdateFailure.isTransient(late))
+        #expect(UpdateFailure(late) == .serverUnavailable)
+
+        let stall = SessionFileDownloader.finalError(URLError(.timedOut), elapsed: .seconds(90), limit: limit)
+        #expect((stall as? URLError)?.code == .timedOut)
+        #expect(UpdateFailure.isTransient(stall))
+
+        let other = SessionFileDownloader.finalError(
+            URLError(.cannotConnectToHost),
+            elapsed: .seconds(limit),
+            limit: limit
+        )
+        #expect((other as? URLError)?.code == .cannotConnectToHost)
+    }
+
     @Test func runGivesUpAfterThreeAttempts() async {
         let waits = RecordedWaits()
         var attempts = 0

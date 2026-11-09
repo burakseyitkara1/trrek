@@ -225,14 +225,14 @@ struct SessionFileDownloaderTests {
     }
 
     @Test func theFeedReadsAnAnswerUpToTheLimit() async throws {
-        let feed = ReleaseFeedClient(configuration: Self.stubConfiguration, maximumSize: Stub.body.count)
+        let feed = ReleaseFeedClient(configuration: Self.stubConfiguration, maximumSize: Stub.body.count, retry: .never)
         #expect(try await feed.latestRelease() == Stub.body)
     }
 
     /// An answer announced or sent above the limit is refused as too large.
     @Test func theFeedRefusesAnAnswerAboveTheLimit() async {
         defer { Stub.announcesLength = true }
-        let feed = ReleaseFeedClient(configuration: Self.stubConfiguration, maximumSize: 1000)
+        let feed = ReleaseFeedClient(configuration: Self.stubConfiguration, maximumSize: 1000, retry: .never)
         for announces in [true, false] {
             Stub.announcesLength = announces
             await #expect(throws: ReleaseFeedError.tooLarge) {
@@ -266,7 +266,7 @@ struct SessionFileDownloaderTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let folder = root.appendingPathComponent("Caches/Updates")
         let release = try ReleaseInfo.decode(UpdateFixtures.latestRelease)
-        let image = try await UpdateDownloader(client: FakeFileDownloader(contents: Data("dmg".utf8)))
+        let image = try await UpdateDownloader(client: FakeFileDownloader(contents: Data("dmg".utf8)), retry: .never)
             .download(release, to: folder)
         #expect(image.file.deletingLastPathComponent().path == folder.path)
         #expect(FileManager.default.fileExists(atPath: image.file.path))

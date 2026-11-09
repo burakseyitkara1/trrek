@@ -42,7 +42,7 @@ public struct RetryPolicy: Sendable {
     }
 
     /// Runs `operation` until it succeeds, fails for good or the retries run out; the last error is thrown. `label`
-    /// names it in the log ("update <label> failed: …"). `onRetry` is called before each retry starts (after its wait).
+    /// names it in the log ("update <label> failed: …"). `onRetry` is called once a retry is decided, before its wait.
     /// Cancellation, also during a wait, ends it at once.
     public func run<T>(
         _ label: String,
@@ -61,9 +61,10 @@ public struct RetryPolicy: Sendable {
                 appLogger.notice(
                     "update \(label, privacy: .public) failed: \(cause, privacy: .public); \(next, privacy: .public)"
                 )
+                // Before the wait, so the row shows the restart (no stale progress) while it waits.
+                onRetry()
                 try await sleep(delay)
                 retry += 1
-                onRetry()
             }
         }
     }
@@ -71,7 +72,8 @@ public struct RetryPolicy: Sendable {
 
 /// Why an update check or download finally failed, as the user is told.
 public enum UpdateFailure: Equatable, Sendable {
-    /// The server answered 5xx or 429, timed out or dropped the connection, also after the retries.
+    /// The server answered 5xx or 429, timed out (also the whole download's time limit) or dropped the connection,
+    /// also after the retries.
     case serverUnavailable
     /// The Mac is not connected, or the server's name could not be looked up.
     case offline
@@ -99,6 +101,10 @@ public enum UpdateFailure: Equatable, Sendable {
         }
         if error is UpdateVerificationFailure {
             self = .verification
+            return
+        }
+        if error is DownloadTimeLimitReached {
+            self = .serverUnavailable
             return
         }
         if let code = (error as? URLError)?.code {

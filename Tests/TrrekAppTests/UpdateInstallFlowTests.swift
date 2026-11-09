@@ -15,12 +15,14 @@ struct UpdateInstallFlowTests {
     /// A harness whose check already found 0.4.0.
     private static func harness(
         downloader: UpdateControllerTests.Downloader = .init(fails: false),
-        relaunchSucceeds: Bool = true
+        relaunchSucceeds: Bool = true,
+        retryWait: @escaping RetrySleeper = { _ in }
     ) async throws -> Harness {
         let harness = try UpdateControllerTests.harness(
             downloader: downloader,
             relaunchSucceeds: relaunchSucceeds,
-            suite: "trrek.tests.update-install"
+            suite: "trrek.tests.update-install",
+            retryWait: retryWait
         )
         await harness.controller.checkManually()
         #expect(harness.controller.row == .available(version))
@@ -254,12 +256,16 @@ extension UpdateInstallFlowTests {
             error: URLError(.networkConnectionLost),
             halfBeforeFailing: true
         )
-        let harness = try await Self.harness(downloader: downloader)
+        // What the row shows during the wait before the retry, once the main queue has delivered the restart.
+        let probe = RowProbe()
+        let harness = try await Self.harness(downloader: downloader) { _ in await probe.record() }
+        probe.read = { harness.controller.row }
         defer { harness.tearDown() }
         harness.controller.startUpdate()
         try await waitUntil { harness.relaunches() == 1 }
 
         let ver = Self.version
+        #expect(probe.seen == [.downloading(ver, progress: nil)])
         #expect(downloader.attempts.count == 2)
         #expect(harness.rows().suffix(6) == [
             .downloading(ver, progress: nil), .downloading(ver, progress: 0.5), .downloading(ver, progress: nil),
@@ -275,7 +281,8 @@ extension UpdateInstallFlowTests {
         #expect(harness.alerts.shown.isEmpty)
     }
 
-    /// The final failure's reason reaches the row, and through it the line in General.
+    /// The final failure's reason reaches the row and the row callback (which the coordinator copies into General's
+    /// model).
     @Test func theFinalFailureCarriesItsReason() async throws {
         struct Case {
             let code: URLError.Code
@@ -301,17 +308,22 @@ extension UpdateInstallFlowTests {
             try await waitUntil { !harness.controller.isBusy }
             #expect(harness.controller.row == .failed(Self.version, reason: item.failure))
             #expect(downloader.attempts.count == item.attempts)
-
-            let model = SettingsModel(
-                settings: AppSettings(),
-                backlightAvailable: true,
-                checkForUpdates: { _ in },
-                startUpdate: {},
-                onChange: { _ in }
-            )
-            model.updateRow = harness.controller.row
-            #expect(model.updateRow?.statusText == "The update failed.")
-            #expect(model.updateRow?.failureReason == item.reason)
+            let delivered = harness.rows().last ?? nil
+            #expect(delivered == .failed(Self.version, reason: item.failure))
+            #expect(delivered?.statusText == "The update failed.")
+            #expect(delivered?.failureReason == item.reason)
         }
+    }
+}
+
+/// Reads the controller's row from a retry wait (which runs off the main actor).
+@MainActor
+private final class RowProbe {
+    var read: () -> UpdateRowState? = { nil }
+    private(set) var seen: [UpdateRowState?] = []
+
+    /// Runs after the main queue has delivered what was queued before the wait (the progress restart).
+    func record() {
+        seen.append(read())
     }
 }

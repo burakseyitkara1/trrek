@@ -172,10 +172,26 @@ extension SessionFileDownloaderTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == [release.diskImageName])
         #expect(ScriptedStub.requests == 3)
         #expect(waits.all == [.seconds(2), .seconds(5)])
-        // Each retry starts the progress over.
-        #expect(reports.all.count(where: { $0 == (0, -1) }) == 2)
-        #expect(reports.all.last.map { $0 == (Int64(ScriptedStub.body.count), Int64(ScriptedStub.body.count)) } == true)
+        // Each retry starts the progress over; the 504 pages are never reported as progress.
+        let size = Int64(ScriptedStub.body.count)
+        let all = reports.all
+        #expect(all.prefix(2).allSatisfy { $0 == (0, -1) })
+        #expect(all.dropFirst(2).allSatisfy { $0.1 == size && $0.0 > 0 })
+        #expect(all.count(where: { $0 == (0, -1) }) == 2)
+        #expect(all.last.map { $0 == (size, size) } == true)
         #expect(Self.retryDownloadsLeft().subtracting(before).isEmpty)
+    }
+
+    /// An error answer's page is downloaded by the task but is no progress of the disk image.
+    @Test func anErrorPageReportsNoProgress() async throws {
+        let reports = RetryReports()
+        let downloader = SessionFileDownloader(configuration: Self.scriptedConfiguration)
+        let url = try #require(URL(string: "https://github.com/burakseyitkara1/trrek/releases/download/v0.3.0/x.dmg"))
+        ScriptedStub.play([.status(504)])
+        await #expect(throws: ReleaseFeedError.httpStatus(504)) {
+            _ = try await downloader.download(from: url) { reports.add($0, $1) }
+        }
+        #expect(reports.all.isEmpty)
     }
 
     @Test func aDownloadThatKeepsFailingLeavesNoFile() async throws {

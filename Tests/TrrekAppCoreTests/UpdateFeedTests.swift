@@ -298,7 +298,7 @@ struct UpdateDownloaderTests {
         let destination = folder.appendingPathComponent("trrek-v0.3.0.dmg")
         try Data("old".utf8).write(to: destination)
 
-        let downloader = UpdateDownloader(client: FakeFileDownloader(contents: Data("new".utf8)))
+        let downloader = UpdateDownloader(client: FakeFileDownloader(contents: Data("new".utf8)), retry: .never)
         let image = try await downloader.download(release, to: folder)
         let file = image.file
 
@@ -324,7 +324,7 @@ struct UpdateDownloaderTests {
         try Data("old".utf8).write(to: destination)
 
         await #expect(throws: Offline.self) {
-            try await UpdateDownloader(client: FailingDownloader()).download(release, to: folder)
+            try await UpdateDownloader(client: FailingDownloader(), retry: .never).download(release, to: folder)
         }
         #expect(try Data(contentsOf: destination) == Data("old".utf8))
     }

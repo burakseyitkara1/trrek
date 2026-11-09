@@ -156,8 +156,28 @@ public struct SessionFileDownloader: FileDownloading {
     }
 
     /// Throws `ReleaseFeedError.tooLarge` (and keeps no file) when the server announces or sends more than
-    /// `maximumSize` bytes.
+    /// `maximumSize` bytes, and `DownloadTimeLimitReached` when the whole download ran out of `resourceTimeout`.
     public func download(from url: URL, progress: @escaping DownloadProgress) async throws -> URL {
+        let started = ContinuousClock.now
+        do {
+            return try await transfer(from: url, progress: progress)
+        } catch {
+            throw Self.finalError(error, elapsed: ContinuousClock.now - started)
+        }
+    }
+
+    /// A timeout at the end of the whole download's time (rather than an idle stall) becomes
+    /// `DownloadTimeLimitReached`, which is not retried; any other error is passed on.
+    static func finalError(
+        _ error: any Error,
+        elapsed: Duration,
+        limit: TimeInterval = resourceTimeout
+    ) -> any Error {
+        guard (error as? URLError)?.code == .timedOut, elapsed >= .seconds(limit - 1) else { return error }
+        return DownloadTimeLimitReached()
+    }
+
+    private func transfer(from url: URL, progress: @escaping DownloadProgress) async throws -> URL {
         let delegate = DownloadDelegate(progress: progress, limit: maximumSize)
         let session = URLSession(configuration: configuration(), delegate: delegate, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
@@ -176,8 +196,14 @@ public struct SessionFileDownloader: FileDownloading {
     }
 }
 
-/// Reports a download task's progress, cancels it above `limit` bytes, keeps its file and resumes the waiting call
-/// once.
+/// The whole download took longer than `SessionFileDownloader.resourceTimeout`. Not retried: a restart from zero on
+/// the same slow connection would very likely run out of time again.
+public struct DownloadTimeLimitReached: Error, Equatable, Sendable {
+    public init() {}
+}
+
+/// Reports a download task's progress (only for a 200 answer), cancels it above `limit` bytes, keeps its file and
+/// resumes the waiting call once.
 final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     private let progress: DownloadProgress
     private let limit: Int64
@@ -215,6 +241,8 @@ final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked S
             }
             return
         }
+        // An error answer's page (a 504's, say) is no progress of the disk image; the size limit above still applies.
+        guard (downloadTask.response as? HTTPURLResponse)?.statusCode == 200 else { return }
         let step = Self.step(received: totalBytesWritten, expected: totalBytesExpectedToWrite)
         let isNew = lock.withLock {
             guard reported != step else { return false }
@@ -295,8 +323,8 @@ public struct UpdateDownloader: Sendable {
     }
 
     /// Downloads `release`'s disk image to `folder/trrek-vX.Y.Z.dmg` (creating the folder) and marks it as
-    /// downloaded from the internet, like a browser download. Before a retry, `progress` is told the size is unknown
-    /// again, so the row's progress starts over.
+    /// downloaded from the internet, like a browser download. Once a retry is decided (before its wait), `progress` is
+    /// told the size is unknown again, so the row's progress starts over while it waits.
     public func download(
         _ release: ReleaseInfo,
         to folder: URL,
