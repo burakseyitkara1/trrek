@@ -15,12 +15,14 @@ struct UpdateInstallFlowTests {
     /// A harness whose check already found 0.4.0.
     private static func harness(
         downloader: UpdateControllerTests.Downloader = .init(fails: false),
-        relaunchSucceeds: Bool = true
+        relaunchSucceeds: Bool = true,
+        retryWait: @escaping RetrySleeper = { _ in }
     ) async throws -> Harness {
         let harness = try UpdateControllerTests.harness(
             downloader: downloader,
             relaunchSucceeds: relaunchSucceeds,
-            suite: "trrek.tests.update-install"
+            suite: "trrek.tests.update-install",
+            retryWait: retryWait
         )
         await harness.controller.checkManually()
         #expect(harness.controller.row == .available(version))
@@ -55,7 +57,7 @@ struct UpdateInstallFlowTests {
         let harness = try await Self.harness(downloader: .init(fails: true))
         defer { harness.tearDown() }
         harness.controller.startUpdate()
-        try await waitUntil { harness.controller.row == .failed(Self.version) }
+        try await waitUntil { harness.controller.row == .failed(Self.version, reason: .serverUnavailable) }
         #expect(!harness.controller.isBusy)
         #expect(harness.installer.calls.isEmpty)
         #expect(harness.alerts.shown.isEmpty)
@@ -63,7 +65,7 @@ struct UpdateInstallFlowTests {
         // Clicking again starts again.
         harness.controller.startUpdate()
         #expect(harness.controller.row == .downloading(Self.version, progress: nil))
-        try await waitUntil { harness.controller.row == .failed(Self.version) }
+        try await waitUntil { harness.controller.row == .failed(Self.version, reason: .serverUnavailable) }
     }
 
     @Test func aFailedVerificationOffersToTryAgain() async throws {
@@ -71,7 +73,7 @@ struct UpdateInstallFlowTests {
         defer { harness.tearDown() }
         harness.installer.prepareError = .verification(.notNotarized)
         harness.controller.startUpdate()
-        try await waitUntil { harness.controller.row == .failed(Self.version) }
+        try await waitUntil { harness.controller.row == .failed(Self.version, reason: .verification) }
         #expect(harness.opened().isEmpty)
         #expect(harness.relaunches() == 0)
         #expect(Self.cachedFiles(harness).isEmpty)
@@ -225,7 +227,7 @@ struct UpdateInstallFlowTests {
         await harness.controller.checkManually()
         #expect(harness.controller.row == .available(Self.version))
         harness.controller.startUpdate()
-        try await waitUntil { harness.controller.row == .failed(Self.version) }
+        try await waitUntil { harness.controller.row == .failed(Self.version, reason: .verification) }
         #expect(harness.installer.calls.isEmpty)
         #expect(!harness.rows().contains(.downloading(Self.version, progress: 0.5)))
         #expect(!FileManager.default.fileExists(atPath: harness.cache.path))
@@ -241,5 +243,87 @@ struct UpdateInstallFlowTests {
         harness.controller.cleanUpLeftovers()
         try await waitUntil { harness.installer.calls == ["clean up"] }
         #expect(!FileManager.default.fileExists(atPath: harness.cache.path))
+    }
+}
+
+/// Retries and failure reasons of the update the row starts.
+extension UpdateInstallFlowTests {
+    /// A transient failure is retried while the row keeps showing the download, its progress starting over.
+    @Test func aRetriedDownloadKeepsTheRowDownloading() async throws {
+        let downloader = UpdateControllerTests.Downloader(
+            fails: false,
+            failFirst: 1,
+            error: URLError(.networkConnectionLost),
+            halfBeforeFailing: true
+        )
+        // What the row shows during the wait before the retry, once the main queue has delivered the restart.
+        let probe = RowProbe()
+        let harness = try await Self.harness(downloader: downloader) { _ in await probe.record() }
+        probe.read = { harness.controller.row }
+        defer { harness.tearDown() }
+        harness.controller.startUpdate()
+        try await waitUntil { harness.relaunches() == 1 }
+
+        let ver = Self.version
+        #expect(probe.seen == [.downloading(ver, progress: nil)])
+        #expect(downloader.attempts.count == 2)
+        #expect(harness.rows().suffix(6) == [
+            .downloading(ver, progress: nil), .downloading(ver, progress: 0.5), .downloading(ver, progress: nil),
+            .downloading(ver, progress: 0.5), .downloading(ver, progress: 1), .installing(ver)
+        ])
+        #expect(!harness.rows().contains {
+            if case .failed = $0 {
+                true
+            } else {
+                false
+            }
+        })
+        #expect(harness.alerts.shown.isEmpty)
+    }
+
+    /// The final failure's reason reaches the row and the row callback (which the coordinator copies into General's
+    /// model).
+    @Test func theFinalFailureCarriesItsReason() async throws {
+        struct Case {
+            let code: URLError.Code
+            let attempts: Int
+            let failure: UpdateFailure
+            let reason: String?
+        }
+        let cases = [
+            Case(code: .notConnectedToInternet, attempts: 3, failure: .offline, reason: "You appear to be offline."),
+            Case(
+                code: .timedOut,
+                attempts: 3,
+                failure: .serverUnavailable,
+                reason: "GitHub isn’t responding. Try again in a few minutes."
+            ),
+            Case(code: .badURL, attempts: 1, failure: .other, reason: nil)
+        ]
+        for item in cases {
+            let downloader = UpdateControllerTests.Downloader(fails: true, error: URLError(item.code))
+            let harness = try await Self.harness(downloader: downloader)
+            defer { harness.tearDown() }
+            harness.controller.startUpdate()
+            try await waitUntil { !harness.controller.isBusy }
+            #expect(harness.controller.row == .failed(Self.version, reason: item.failure))
+            #expect(downloader.attempts.count == item.attempts)
+            let delivered = harness.rows().last ?? nil
+            #expect(delivered == .failed(Self.version, reason: item.failure))
+            #expect(delivered?.statusText == "The update failed.")
+            #expect(delivered?.failureReason == item.reason)
+        }
+    }
+}
+
+/// Reads the controller's row from a retry wait (which runs off the main actor).
+@MainActor
+private final class RowProbe {
+    var read: () -> UpdateRowState? = { nil }
+    private(set) var seen: [UpdateRowState?] = []
+
+    /// Runs after the main queue has delivered what was queued before the wait (the progress restart).
+    func record() {
+        seen.append(read())
     }
 }

@@ -105,8 +105,13 @@ public final class UpdateChecker {
         return .available(release)
     }
 
-    /// The text shown for a failed check or download.
+    /// The text shown for a failed check: the same words as General for an unavailable server or a missing network
+    /// (after the feed's retries), otherwise what went wrong.
     public static func message(for error: any Error) -> String {
+        let failure = UpdateFailure(error)
+        if failure == .serverUnavailable || failure == .offline, let reason = failure.reason {
+            return reason
+        }
         if let error = error as? ReleaseFeedError {
             return error.message
         }

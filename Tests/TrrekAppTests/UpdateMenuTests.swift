@@ -50,6 +50,14 @@ struct UpdateRowViewTests {
         #expect(view.label.stringValue == "Update Failed — Try Again")
         #expect(view.bar.isHidden)
         #expect(item.isEnabled)
+        #expect(view.toolTip == nil)
+
+        // The row stays short; the reason is in the tooltip and read out after the title.
+        view.state = .failed(ver, reason: .serverUnavailable)
+        #expect(view.label.stringValue == "Update Failed — Try Again")
+        #expect(view.toolTip == "GitHub isn’t responding. Try again in a few minutes.")
+        #expect(view.accessibilityLabel()
+            == "Update Failed — Try Again. GitHub isn’t responding. Try again in a few minutes.")
 
         // One height in every state, so the open menu keeps its layout.
         #expect(view.frame.height == height)

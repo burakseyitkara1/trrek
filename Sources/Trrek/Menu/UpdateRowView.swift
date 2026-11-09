@@ -83,7 +83,10 @@ final class UpdateRowView: NSView {
 
     private func apply() {
         label.stringValue = state.title
-        setAccessibilityLabel(state.title)
+        // The row stays short; why it failed is in its tooltip and read out with its title.
+        let reason = state.failureReason
+        setAccessibilityLabel(reason.map { "\(state.title). \($0)" } ?? state.title)
+        toolTip = reason
         setAccessibilityEnabled(state.isClickable)
         switch state {
         case let .downloading(_, progress):

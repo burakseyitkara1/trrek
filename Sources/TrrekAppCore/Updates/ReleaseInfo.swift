@@ -10,8 +10,9 @@ public enum ReleaseFeedError: Error, Equatable, Sendable {
     case missingDiskImage
     /// The latest release is a draft or a prerelease.
     case notPublished
-    /// The server answered with an HTTP status other than 200.
-    case httpStatus(Int)
+    /// The server answered with an HTTP status other than 200; `retryAfter` is the seconds a 429 or 503 answer's
+    /// `Retry-After` asks to wait (`nil` when it names none).
+    case httpStatus(Int, retryAfter: Int? = nil)
     /// The disk image or the release page is not where trrek's releases are published.
     case unexpectedLink
     /// The answer or the download is larger than trrek accepts (`ReleaseFeedClient.maximumSize`,
@@ -25,7 +26,7 @@ public enum ReleaseFeedError: Error, Equatable, Sendable {
             String(localized: "The update information could not be read.", bundle: .main)
         case .missingTag, .missingDiskImage, .notPublished:
             String(localized: "The latest release could not be found.", bundle: .main)
-        case let .httpStatus(status):
+        case let .httpStatus(status, _):
             String(localized: "The server answered with status \(status).", bundle: .main)
         case .unexpectedLink:
             String(localized: "The update information points to an unexpected address.", bundle: .main)

@@ -4,6 +4,23 @@ import Testing
 @testable import Trrek
 import TrrekAppCore
 
+/// Counts a fake downloader's attempts.
+final class DownloadAttempts: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    var count: Int {
+        lock.withLock { value }
+    }
+
+    func next() -> Int {
+        lock.withLock {
+            value += 1
+            return value
+        }
+    }
+}
+
 /// The update checks with a fake feed and alerts; nothing touches the network or the screen.
 @MainActor
 @Suite(.serialized)
@@ -24,25 +41,6 @@ struct UpdateControllerTests {
             calls += 1
             try await Task.sleep(for: delay)
             return try result.get()
-        }
-    }
-
-    /// Writes a small file, reporting half and then all of it; can fail or take a while.
-    struct Downloader: FileDownloading {
-        let fails: Bool
-        var delay: Duration = .zero
-
-        func download(from _: URL, progress: @escaping DownloadProgress) async throws -> URL {
-            progress(0, -1)
-            try await Task.sleep(for: delay)
-            if fails {
-                throw URLError(.timedOut)
-            }
-            progress(50, 100)
-            let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            try Data("dmg".utf8).write(to: file)
-            progress(100, 100)
-            return file
         }
     }
 
@@ -134,7 +132,8 @@ struct UpdateControllerTests {
         downloader: Downloader = Downloader(fails: false),
         feedDelay: Duration = .zero,
         relaunchSucceeds: Bool = true,
-        suite: String = suiteName
+        suite: String = suiteName,
+        retryWait: @escaping RetrySleeper = { _ in }
     ) throws -> Harness {
         let defaults = try #require(UserDefaults(suiteName: suite))
         defaults.removePersistentDomain(forName: suite)
@@ -153,7 +152,7 @@ struct UpdateControllerTests {
         )
         let controller = try UpdateController(
             checker: checker,
-            downloader: UpdateDownloader(client: downloader),
+            downloader: UpdateDownloader(client: downloader, retry: RetryPolicy(sleep: retryWait)),
             installer: installer,
             runningVersion: #require(SemanticVersion(running)),
             relaunch: {
@@ -231,7 +230,7 @@ struct UpdateControllerTests {
             Issue.record("expected the failure alert, got \(offline.alerts.shown)")
             return
         }
-        #expect(!message.isEmpty)
+        #expect(message == "You appear to be offline.")
 
         let found = try Self.harness(suite: "trrek.tests.update-controller.found")
         defer { found.tearDown() }
@@ -287,5 +286,35 @@ struct UpdateControllerTests {
             buttons: ["OK"],
             isWarning: true
         ))
+    }
+}
+
+extension UpdateControllerTests {
+    /// Writes a small file, reporting half and then all of it; can fail (always, or its first `failFirst` attempts,
+    /// with `error`, after reporting half when `halfBeforeFailing`) or take a while.
+    struct Downloader: FileDownloading {
+        let fails: Bool
+        var delay: Duration = .zero
+        var failFirst = 0
+        var error = URLError(.timedOut)
+        var halfBeforeFailing = false
+        let attempts = DownloadAttempts()
+
+        func download(from _: URL, progress: @escaping DownloadProgress) async throws -> URL {
+            let attempt = attempts.next()
+            progress(0, -1)
+            try await Task.sleep(for: delay)
+            if fails || attempt <= failFirst {
+                if halfBeforeFailing {
+                    progress(50, 100)
+                }
+                throw error
+            }
+            progress(50, 100)
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try Data("dmg".utf8).write(to: file)
+            progress(100, 100)
+            return file
+        }
     }
 }

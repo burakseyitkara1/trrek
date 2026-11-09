@@ -6,7 +6,7 @@ import TrrekPlatform
 ///
 /// Each request uses its own ephemeral session (no cookies, no cache, no stored credentials) that is invalidated
 /// afterwards, and sends only the `Accept` and `User-Agent` headers. An answer larger than `maximumSize` is refused
-/// as it arrives.
+/// as it arrives. A transient failure is retried with a new session (`RetryPolicy`).
 public struct ReleaseFeedClient: ReleaseFeed {
     public static let latestReleaseURL = URL(
         string: "https://api.github.com/repos/burakseyitkara1/trrek/releases/latest"
@@ -17,16 +17,20 @@ public struct ReleaseFeedClient: ReleaseFeed {
 
     private let configuration: @Sendable () -> URLSessionConfiguration
     private let maximumSize: Int
+    private let retry: RetryPolicy
 
-    /// `configuration` and `maximumSize` are for tests (a stub protocol, a smaller limit).
+    /// `configuration`, `maximumSize` and `retry` are for tests (a stub protocol, a smaller limit, waits that return
+    /// at once).
     public init(
         configuration: (@Sendable () -> URLSessionConfiguration)? = nil,
-        maximumSize: Int = ReleaseFeedClient.maximumSize
+        maximumSize: Int = ReleaseFeedClient.maximumSize,
+        retry: RetryPolicy = RetryPolicy()
     ) {
         self
             .configuration = configuration ??
             { ReleaseFeedClient.configuration(resourceTimeout: ReleaseFeedClient.timeout) }
         self.maximumSize = maximumSize
+        self.retry = retry
     }
 
     /// The request for the latest release; the user agent names the running version, never an assumed one.
@@ -57,6 +61,11 @@ public struct ReleaseFeedClient: ReleaseFeed {
     }
 
     public func latestRelease() async throws -> Data {
+        try await retry.run("check") { try await fetch() }
+    }
+
+    /// One request with a session of its own.
+    private func fetch() async throws -> Data {
         let session = URLSession(configuration: configuration())
         // Also stops a transfer refused before its end.
         defer { session.invalidateAndCancel() }
@@ -81,10 +90,30 @@ public struct ReleaseFeedClient: ReleaseFeed {
         return data
     }
 
-    /// Throws `ReleaseFeedError.httpStatus` unless `response` is HTTP 200.
-    public static func requireSuccess(_ response: URLResponse) throws(ReleaseFeedError) {
-        guard let status = (response as? HTTPURLResponse)?.statusCode else { throw .malformed }
-        guard status == 200 else { throw .httpStatus(status) }
+    /// Throws `ReleaseFeedError.httpStatus` unless `response` is HTTP 200; for 429 and 503 it carries the
+    /// `Retry-After` wait.
+    public static func requireSuccess(_ response: URLResponse, now: Date = Date()) throws(ReleaseFeedError) {
+        guard let response = response as? HTTPURLResponse else { throw .malformed }
+        let status = response.statusCode
+        guard status == 200 else {
+            let header = status == 429 || status == 503 ? response.value(forHTTPHeaderField: "Retry-After") : nil
+            throw .httpStatus(status, retryAfter: header.flatMap { retryAfter($0, now: now) })
+        }
+    }
+
+    /// The seconds a `Retry-After` value asks to wait: a number of seconds, or an HTTP date (rounded up, never
+    /// negative); `nil` when it is neither.
+    public static func retryAfter(_ value: String, now: Date) -> Int? {
+        let text = value.trimmingCharacters(in: .whitespaces)
+        if let seconds = Int(text) {
+            return seconds >= 0 ? seconds : nil
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        guard let date = formatter.date(from: text) else { return nil }
+        return max(Int(date.timeIntervalSince(now).rounded(.up)), 0)
     }
 }
 
@@ -127,8 +156,28 @@ public struct SessionFileDownloader: FileDownloading {
     }
 
     /// Throws `ReleaseFeedError.tooLarge` (and keeps no file) when the server announces or sends more than
-    /// `maximumSize` bytes.
+    /// `maximumSize` bytes, and `DownloadTimeLimitReached` when the whole download ran out of `resourceTimeout`.
     public func download(from url: URL, progress: @escaping DownloadProgress) async throws -> URL {
+        let started = ContinuousClock.now
+        do {
+            return try await transfer(from: url, progress: progress)
+        } catch {
+            throw Self.finalError(error, elapsed: ContinuousClock.now - started)
+        }
+    }
+
+    /// A timeout at the end of the whole download's time (rather than an idle stall) becomes
+    /// `DownloadTimeLimitReached`, which is not retried; any other error is passed on.
+    static func finalError(
+        _ error: any Error,
+        elapsed: Duration,
+        limit: TimeInterval = resourceTimeout
+    ) -> any Error {
+        guard (error as? URLError)?.code == .timedOut, elapsed >= .seconds(limit - 1) else { return error }
+        return DownloadTimeLimitReached()
+    }
+
+    private func transfer(from url: URL, progress: @escaping DownloadProgress) async throws -> URL {
         let delegate = DownloadDelegate(progress: progress, limit: maximumSize)
         let session = URLSession(configuration: configuration(), delegate: delegate, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
@@ -147,8 +196,14 @@ public struct SessionFileDownloader: FileDownloading {
     }
 }
 
-/// Reports a download task's progress, cancels it above `limit` bytes, keeps its file and resumes the waiting call
-/// once.
+/// The whole download took longer than `SessionFileDownloader.resourceTimeout`. Not retried: a restart from zero on
+/// the same slow connection would very likely run out of time again.
+public struct DownloadTimeLimitReached: Error, Equatable, Sendable {
+    public init() {}
+}
+
+/// Reports a download task's progress (only for a 200 answer), cancels it above `limit` bytes, keeps its file and
+/// resumes the waiting call once.
 final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     private let progress: DownloadProgress
     private let limit: Int64
@@ -186,6 +241,8 @@ final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked S
             }
             return
         }
+        // An error answer's page (a 504's, say) is no progress of the disk image; the size limit above still applies.
+        guard (downloadTask.response as? HTTPURLResponse)?.statusCode == 200 else { return }
         let step = Self.step(received: totalBytesWritten, expected: totalBytesExpectedToWrite)
         let isNew = lock.withLock {
             guard reported != step else { return false }
@@ -253,22 +310,32 @@ public struct DownloadedDiskImage: Equatable, Sendable {
     }
 }
 
-/// Downloads a release's disk image into a folder, replacing a file of the same name.
+/// Downloads a release's disk image into a folder, replacing a file of the same name. A transient failure restarts
+/// the download from the start (`RetryPolicy`); a failed try keeps no file.
 public struct UpdateDownloader: Sendable {
     private let client: any FileDownloading
+    private let retry: RetryPolicy
 
-    public init(client: any FileDownloading = SessionFileDownloader()) {
+    /// `retry` is for tests (waits that return at once).
+    public init(client: any FileDownloading = SessionFileDownloader(), retry: RetryPolicy = RetryPolicy()) {
         self.client = client
+        self.retry = retry
     }
 
     /// Downloads `release`'s disk image to `folder/trrek-vX.Y.Z.dmg` (creating the folder) and marks it as
-    /// downloaded from the internet, like a browser download.
+    /// downloaded from the internet, like a browser download. Once a retry is decided (before its wait), `progress` is
+    /// told the size is unknown again, so the row's progress starts over while it waits.
     public func download(
         _ release: ReleaseInfo,
         to folder: URL,
         progress: @escaping DownloadProgress = { _, _ in }
     ) async throws -> DownloadedDiskImage {
-        let temporary = try await client.download(from: release.diskImageURL, progress: progress)
+        let client = client
+        let temporary = try await retry.run(
+            "download",
+            onRetry: { progress(0, -1) },
+            operation: { try await client.download(from: release.diskImageURL, progress: progress) }
+        )
         let destination = folder.appendingPathComponent(release.diskImageName)
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

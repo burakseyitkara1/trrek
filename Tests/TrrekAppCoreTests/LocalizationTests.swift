@@ -137,7 +137,9 @@ struct LocalizationTests {
             // An encoding error's debug description.
             "settings did not encode as an object",
             // The device model DiskArbitration reports for a disk image, compared, not shown.
-            "Disk Image"
+            "Disk Image",
+            // The HTTP date format of a Retry-After header, parsed, not shown.
+            "EEE, dd MMM yyyy HH:mm:ss zzz"
         ]
         let words = try NSRegularExpression(pattern: "[A-Za-z]{2,} [A-Za-z]{2,}")
         let logCall = try NSRegularExpression(pattern: #"Logger|\.(?:debug|info|notice|error|fault)\("#)
