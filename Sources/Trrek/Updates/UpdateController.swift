@@ -189,13 +189,14 @@ final class UpdateController {
     }
 
     /// Checks that trrek can replace itself, downloads, verifies and installs `release`, then relaunches. Every step
-    /// changes only the update it started (`release.version`).
+    /// changes only the update it started (`release.version`). The row keeps showing the download while the
+    /// downloader retries; a final failure carries its `UpdateFailure`.
     private func run(_ release: ReleaseInfo) async {
         let version = release.version
         // An older release than this build is refused before anything is downloaded (the installer checks again).
         if UpdateInstallPolicy.downgradeProblem(version: version, running: runningVersion) != nil {
             appLogger.error("update \(version, privacy: .public) is older than this build; not downloading")
-            update(version) { $0.fail() }
+            update(version) { $0.fail(.verification) }
             return
         }
         if let issue = await installer.locationIssue() {
@@ -212,8 +213,9 @@ final class UpdateController {
                 DispatchQueue.main.async { report(received, expected) }
             }
         } catch {
+            // The downloader has already retried a transient failure.
             appLogger.error("update download failed", error)
-            update(version) { $0.fail() }
+            update(version) { $0.fail(UpdateFailure(error)) }
             return
         }
         update(version) { $0.downloaded() }
@@ -230,7 +232,7 @@ final class UpdateController {
             if error.fallsBackToBrowser {
                 fallBackToBrowser(release)
             } else {
-                update(version) { $0.fail() }
+                update(version) { $0.fail(UpdateFailure(error)) }
             }
             return
         }

@@ -245,7 +245,7 @@ struct SessionFileDownloaderTests {
         Stub.status = 503
         defer { Stub.status = 200 }
         await #expect(throws: ReleaseFeedError.httpStatus(503)) {
-            _ = try await ReleaseFeedClient(configuration: Self.stubConfiguration).latestRelease()
+            _ = try await ReleaseFeedClient(configuration: Self.stubConfiguration, retry: .never).latestRelease()
         }
     }
 

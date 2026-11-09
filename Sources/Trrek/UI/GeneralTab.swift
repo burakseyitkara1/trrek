@@ -120,14 +120,23 @@ struct GeneralTab: View {
     }
 }
 
-/// The known update in General: its state, the download's progress and the button that starts (or retries) it.
+/// The known update in General: its state (and why it failed), the download's progress and the button that starts (or
+/// retries) it.
 private struct UpdateRowLine: View {
     let row: UpdateRowState
     let action: () -> Void
 
     var body: some View {
         HStack {
-            Text(verbatim: row.statusText)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: row.statusText)
+                if let reason = row.failureReason {
+                    Text(verbatim: reason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             Spacer()
             switch row {
             case let .downloading(_, progress?):

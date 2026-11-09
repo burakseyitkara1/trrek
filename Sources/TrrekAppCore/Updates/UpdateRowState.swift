@@ -10,13 +10,14 @@ public enum UpdateRowState: Equatable, Sendable {
     /// `progress` is the fraction received, `nil` while the size is unknown.
     case downloading(SemanticVersion, progress: Double?)
     case installing(SemanticVersion)
-    case failed(SemanticVersion)
+    /// `reason` is why the download or install failed, shown under the line in General.
+    case failed(SemanticVersion, reason: UpdateFailure = .other)
     case browser(SemanticVersion)
     case relaunch(SemanticVersion)
 
     public var version: SemanticVersion {
         switch self {
-        case let .available(version), let .downloading(version, _), let .installing(version), let .failed(version),
+        case let .available(version), let .downloading(version, _), let .installing(version), let .failed(version, _),
              let .browser(version), let .relaunch(version):
             version
         }
@@ -67,6 +68,15 @@ public enum UpdateRowState: Equatable, Sendable {
         }
     }
 
+    /// Why the update failed, under the line in General and in the menu row's tooltip; `nil` in any other state and
+    /// when there is nothing to add to "The update failed.".
+    public var failureReason: String? {
+        if case let .failed(_, reason) = self {
+            return reason.reason
+        }
+        return nil
+    }
+
     /// The button next to the line in General; `nil` while busy.
     public var actionTitle: String? {
         switch self {
@@ -84,7 +94,7 @@ public enum UpdateRowState: Equatable, Sendable {
     /// `relaunch`). Returns whether a download starts.
     public mutating func start() -> Bool {
         switch self {
-        case let .available(version), let .failed(version):
+        case let .available(version), let .failed(version, _):
             self = .downloading(version, progress: nil)
             return true
         case .downloading, .installing, .browser, .relaunch:
@@ -116,8 +126,8 @@ public enum UpdateRowState: Equatable, Sendable {
         }
     }
 
-    public mutating func fail() {
-        self = .failed(version)
+    public mutating func fail(_ reason: UpdateFailure = .other) {
+        self = .failed(version, reason: reason)
     }
 
     public mutating func fallBackToBrowser() {
