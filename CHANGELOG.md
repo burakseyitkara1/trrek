@@ -6,6 +6,8 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-09
+
 - Updates retry on their own when GitHub is briefly unavailable (server errors, rate limits, timeouts, a dropped connection): up to two more tries, after 2 and 5 seconds; when an update still fails, General says why (GitHub isn't responding, you appear to be offline, or the update couldn't be verified)
 
 ## [0.5.0] - 2026-11-09
