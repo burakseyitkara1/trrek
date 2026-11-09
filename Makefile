@@ -1,4 +1,4 @@
-.PHONY: release build test format lint check hooks clean app install icon perf
+.PHONY: release build test format lint check hooks clean app install icon perf dmg
 
 # On Command Line Tools-only hosts, swiftlint needs TOOLCHAIN_DIR to find sourcekitd, and
 # swift test needs the Testing macro plugin path passed explicitly (otherwise it is
@@ -37,6 +37,9 @@ app:
 	scripts/build-app.sh --version $(VERSION) --build $(BUILD)
 
 # Install into ~/Applications and register with Launch Services.
+dmg: app
+	scripts/make-dmg.sh dist/trrek.app dist/trrek.dmg
+
 install: app
 	mkdir -p ~/Applications && rm -rf ~/Applications/trrek.app && cp -R dist/trrek.app ~/Applications/ && /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f ~/Applications/trrek.app
 

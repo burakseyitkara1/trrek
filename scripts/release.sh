@@ -147,29 +147,8 @@ spctl --assess --type execute --verbose=2 "$APP"
 rm -f "$ZIP" "$DMG"
 ditto -c -k --keepParent "$APP" "$ZIP"
 
-# Creates a compressed, read-only disk image named "trrek" from folder $1 at path $2. Uses
-# `diskutil image create from` where this macOS has it (the older `hdiutil create` is deprecated) and falls
-# back to hdiutil when it is missing or fails. Symbolic links in the folder (the Applications shortcut) are kept.
-make_dmg() {
-    local source="$1" destination="$2" log
-    rm -f "$destination"
-    if diskutil image create from --help >/dev/null 2>&1; then
-        # Its progress goes to stderr; shown only when it fails.
-        if log="$(diskutil image create from --format UDZO --volumeName trrek "$source" "$destination" 2>&1)"; then
-            return 0
-        fi
-        echo "$log" >&2
-        echo "diskutil image create failed; falling back to hdiutil" >&2
-        rm -f "$destination"
-    fi
-    hdiutil create -volname trrek -srcfolder "$source" -ov -format UDZO "$destination" >/dev/null
-}
-
-STAGE="$WORK/dmg"
-mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/"
-ln -s /Applications "$STAGE/Applications"
-make_dmg "$STAGE" "$DMG"
+# The disk image: the app, the Applications shortcut, the window background and Finder's view settings.
+scripts/make-dmg.sh "$APP" "$DMG"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 notarize "$DMG"
 xcrun stapler staple "$DMG"
