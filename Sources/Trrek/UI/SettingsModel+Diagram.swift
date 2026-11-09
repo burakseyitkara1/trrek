@@ -138,6 +138,14 @@ extension SettingsModel {
         )
     }
 
+    // MARK: - Zones
+
+    /// The trackpad the diagram's edge zones are drawn to scale with: this Mac's, or a typical one while it is not
+    /// known.
+    var diagramTrackpad: TrackpadSize {
+        trackpadSize ?? .typical
+    }
+
     // MARK: - Corners
 
     /// Every corner action in the order the engine lists them, Off first.

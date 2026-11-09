@@ -11,6 +11,8 @@ final class WelcomeModel {
     var settings: AppSettings
     let backlightAvailable: Bool
     var accessibilityGranted: Bool
+    /// This Mac's trackpad, which the diagram's edge zones are drawn to scale with; `nil` while trrek knows none.
+    var trackpadSize: TrackpadSize?
     /// Whether the edge cards are on screen. Starts off so they can appear one after another once the window is
     /// up; starts on when Reduce Motion is set, so they are simply there.
     private(set) var cardsVisible: Bool
@@ -24,6 +26,7 @@ final class WelcomeModel {
         settings: AppSettings,
         backlightAvailable: Bool,
         accessibilityGranted: Bool,
+        trackpadSize: TrackpadSize? = nil,
         grantAccessibility: @escaping () -> Void = {},
         openSettings: @escaping () -> Void = {},
         reduceMotion: Bool = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -31,6 +34,7 @@ final class WelcomeModel {
         self.settings = settings
         self.backlightAvailable = backlightAvailable
         self.accessibilityGranted = accessibilityGranted
+        self.trackpadSize = trackpadSize
         self.grantAccessibility = grantAccessibility
         self.openSettings = openSettings
         cardsVisible = reduceMotion

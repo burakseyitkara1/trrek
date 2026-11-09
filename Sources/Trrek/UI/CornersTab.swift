@@ -19,7 +19,8 @@ struct CornersTab: View {
                         settings: model.settings,
                         backlightAvailable: model.backlightAvailable,
                         accessibilityGranted: model.accessibilityGranted,
-                        editing: .corners(model)
+                        editing: .corners(model),
+                        trackpad: model.diagramTrackpad
                     ),
                     caption: String(
                         localized: "Double-tap a corner to run its action. Click a corner in the diagram to change it.",

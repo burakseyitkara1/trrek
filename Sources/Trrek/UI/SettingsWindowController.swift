@@ -35,6 +35,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.center()
         window.delegate = self
         model.window = window
+        model.trackpadSize = registry.trackpadSize ?? model.trackpadSize
         registry.settingsWindow = window
         registry.settingsModel = model
         return window

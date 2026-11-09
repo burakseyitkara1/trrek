@@ -107,7 +107,7 @@ Open **Settings** from the menu bar icon, or by opening trrek again while it run
 | Tab | What you set |
 | --- | --- |
 | **General** | Haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, language, updates, export and import, reset |
-| **Edges** | The action of each edge (click its label on the trackpad diagram), for all apps or for one app, strip width, Bottom Quarter Only, External Monitor Brightness |
+| **Edges** | The action of each edge (click it on the trackpad diagram), for all apps or for one app, edge width and Bottom Quarter Only (the diagram draws the touch zones to scale with your trackpad), External Monitor Brightness |
 | **Corners & Taps** | The action of each corner (click its badge on the trackpad diagram), three-finger middle click |
 | **Advanced** | Hold-to-Slide key and mode, paused apps, Accessibility status |
 

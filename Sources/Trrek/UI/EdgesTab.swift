@@ -16,10 +16,13 @@ struct EdgesTab: View {
                 }
             }
             Section {
-                Picker("Edge Width", selection: $model.settings.edgeWidth) {
+                Picker(selection: $model.settings.edgeWidth) {
                     ForEach(EdgeWidth.allCases, id: \.self) { width in
                         Text(SettingsLabels.title(for: width)).tag(width)
                     }
+                } label: {
+                    Text("Edge Width")
+                    Text("How far from the edge a touch starts a slide.")
                 }
                 .pickerStyle(.segmented)
                 Toggle(isOn: $model.settings.bottomQuarterOnly) {
@@ -34,8 +37,9 @@ struct EdgesTab: View {
                         backlightAvailable: model.backlightAvailable,
                         accessibilityGranted: model.accessibilityGranted,
                         editing: .edges(model),
-                        height: TrackpadDiagram.compactHeight,
-                        bundleID: model.edgeScope
+                        maxHeight: TrackpadDiagram.compactHeight,
+                        bundleID: model.edgeScope,
+                        trackpad: model.diagramTrackpad
                     ),
                     caption: String(localized: "Click an edge in the diagram to change its action.", bundle: .main),
                     needsAccessibility: model.diagramEdgesNeedAccessibility
