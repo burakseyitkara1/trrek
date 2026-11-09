@@ -45,6 +45,8 @@ final class SettingsModel {
     /// Changed when Add App… is chosen in the Edges For picker, which then rebuilds and shows the scope again
     /// instead of the item.
     var edgeScopePickerID = 0
+    /// The edge or corner of the trackpad diagram under the pointer, which shows that it opens a menu.
+    var hoveredDiagramControl: DiagramControl?
     /// Settings read from a `.trrek` file for the import confirmation. Kept after the alert closes, so its title
     /// does not change while it animates out; the next import replaces it.
     var pendingImport: PendingImport?

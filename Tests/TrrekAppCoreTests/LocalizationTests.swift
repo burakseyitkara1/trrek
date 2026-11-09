@@ -5,7 +5,7 @@ import Testing
 ///
 /// The source scan finds keys written as string literals in the places that are looked up: `String(localized:)`,
 /// SwiftUI views and modifiers that take a `LocalizedStringKey` (`Text`, `Button`, `Toggle`, `Picker`, `Section`,
-/// `Label`, `LabeledContent`, `Tab`, `.alert`, `.help`, `.accessibilityLabel` …) and the Edges tab's `edgePicker`.
+/// `Label`, `LabeledContent`, `Tab`, `.alert`, `.help`, `.accessibilityLabel` …).
 /// An interpolation (`\(…)`) matches any format specifier in the key. Its limits: a string built elsewhere and passed
 /// as a `String` is shown verbatim by SwiftUI and is not seen here, and keys looked up dynamically (`dynamicKeys`) are
 /// listed by hand. `unlocalizedProseIsAllowed` catches the first kind for literals of two or more words; a one-word

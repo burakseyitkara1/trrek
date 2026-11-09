@@ -72,7 +72,7 @@ enum LocalizationScan {
 
     /// The ranges of the literal bodies at the lookups listed in the type's documentation.
     static func localizedLiteralRanges(in text: String) -> [Range<String.Index>] {
-        let views = "Text|Button|Toggle|Picker|Section|Label|LabeledContent|Tab|Menu|Link|edgePicker"
+        let views = "Text|Button|Toggle|Picker|Section|Label|LabeledContent|Tab|Menu|Link"
         let modifiers = "alert|help|accessibilityLabel|accessibilityHint|navigationTitle|confirmationDialog"
         let pattern = #"(?:String\(\s*localized:\s*|\b(?:"# + views + #")\(\s*|\.(?:"# + modifiers + #")\(\s*)""#
             + literalBody + "\""

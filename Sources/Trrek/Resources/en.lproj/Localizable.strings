@@ -28,13 +28,13 @@
 "3-Finger Tap Middle Click" = "3-Finger Tap Middle Click";
 "Set Look up & data detectors to Force click with one finger in System Settings › Trackpad" = "Set Look up & data detectors to Force click with one finger in System Settings › Trackpad";
 "Double-tap a corner to run its action. Click a corner in the diagram to change it." = "Double-tap a corner to run its action. Click a corner in the diagram to change it.";
-"Double-tap a corner to run its action once Accessibility access is granted." = "Double-tap a corner to run its action once Accessibility access is granted.";
 
 /* Edges tab */
 "Left Edge" = "Left Edge";
 "Right Edge" = "Right Edge";
 "Top Edge" = "Top Edge";
 "Bottom Edge" = "Bottom Edge";
+"Click an edge in the diagram to change its action." = "Click an edge in the diagram to change its action.";
 "Edge Width" = "Edge Width";
 "Bottom Quarter Only" = "Bottom Quarter Only";
 "The side edges respond only in their lower quarter." = "The side edges respond only in their lower quarter.";

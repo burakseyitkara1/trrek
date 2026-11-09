@@ -28,13 +28,13 @@
 "3-Finger Tap Middle Click" = "Üç Parmakla Dokunarak Orta Tıklama";
 "Set Look up & data detectors to Force click with one finger in System Settings › Trackpad" = "Sistem Ayarları › İzleme Dörtgeni’nde “Araştırma ve veri algılayıcıları” seçeneğini “Tek Parmakla Kuvvetli Tıklayın” yapın";
 "Double-tap a corner to run its action. Click a corner in the diagram to change it." = "Bir köşenin eylemini çalıştırmak için köşeye çift dokunun. Değiştirmek için diyagramdaki köşeyi tıklayın.";
-"Double-tap a corner to run its action once Accessibility access is granted." = "Erişilebilirlik izni verildiğinde köşeye çift dokunarak eylemini çalıştırabilirsiniz.";
 
 /* Edges tab */
 "Left Edge" = "Sol Kenar";
 "Right Edge" = "Sağ Kenar";
 "Top Edge" = "Üst Kenar";
 "Bottom Edge" = "Alt Kenar";
+"Click an edge in the diagram to change its action." = "Bir kenarın eylemini değiştirmek için diyagramdaki kenarı tıklayın.";
 "Edge Width" = "Kenar Genişliği";
 "Bottom Quarter Only" = "Yalnızca Alt Çeyrek";
 "The side edges respond only in their lower quarter." = "Yan kenarlar yalnızca alt çeyreklerinde yanıt verir.";

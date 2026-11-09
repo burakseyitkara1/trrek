@@ -92,13 +92,13 @@ public enum SettingsLabels {
         }
     }
 
-    /// The action a click on a corner badge moves to: the next one in the order the pickers list them, and after the
-    /// last one Off again.
-    public static func next(after action: CornerAction) -> CornerAction {
-        let all = CornerAction.allCases
-        let index = all.firstIndex(of: action) ?? all.startIndex
-        let following = all.index(after: index)
-        return following == all.endIndex ? all[all.startIndex] : all[following]
+    public static func title(for edge: Edge) -> String {
+        switch edge {
+        case .left: String(localized: "Left Edge", bundle: .main)
+        case .right: String(localized: "Right Edge", bundle: .main)
+        case .top: String(localized: "Top Edge", bundle: .main)
+        case .bottom: String(localized: "Bottom Edge", bundle: .main)
+        }
     }
 
     public static func title(for corner: Corner) -> String {
