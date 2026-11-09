@@ -6,6 +6,8 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-09
+
 - Edges per app: in the Edges tab, Edges For gives an app its own edge actions (Switch Tabs on the top edge in a browser, Scrub Video in a video player), used while it is in front; the menu shows "Edges set for <app>" meanwhile, and a slide in progress is never interrupted by the switch
 
 ## [0.4.2] - 2026-11-09
