@@ -6,6 +6,10 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-09
+
+- General shows trrek's version and its update on one line: below the version it says whether an update is available, downloading or failed (and why), and the one button checks, updates, retries or relaunches
+
 ## [0.5.1] - 2026-11-09
 
 - Updates retry on their own when GitHub is briefly unavailable (server errors, rate limits, timeouts, a dropped connection): up to two more tries, after 2 and 5 seconds; when an update still fails, General says why (GitHub isn't responding, you appear to be offline, or the update couldn't be verified)
