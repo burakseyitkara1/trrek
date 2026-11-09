@@ -14,6 +14,10 @@ Publishing requires a successful run of the `ci` workflow for the exact commit b
 
 The executable in `dist/trrek.app` is stripped: its debug map and symbol table go to `dist/trrek.app.dSYM`, which stays on the build Mac (a release keeps a copy as `dist/release/trrek-vX.Y.Z.dSYM`) and symbolicates crash reports of that build.
 
+## The disk image window
+
+A release's disk image opens as a styled Finder window: the app and an Applications shortcut side by side on a light background with a chevron and "Drag trrek to Applications". `scripts/make-dmg.sh` builds it (`release.sh` calls it; `make dmg` builds an unsigned preview) from three committed files: `Resources/dmg/background.tiff` (1x and 2x, drawn by `scripts/render-dmg-background.swift`), `Resources/dmg/DS_Store` (Finder's view settings: icon view, no toolbar, 640×400, 128-point icons, the background, the icon positions) and the volume name `trrek`, which the view settings use to find the background. The image is HFS+, like the volume the view settings were recorded on. After changing the layout or the background, run `scripts/make-dmg-layout.sh` on a Mac (it mounts a writable image and lets Finder record the settings; macOS asks once to let the terminal control Finder) and commit the new `Resources/dmg/DS_Store`.
+
 ## Make targets
 
 | Target | Description |
@@ -25,6 +29,7 @@ The executable in `dist/trrek.app` is stripped: its debug map and symbol table g
 | `make check` | Run tests and lint |
 | `make hooks` | Install local git hooks |
 | `make app` | Package `dist/trrek.app` (version from `Version.swift` unless `VERSION=X.Y.Z` is given) |
+| `make dmg` | Build `dist/trrek.dmg` (unsigned) with the release disk image's window layout, to preview it |
 | `make install` | Install into `~/Applications` |
 | `make release` | Signed, notarized release published to GitHub (`VERSION=X.Y.Z`) |
 | `make perf` | Idle check: fails above 15 MB physical footprint or 1% CPU |

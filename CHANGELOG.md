@@ -6,6 +6,11 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-09
+
+- A new app icon in the macOS 26 style: a frosted glass trackpad with a glowing edge on a deep blue rounded square
+- The disk image opens as a styled window: trrek and the Applications shortcut side by side with an arrow and "Drag trrek to Applications"
+
 ## [0.5.2] - 2026-11-09
 
 - General shows trrek's version and its update on one line: below the version it says whether an update is available, downloading or failed (and why), and the one button checks, updates, retries or relaunches; Check Now shows "trrek is up to date" or why the check failed on that line instead of in an alert
