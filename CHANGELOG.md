@@ -8,7 +8,7 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [0.5.2] - 2026-11-09
 
-- General shows trrek's version and its update on one line: below the version it says whether an update is available, downloading or failed (and why), and the one button checks, updates, retries or relaunches
+- General shows trrek's version and its update on one line: below the version it says whether an update is available, downloading or failed (and why), and the one button checks, updates, retries or relaunches; Check Now shows "trrek is up to date" or why the check failed on that line instead of in an alert
 
 ## [0.5.1] - 2026-11-09
 

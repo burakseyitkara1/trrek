@@ -120,6 +120,12 @@ private struct UpdateLine: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: "trrek \(TrrekVersion.string)")
+                if row == nil, !model.isCheckingForUpdates, let note = model.updateCheckNote {
+                    Text(verbatim: note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let row {
                     Text(verbatim: row.statusText)
                         .font(.caption)

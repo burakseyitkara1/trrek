@@ -139,7 +139,7 @@ final class UpdateController {
         Task { _ = await checker.check(trigger, automatic: automatic()) }
     }
 
-    /// Check for Updates… and Check Now: checks, and shows an alert (as a sheet on the window `window` returns when it
+    /// Check for Updates… in the menu: checks, and shows an alert (as a sheet on the window `window` returns when it
     /// is still open) only when trrek is up to date or the check failed; a found update shows as the badge, the menu
     /// row and the line in General. Does nothing while a check or an update runs.
     func checkManually(window: @escaping () -> NSWindow? = { nil }) async {
@@ -152,6 +152,21 @@ final class UpdateController {
             await alerts.present(.checkFailed(message: message), window: window())
         case .available, .skipped:
             break
+        }
+    }
+
+    /// Check Now in General: the same check as `checkManually`, but the outcome is returned for the settings window to
+    /// show on its update line instead of in an alert. `nil` when a release was found (the line shows it) or nothing
+    /// was checked because a check or an update was already running.
+    func checkForSettings() async -> UpdateAlert? {
+        guard !isBusy else { return nil }
+        switch await checker.check(.manual, automatic: automatic()) {
+        case .upToDate:
+            return .upToDate(current: checker.currentVersion)
+        case let .failed(message):
+            return .checkFailed(message: message)
+        case .available, .skipped:
+            return nil
         }
     }
 

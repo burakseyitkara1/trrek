@@ -149,8 +149,13 @@ final class SettingsModel {
         settings.pausedBundleIDs = updated
     }
 
-    /// Check Now: checks for updates, with the outcome shown as a sheet on the settings window.
+    /// The outcome of the last Check Now, shown on the update line when no update is known: "trrek is up to date" or
+    /// why the check failed. Cleared when a new check starts.
+    var updateCheckNote: String?
+
+    /// Check Now: checks for updates; the outcome shows on the update line (`updateCheckNote`), with no alert.
     func checkForUpdatesNow() {
+        updateCheckNote = nil
         checkForUpdates(window)
     }
 

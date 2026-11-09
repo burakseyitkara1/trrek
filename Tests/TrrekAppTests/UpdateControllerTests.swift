@@ -239,6 +239,28 @@ struct UpdateControllerTests {
         #expect(try found.controller.row == .available(#require(SemanticVersion("0.4.0"))))
     }
 
+    /// Check Now in General shows no alert: the outcome comes back for its update line.
+    @Test func checkNowInGeneralReturnsTheOutcomeWithoutAnAlert() async throws {
+        let upToDate = try Self.harness(current: "0.4.0", automatic: false)
+        defer { upToDate.tearDown() }
+        let current = try #require(SemanticVersion("0.4.0"))
+        #expect(await upToDate.controller.checkForSettings() == .upToDate(current: current))
+        #expect(upToDate.alerts.shown.isEmpty)
+        #expect(SystemUpdateAlerts.note(for: .upToDate(current: current)) == "trrek is up to date")
+
+        let offline = try Self.harness(feed: .failure(URLError(.notConnectedToInternet)))
+        defer { offline.tearDown() }
+        let outcome = await offline.controller.checkForSettings()
+        #expect(offline.alerts.shown.isEmpty)
+        #expect(outcome.map { SystemUpdateAlerts.note(for: $0) } == "You appear to be offline.")
+
+        let found = try Self.harness(suite: "trrek.tests.update-controller.found-settings")
+        defer { found.tearDown() }
+        #expect(await found.controller.checkForSettings() == nil)
+        #expect(found.alerts.shown.isEmpty)
+        #expect(try found.controller.row == .available(#require(SemanticVersion("0.4.0"))))
+    }
+
     /// While a check runs, a manual check does nothing (its menu item and Check Now are disabled).
     @Test func noManualCheckWhileBusy() async throws {
         let harness = try Self.harness(feedDelay: .milliseconds(300))

@@ -34,11 +34,15 @@ extension Coordinator {
         { [weak self] in self?.updates?.startUpdate() }
     }
 
-    /// Check Now in the settings window: a manual check whose alerts attach to that window.
+    /// Check Now in the settings window: a manual check whose outcome (up to date, or why it failed) shows on the
+    /// update line in General rather than in an alert.
     var checkForUpdatesAction: (NSWindow?) -> Void {
-        { [weak self] window in
+        { [weak self] _ in
             guard let updates = self?.updates else { return }
-            Task { [weak window] in await updates.checkManually { window } }
+            Task { [weak self] in
+                let outcome = await updates.checkForSettings()
+                self?.windows.settingsModel?.updateCheckNote = outcome.map { SystemUpdateAlerts.note(for: $0) }
+            }
         }
     }
 

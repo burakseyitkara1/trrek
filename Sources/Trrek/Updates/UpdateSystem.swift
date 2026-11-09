@@ -46,6 +46,16 @@ struct SystemUpdateAlerts: UpdateAlertPresenting {
         }
     }
 
+    /// The outcome as one short line for General's update line: "trrek is up to date", or why the check failed.
+    static func note(for alert: UpdateAlert) -> String {
+        switch alert {
+        case .upToDate:
+            content(of: alert).title
+        case .checkFailed:
+            content(of: alert).message
+        }
+    }
+
     static func makeAlert(_ alert: UpdateAlert) -> NSAlert {
         let content = content(of: alert)
         let panel = NSAlert()
