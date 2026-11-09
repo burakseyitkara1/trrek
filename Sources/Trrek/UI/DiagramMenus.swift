@@ -39,7 +39,7 @@ struct EdgeMenu: View {
             .labelsHidden()
         } label: {
             // The zone and the label set their own hit areas (`EdgeUnit`).
-            EdgeUnit(item: item, hovered: model.hoveredDiagramControl == .edge(edge), zones: zones)
+            EdgeUnit(item: item, active: model.hoveredDiagramControl == .edge(edge), zones: zones)
         }
         .diagramMenu(model: model, control: .edge(edge))
         .help(DiagramHelp.text(title: SettingsLabels.title(for: edge), value: item.valueTitle, notes: item.notes))

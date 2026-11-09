@@ -43,10 +43,6 @@ struct DiagramZones: Equatable {
     /// The most of the diagram's width or height a zone may take, so labels keep room on a trackpad far smaller
     /// than any real one.
     static let maximumShare: CGFloat = 0.25
-    /// The coloured line along each zone.
-    static let stripThickness: CGFloat = 5
-    /// Kept clear at each end of a zone's line.
-    private static let stripMargin: CGFloat = 3
 
     init(
         trackpad: TrackpadSize,
@@ -95,18 +91,6 @@ struct DiagramZones: Equatable {
     /// The part of a side zone above `activeSideLength`, drawn faint.
     var inactiveSideLength: CGFloat {
         sideLength - activeSideLength
-    }
-
-    /// The length of the top and bottom zones' line.
-    var endStripLength: CGFloat {
-        max(min(size.width * 0.5, endLength - 2 * Self.stripMargin), 0)
-    }
-
-    /// The length of a side zone's line, which runs along its active part; at least a dot while that part has room
-    /// for one.
-    var sideStripLength: CGFloat {
-        let room = max(activeSideLength - 2 * Self.stripMargin, min(Self.stripThickness, activeSideLength))
-        return bottomQuarterOnly ? room : min(size.height * 0.45, room)
     }
 
     /// The widest a side edge's label gets: up to the middle of the diagram, less a margin, so the left and right

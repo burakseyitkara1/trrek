@@ -97,15 +97,6 @@ struct DiagramZonesTests {
         }
     }
 
-    @Test func sideLineRunsAlongTheActivePart() {
-        let whole = Self.zones()
-        #expect(whole.sideStripLength == 180 * 0.45)
-        let quarter = Self.zones(.wide, bottomQuarterOnly: true)
-        #expect(quarter.sideStripLength > 0)
-        #expect(quarter.sideStripLength < quarter.activeSideLength)
-        #expect(quarter.endStripLength == 135)
-    }
-
     @Test func sideLabelsNeverMeet() {
         for width in EdgeWidth.allCases {
             for maxHeight in [150, 180] as [CGFloat] {

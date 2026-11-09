@@ -4,11 +4,12 @@ import TrrekEngine
 
 /// A glass trackpad silhouette with the four edge zones, to scale, and the four corner badges.
 ///
-/// Each edge's touch zone is a tinted band along it, as thick as the edge width on the trackpad (`DiagramZones`), with
-/// the edge's coloured line in it and its label beside it; the corners are the squares where two zones meet. With
-/// Bottom Quarter Only the side zones are filled only in their lower quarter. A change of either setting animates.
+/// Each edge's touch zone is a neutral band along it, as thick as the edge width on the trackpad (`DiagramZones`), with
+/// its label just inside it; the corners are the slightly stronger squares where two zones meet. With Bottom Quarter
+/// Only the side zones are filled only in their lower quarter. A change of either setting animates. The edge or
+/// corner under the pointer lights up in the accent colour (`DiagramStyle`); the welcome window never does.
 ///
-/// Read-only by default (the welcome window): the strips and badges show what each edge and corner actually does,
+/// Read-only by default (the welcome window): the labels and badges show what each edge and corner actually does,
 /// so without Accessibility the actions that need it show as off. With `editing`, the edges (Edges tab) or the
 /// corner badges (Corners & Taps tab) are menus of their actions instead. Both parts then show the action chosen for
 /// each edge and corner, with a badge on the ones that cannot run as chosen; the part the tab does not edit is faded,
@@ -86,13 +87,13 @@ struct TrackpadDiagram: View {
         }
     }
 
-    /// The corner zones, a neutral tint a little stronger than the edge zones; faded with the corner badges in the
-    /// Edges tab.
+    /// The corner zones, a neutral tint a little stronger than the edge zones, in the accent colour under the
+    /// pointer on Corners & Taps; faded in the Edges tab.
     private func cornerZones(_ zones: DiagramZones) -> some View {
         ZStack {
             ForEach(Corner.allCases, id: \.self) { corner in
                 Rectangle()
-                    .fill(.primary.opacity(0.16))
+                    .fill(isActive(corner) ? DiagramStyle.activeZone : DiagramStyle.corner)
                     .frame(width: zones.cornerSize.width, height: zones.cornerSize.height)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.alignment(of: corner))
             }
@@ -101,6 +102,14 @@ struct TrackpadDiagram: View {
         .opacity(editsEdges ? Self.readOnlyOpacity : 1)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private func isActive(_ corner: Corner) -> Bool {
+        if case let .corners(model) = editing {
+            model.hoveredDiagramControl == .corner(corner)
+        } else {
+            false
+        }
     }
 
     private var editsEdges: Bool {
@@ -120,7 +129,7 @@ struct TrackpadDiagram: View {
             EdgeMenu(model: model, edge: edge, zones: zones)
         case let .corners(model):
             let item = model.diagramEdge(edge)
-            EdgeUnit(item: item, hovered: false, zones: zones)
+            EdgeUnit(item: item, active: false, zones: zones)
                 .opacity(Self.readOnlyOpacity)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(SettingsLabels.title(for: edge))
@@ -136,11 +145,10 @@ struct TrackpadDiagram: View {
             EdgeUnit(
                 edge: edge,
                 action: action,
-                stripAction: action,
                 dimmed: action == .off,
                 inherited: false,
                 note: nil,
-                hovered: false,
+                active: false,
                 zones: zones
             )
         }

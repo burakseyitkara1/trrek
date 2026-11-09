@@ -60,11 +60,6 @@ struct DiagramEdgeItem: Equatable {
     var note: DiagramNote? {
         notes.first
     }
-
-    /// The edge's colour: grey while it waits for Accessibility, since it does not run.
-    var stripAction: EdgeAction {
-        note == .needsAccessibility ? .off : action
-    }
 }
 
 /// What the diagram shows on one corner in the Edges and Corners & Taps tabs.
