@@ -61,18 +61,7 @@ struct GeneralTab: View {
                     Text("Check for Updates Automatically")
                     Text("At most once a day; the request carries only trrek’s version.")
                 }
-                HStack {
-                    Text(verbatim: "trrek \(TrrekVersion.string)")
-                    Spacer()
-                    if model.isCheckingForUpdates {
-                        ProgressView().controlSize(.small)
-                    }
-                    Button("Check Now") { model.checkForUpdatesNow() }
-                        .disabled(model.isUpdateBusy || model.isCheckingForUpdates)
-                }
-                if let row = model.updateRow {
-                    UpdateRowLine(row: row) { model.updateNow() }
-                }
+                UpdateLine(model: model)
             } footer: {
                 Text(model.updateCheckStatus)
             }
@@ -120,21 +109,33 @@ struct GeneralTab: View {
     }
 }
 
-/// The known update in General: its state (and why it failed), the download's progress and the button that starts (or
-/// retries) it.
-private struct UpdateRowLine: View {
-    let row: UpdateRowState
-    let action: () -> Void
+/// One line for trrek's version and its update: the running version, with what is known about an update below it
+/// (available, its download's progress, why it failed), and one button that does the next thing: Check Now, or the
+/// update's own action (Update Now, Try Again, Update in Browser…, Relaunch).
+private struct UpdateLine: View {
+    @Bindable var model: SettingsModel
 
     var body: some View {
+        let row = model.updateRow
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: row.statusText)
-                if let reason = row.failureReason {
-                    Text(verbatim: reason)
+                Text(verbatim: "trrek \(TrrekVersion.string)")
+                if row == nil, !model.isCheckingForUpdates, let note = model.updateCheckNote {
+                    Text(verbatim: note)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+                if let row {
+                    Text(verbatim: row.statusText)
+                        .font(.caption)
+                        .foregroundStyle(row.failureReason == nil ? Color.accentColor : Color.secondary)
+                    if let reason = row.failureReason {
+                        Text(verbatim: reason)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             Spacer()
@@ -143,11 +144,18 @@ private struct UpdateRowLine: View {
                 ProgressView(value: progress).frame(width: 80)
             case .downloading, .installing:
                 ProgressView().controlSize(.small)
-            case .available, .failed, .browser, .relaunch:
-                EmptyView()
+            case .available, .failed, .browser, .relaunch, nil:
+                if model.isCheckingForUpdates {
+                    ProgressView().controlSize(.small)
+                }
             }
-            if let title = row.actionTitle {
-                Button(title, action: action)
+            if let row {
+                if let title = row.actionTitle {
+                    Button(title) { model.updateNow() }
+                }
+            } else {
+                Button("Check Now") { model.checkForUpdatesNow() }
+                    .disabled(model.isUpdateBusy || model.isCheckingForUpdates)
             }
         }
     }
