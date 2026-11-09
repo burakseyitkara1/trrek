@@ -2,7 +2,8 @@ import SwiftUI
 import TrrekAppCore
 import TrrekEngine
 
-/// An edge (its strip and label) as a menu of the edge actions; for an app, Same as All Apps comes first.
+/// An edge (its strip and label) as a menu of the edge actions, Off first; for an app, Same as All Apps comes before
+/// Off. A divider follows each of them.
 struct EdgeMenu: View {
     let model: SettingsModel
     let edge: TrrekEngine.Edge
@@ -27,7 +28,7 @@ struct EdgeMenu: View {
                     }
                     .tag(option.action)
                     .disabled(!option.isEnabled)
-                    if option.action == nil {
+                    if option.action == nil || option.action == .off {
                         Divider()
                     }
                 }
@@ -72,6 +73,9 @@ struct CornerMenu: View {
                         }
                     }
                     .tag(action)
+                    if action == .off {
+                        Divider()
+                    }
                 }
             } label: {
                 EmptyView()

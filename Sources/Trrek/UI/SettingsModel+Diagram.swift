@@ -78,10 +78,10 @@ struct DiagramCornerItem: Equatable {
 extension SettingsModel {
     // MARK: - Edges
 
-    /// The actions in the order the engine lists them, Off last; an app's edge starts with Same as All Apps.
+    /// Off first, then the actions in the order the engine lists them; an app's edge starts with Same as All Apps.
     func edgeMenuOptions(for edge: Edge) -> [EdgeMenuOption] {
         let available = backlightAvailable
-        let actions = EdgeChoices.all.map { action in
+        let actions = Self.edgeMenuOrder.map { action in
             let name = SettingsLabels.title(for: action)
             let caption = EdgeChoices.caption(for: action, backlightAvailable: available)
             return EdgeMenuOption(
@@ -95,6 +95,9 @@ extension SettingsModel {
         let inherited = EdgeMenuOption(action: nil, title: inheritedEdgeTitle(for: edge), symbol: nil, isEnabled: true)
         return [inherited] + actions
     }
+
+    /// Off first, then every other edge action in the engine's order.
+    static let edgeMenuOrder: [EdgeAction] = [.off] + EdgeChoices.all.filter { $0 != .off }
 
     /// The checked item of an edge's menu: the All Apps action, or the shown app's own one (`nil` for Same as All
     /// Apps). The keyboard backlight shows as media control while its bridge is missing.
