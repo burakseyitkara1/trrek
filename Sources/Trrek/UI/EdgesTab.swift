@@ -2,8 +2,8 @@ import SwiftUI
 import TrrekAppCore
 import TrrekEngine
 
-/// The edge layout: whose edges are shown (All Apps or one app), the diagram, the action of each edge and the strip
-/// geometry.
+/// The edge layout: whose edges are shown (All Apps or one app), the diagram, whose edge labels are menus of the
+/// edge actions, and the strip geometry.
 struct EdgesTab: View {
     @Bindable var model: SettingsModel
 
@@ -14,24 +14,6 @@ struct EdgesTab: View {
                 if let bundleID = model.edgeScope {
                     removeButton(name: model.appInfo(for: bundleID).name)
                 }
-            }
-            Section {
-                edgePicker("Left Edge", edge: .left)
-                edgePicker("Right Edge", edge: .right)
-                edgePicker("Top Edge", edge: .top)
-                edgePicker("Bottom Edge", edge: .bottom)
-            } header: {
-                TrackpadDiagram(
-                    settings: model.settings,
-                    backlightAvailable: model.backlightAvailable,
-                    accessibilityGranted: model.accessibilityGranted,
-                    interactive: true,
-                    onChange: { model.settings = $0 },
-                    height: TrackpadDiagram.compactHeight,
-                    bundleID: model.edgeScope
-                )
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, -4)
             }
             Section {
                 Picker("Edge Width", selection: $model.settings.edgeWidth) {
@@ -45,6 +27,19 @@ struct EdgesTab: View {
                     Text("The side edges respond only in their lower quarter.")
                 }
                 externalBrightnessToggle
+            } header: {
+                DiagramHeader(
+                    diagram: TrackpadDiagram(
+                        settings: model.settings,
+                        backlightAvailable: model.backlightAvailable,
+                        accessibilityGranted: model.accessibilityGranted,
+                        editing: .edges(model),
+                        height: TrackpadDiagram.compactHeight,
+                        bundleID: model.edgeScope
+                    ),
+                    caption: String(localized: "Click an edge in the diagram to change its action.", bundle: .main),
+                    needsAccessibility: model.diagramEdgesNeedAccessibility
+                )
             }
         }
         .formStyle(.grouped)
@@ -132,59 +127,5 @@ struct EdgesTab: View {
             Text(SettingsLabels.externalBrightnessCaption(available: available))
         }
         .disabled(!available)
-    }
-
-    /// A picker for one edge of the shown scope. Options that cannot be used on this Mac are listed but disabled, with
-    /// the reason; the keyboard backlight shows as media control while its bridge is missing. For an app, the first
-    /// option keeps the All Apps action. Without Accessibility, a caption under the title says the action the edge
-    /// runs cannot run yet.
-    @ViewBuilder
-    private func edgePicker(_ title: LocalizedStringKey, edge: TrrekEngine.Edge) -> some View {
-        let available = model.backlightAvailable
-        let gated = ConfigMapper.gated(model.shownEdgeAction(edge), accessibilityTrusted: model.accessibilityGranted)
-            != model.shownEdgeAction(edge)
-        let label = Group {
-            Text(title)
-            if gated {
-                Text("Needs Accessibility access")
-            }
-        }
-        if model.edgeScope == nil {
-            let selection = Binding(
-                get: { EdgeChoices.displayed(model.settings[edge: edge], backlightAvailable: available) },
-                set: { model.settings[edge: edge] = $0 }
-            )
-            Picker(selection: selection) {
-                options { $0 }
-            } label: {
-                label
-            }
-        } else {
-            let selection = Binding(
-                get: { model.edgeOverride(edge).map { EdgeChoices.displayed($0, backlightAvailable: available) } },
-                set: { model.setEdgeOverride(edge, to: $0) }
-            )
-            Picker(selection: selection) {
-                Text(model.inheritedEdgeTitle(for: edge)).tag(EdgeAction?.none)
-                Divider()
-                options { Optional($0) }
-            } label: {
-                label
-            }
-        }
-    }
-
-    /// Every edge action, tagged with `tag(action)`.
-    private func options(_ tag: @escaping (EdgeAction) -> some Hashable) -> some View {
-        let available = model.backlightAvailable
-        return ForEach(EdgeChoices.all, id: \.self) { choice in
-            let name = SettingsLabels.title(for: choice)
-            if let caption = EdgeChoices.caption(for: choice, backlightAvailable: available) {
-                Text("\(name) — \(caption)").tag(tag(choice))
-                    .disabled(!EdgeChoices.isSelectable(choice, backlightAvailable: available))
-            } else {
-                Text(name).tag(tag(choice))
-            }
-        }
     }
 }

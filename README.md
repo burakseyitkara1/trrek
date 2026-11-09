@@ -100,15 +100,15 @@ That's it. Put a finger on the right edge of the trackpad and slide up.
 - **Slide** along an edge strip; each step gives a light haptic click.
 - **A second finger** cancels a slide; **lifting** commits it (Switch Apps switches when you lift).
 - **Double tap** a corner for its action. A corner keeps working when an edge next to it is Off.
-- **Edges per app:** choose an app under **Edges For** in the Edges tab (or **Add App…**) and set the edges it should change; the others stay **Same as All Apps**. They apply while that app is in front, also while a trrek window is open over it, and the menu shows **Edges set for** the app. A paused app stays paused.
+- **Edges per app:** choose an app under **Edges For** in the Edges tab (or **Add App…**) and click the edges it should change on the diagram; the others stay **Same as All Apps**. They apply while that app is in front, also while a trrek window is open over it, and the menu shows **Edges set for** the app. A paused app stays paused.
 
 Open **Settings** from the menu bar icon, or by opening trrek again while it runs:
 
 | Tab | What you set |
 | --- | --- |
 | **General** | Haptics, Slide Sensitivity, Precision Control, Freeze Cursor, launch at login, language, updates, export and import, reset |
-| **Edges** | The action of each edge, for all apps or for one app, strip width, Bottom Quarter Only, External Monitor Brightness |
-| **Corners & Taps** | The action of each corner, three-finger middle click |
+| **Edges** | The action of each edge (click its label on the trackpad diagram), for all apps or for one app, strip width, Bottom Quarter Only, External Monitor Brightness |
+| **Corners & Taps** | The action of each corner (click its badge on the trackpad diagram), three-finger middle click |
 | **Advanced** | Hold-to-Slide key and mode, paused apps, Accessibility status |
 
 ## Updates and privacy

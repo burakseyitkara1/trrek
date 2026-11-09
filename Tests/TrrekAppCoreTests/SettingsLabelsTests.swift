@@ -24,7 +24,7 @@ import TrrekPlatform
     #expect(EdgeAction.allCases.filter { $0 != .off }.allSatisfy { SettingsLabels.symbol(for: $0) != nil })
 }
 
-@Test func cornerLabelsSymbolsAndCycle() {
+@Test func cornerLabelsAndSymbols() {
     #expect(SettingsLabels.title(for: CornerAction.off) == "Off")
     #expect(SettingsLabels.title(for: CornerAction.mute) == "Mute")
     #expect(SettingsLabels.title(for: CornerAction.screenshot) == "Screenshot")
@@ -36,12 +36,6 @@ import TrrekPlatform
         "Lock Screen", "Screenshot Area"
     ])
     #expect(CornerAction.allCases.filter { $0 != .off }.allSatisfy { SettingsLabels.symbol(for: $0) != nil })
-    // A badge click moves through every action in order and wraps around to Off.
-    var cycled: [CornerAction] = [.off]
-    while cycled.count <= CornerAction.allCases.count {
-        cycled.append(SettingsLabels.next(after: cycled[cycled.count - 1]))
-    }
-    #expect(cycled == CornerAction.allCases + [.off])
 }
 
 @Test func optionTitles() {
@@ -50,6 +44,7 @@ import TrrekPlatform
     #expect(HoldKey.allCases.map(SettingsLabels.title(for:)) == ["None", "Shift", "Control", "Option", "Command"])
     #expect(HoldKeyMode.allCases.map(SettingsLabels.title(for:)) == ["Hold", "Toggle"])
     #expect(Corner.allCases.map(SettingsLabels.title(for:)) == ["Top Left", "Top Right", "Bottom Left", "Bottom Right"])
+    #expect(Edge.allCases.map(SettingsLabels.title(for:)) == ["Left Edge", "Right Edge", "Top Edge", "Bottom Edge"])
     #expect(SlideSensitivity.allCases.map(SettingsLabels.title(for:)) == [
         "Very Low", "Low", "Standard", "High", "Very High"
     ])
