@@ -24,19 +24,26 @@ struct DiagramMenuTests {
 
     // MARK: - Edge menus
 
-    @Test func allAppsEdgesListEveryActionWithOffLast() {
+    @Test func allAppsEdgesListOffFirstThenEveryAction() {
         let model = Self.model()
+        let order: [EdgeAction] = [.off] + EdgeChoices.all.filter { $0 != .off }
         for edge in Edge.allCases {
             let options = model.edgeMenuOptions(for: edge)
-            #expect(options.map(\.action) == EdgeChoices.all)
-            #expect(options.last?.action == .off)
-            #expect(options.map(\.symbol) == EdgeChoices.all.map(SettingsLabels.symbol(for:)))
+            #expect(options.map(\.action) == order)
+            #expect(options.first?.action == .off)
+            #expect(options.map(\.symbol) == order.map(SettingsLabels.symbol(for:)))
             #expect(!options.contains { !$0.isEnabled })
         }
         let titles = model.edgeMenuOptions(for: .left).map(\.title)
-        #expect(titles.first == "Volume")
+        #expect(titles.first == "Off")
+        #expect(titles.dropFirst().first == "Volume")
         #expect(titles.contains("Scrub Video — Uses ← and → in the front app"))
         #expect(titles.contains("Off"))
+    }
+
+    @Test func cornerMenusListOffFirst() {
+        #expect(Self.model().cornerMenuOptions.first == .off)
+        #expect(Set(Self.model().cornerMenuOptions) == Set(CornerAction.allCases))
     }
 
     @Test func theKeyboardBacklightCannotBeChosenWithoutItsBridge() throws {
@@ -59,7 +66,7 @@ struct DiagramMenuTests {
             symbol: nil,
             isEnabled: true
         ))
-        #expect(options.dropFirst().map(\.action) == EdgeChoices.all)
+        #expect(options.dropFirst().map(\.action) == [.off] + EdgeChoices.all.filter { $0 != .off })
     }
 
     @Test func choosingAnAllAppsEdgeSetsIt() {
