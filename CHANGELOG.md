@@ -6,6 +6,8 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-11
+
 - Check for Updates in the menu works in place: the menu stays open, the row shows "Checking for Updates…" with a spinner, then "trrek Is Up to Date", "Couldn’t Check — Try Again" or the update itself, which downloads and installs from the same row; the separate update row at the top of the menu is gone, and a manual check never shows an alert
 
 ## [0.6.0] - 2026-11-10
