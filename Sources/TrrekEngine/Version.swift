@@ -1,3 +1,3 @@
 public enum TrrekVersion {
-    public static let string = "0.5.3"
+    public static let string = "0.6.0"
 }
