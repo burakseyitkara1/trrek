@@ -8,7 +8,7 @@ public enum UpdateCheckTrigger: String, Sendable {
     case menuOpened
     /// Shortly after the Mac woke.
     case wake
-    /// Check for Updates… or Check Now.
+    /// Check for Updates in the menu, or Check Now in General.
     case manual
 
     public var isAutomatic: Bool {

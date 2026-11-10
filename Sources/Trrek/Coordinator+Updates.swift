@@ -19,7 +19,6 @@ extension Coordinator {
             checker: UpdateChecker(currentVersion: current, feed: ReleaseFeedClient(), state: state),
             downloader: UpdateDownloader(),
             installer: UpdateInstaller(bundle: Bundle.main.bundleURL),
-            alerts: SystemUpdateAlerts(),
             automatic: { [weak self] in self?.settings.checkForUpdatesAutomatically ?? false }
         )
         updates.onChange = { [weak self] in self?.updateStateChanged() }
@@ -35,13 +34,13 @@ extension Coordinator {
     }
 
     /// Check Now in the settings window: a manual check whose outcome (up to date, or why it failed) shows on the
-    /// update line in General rather than in an alert.
+    /// update line in General.
     var checkForUpdatesAction: (NSWindow?) -> Void {
         { [weak self] _ in
             guard let updates = self?.updates else { return }
             Task { [weak self] in
-                let outcome = await updates.checkForSettings()
-                self?.windows.settingsModel?.updateCheckNote = outcome.map { SystemUpdateAlerts.note(for: $0) }
+                let outcome = await updates.checkManually()
+                self?.windows.settingsModel?.updateCheckNote = outcome?.note
             }
         }
     }
@@ -54,9 +53,10 @@ extension Coordinator {
         }
     }
 
-    /// Shows a changed update row (also each step of the download) in the menu, open or not, and in General.
-    func updateRowChanged(_ row: UpdateRowState?) {
-        statusMenu?.showUpdateRow(row)
+    /// Shows a changed update row (also each step of the download, and a check starting or ending) in the menu, open
+    /// or not, and in General.
+    func updateRowChanged(_: UpdateRowState?) {
+        statusMenu?.showUpdateState()
         if let model = windows.settingsModel {
             showUpdateState(in: model)
         }

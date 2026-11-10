@@ -49,13 +49,12 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         statusItem.button?.image = MenuIcon.image(state)
     }
 
-    /// Shows a changed update row: in place when the menu has a row (also while it is open, so the download's
-    /// progress moves), otherwise by rebuilding the menu (when it closes, if it is open).
-    func showUpdateRow(_ row: UpdateRowState?) {
+    /// Shows the update controller's state in the update row, in place (also while the menu is open, so a found
+    /// update and the download's progress show without moving any item).
+    func showUpdateState() {
         refreshIcon()
-        if updateItems.show(row: row, isBusy: coordinator?.updates?.isBusy ?? false) {
-            refresh()
-        }
+        let updates = coordinator?.updates
+        updateItems.show(update: updates?.row, isCheckRunning: updates?.isChecking ?? false)
     }
 
     func menuNeedsUpdate(_: NSMenu) {
@@ -70,6 +69,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     /// The chosen item's action is sent after this, so the pending rebuild waits for the next main-queue turn.
     func menuDidClose(_: NSMenu) {
         isOpen = false
+        updateItems.menuClosed()
         guard needsRebuild else { return }
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
@@ -86,14 +86,6 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         let settings = coordinator.settings
 
         updateItems.reset()
-        let row = coordinator.updates?.row
-        if let row {
-            let item = updateItems.makeRowItem(row, target: self, action: #selector(startUpdate)) { [weak self] in
-                self?.startUpdate()
-            }
-            menu.addItem(item)
-            menu.addItem(.separator())
-        }
         addStatusLines(coordinator: coordinator)
         menu.addItem(.separator())
 
@@ -128,11 +120,22 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         menu.addItem(item(String(localized: "About trrek", bundle: .main), #selector(showAbout)))
-        let checkForUpdates = item(String(localized: "Check for Updates…", bundle: .main), #selector(checkForUpdates))
-        menu.addItem(checkForUpdates)
+        addUpdateRow(coordinator: coordinator)
         let quit = item(String(localized: "Quit trrek", bundle: .main), #selector(quit), key: "q")
         menu.addItem(quit)
-        updateItems.track(check: checkForUpdates, quit: quit, row: row, isBusy: coordinator.updates?.isBusy ?? false)
+        updateItems.track(quit: quit)
+    }
+
+    /// The update row: Check for Updates, its outcome, or the known update.
+    private func addUpdateRow(coordinator: Coordinator) {
+        let updates = coordinator.updates
+        updateItems.show(update: updates?.row, isCheckRunning: updates?.isChecking ?? false)
+        let known = updates?.availableUpdate?.version
+        let action = #selector(chooseUpdateRow)
+        let item = updateItems.makeRowItem(known: known, target: self, action: action) { [weak self] in
+            self?.chooseUpdateRow()
+        }
+        menu.addItem(item)
     }
 
     /// The status line, and under it the app in front while its own edges apply.
@@ -199,13 +202,21 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         coordinator?.grantAccessibility()
     }
 
-    @objc private func startUpdate() {
-        coordinator?.updates?.startUpdate()
-    }
-
-    @objc private func checkForUpdates() {
+    /// A click on the update row, or Return on it (which closes the menu first; a check's outcome then shows the
+    /// next time it opens): checks, or starts the known update.
+    @objc private func chooseUpdateRow() {
         guard let updates = coordinator?.updates else { return }
-        Task { await updates.checkManually() }
+        switch updateItems.click() {
+        case .check:
+            Task { [weak self] in
+                let outcome = await updates.checkManually()
+                self?.updateItems.finishCheck(outcome, update: updates.row)
+            }
+        case .update:
+            updates.startUpdate()
+        case .nothing:
+            break
+        }
     }
 
     @objc private func showAbout() {

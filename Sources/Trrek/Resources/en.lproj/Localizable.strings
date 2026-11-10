@@ -202,12 +202,13 @@
 "Does nothing." = "Does nothing.";
 
 /* Updates */
-"Check for Updates…" = "Check for Updates…";
+"Check for Updates" = "Check for Updates";
+"Checking for Updates…" = "Checking for Updates…";
+"trrek Is Up to Date" = "trrek Is Up to Date";
+"Couldn’t Check — Try Again" = "Couldn’t Check — Try Again";
 "Downloading trrek %@…" = "Downloading trrek %@…";
 "trrek %@ is available" = "trrek %@ is available";
 "trrek is up to date" = "trrek is up to date";
-"trrek %@ is the latest version." = "trrek %@ is the latest version.";
-"Couldn’t check for updates" = "Couldn’t check for updates";
 "The update information could not be read." = "The update information could not be read.";
 "The latest release could not be found." = "The latest release could not be found.";
 "The server answered with status %lld." = "The server answered with status %lld.";

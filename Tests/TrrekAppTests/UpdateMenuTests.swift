@@ -4,7 +4,8 @@ import Testing
 @testable import Trrek
 import TrrekAppCore
 
-/// The menu row's view: its texts, progress bar, enabled state and click handling.
+/// The menu's update row view: its texts, icon, spinner, progress bar, enabled state and click handling. Views only;
+/// no menu is opened and no window is created.
 @MainActor
 struct UpdateRowViewTests {
     private static let version = SemanticVersion(major: 0, minor: 4, patch: 0)
@@ -17,67 +18,140 @@ struct UpdateRowViewTests {
         }
     }
 
-    @Test func statesUpdateTitleAndProgressInPlace() {
-        let ver = Self.version
-        let view = UpdateRowView(state: .available(ver))
+    private static func state(_ phase: MenuUpdateRowState.Phase) -> MenuUpdateRowState {
+        var state = MenuUpdateRowState()
+        switch phase {
+        case let .update(row):
+            state.show(update: row, isCheckRunning: false)
+        case .idle:
+            break
+        case .checking:
+            _ = state.click()
+        case .upToDate:
+            _ = state.click()
+            state.finishCheck(.upToDate, update: nil)
+        case let .checkFailed(reason):
+            _ = state.click()
+            state.finishCheck(.checkFailed(message: reason), update: nil)
+        }
+        #expect(state.phase == phase)
+        return state
+    }
+
+    private static func makeView(_ phase: MenuUpdateRowState.Phase = .idle) -> UpdateRowView {
+        UpdateRowView(state: state(phase), width: UpdateRowView.width(for: MenuUpdateRowState.widthSamples(known: nil)))
+    }
+
+    @Test func checkStatesUpdateTitleAndIconInPlace() {
+        let view = Self.makeView()
         let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         item.view = view
         let height = view.frame.height
         view.layoutSubtreeIfNeeded()
 
-        #expect(view.label.stringValue == "Update Available: trrek 0.4.0")
-        #expect(view.accessibilityLabel() == "Update Available: trrek 0.4.0")
+        #expect(view.label.stringValue == "Check for Updates")
+        #expect(view.label.font?.pointSize == NSFont.menuFont(ofSize: 0).pointSize)
+        #expect(view.icon.isHidden)
+        #expect(view.bar.isHidden)
         #expect(view.accessibilityRole() == .menuItem)
+
+        view.state = Self.state(.checking)
+        #expect(view.label.stringValue == "Checking for Updates…")
+        #expect(view.icon.isHidden)
+        #expect(!item.isEnabled)
+        // Not in a window, so nothing animates.
         #expect(view.bar.isHidden)
 
-        view.state = .downloading(ver, progress: nil)
+        view.state = Self.state(.upToDate)
+        #expect(view.label.stringValue == "trrek Is Up to Date")
+        #expect(!view.icon.isHidden)
+        #expect(!item.isEnabled)
+
+        view.state = Self.state(.checkFailed(reason: "You appear to be offline."))
+        #expect(view.label.stringValue == "Couldn’t Check — Try Again")
+        #expect(view.toolTip == "You appear to be offline.")
+        #expect(view.accessibilityLabel() == "Couldn’t Check — Try Again. You appear to be offline.")
+        #expect(item.isEnabled)
+
+        // One height in every state, so the open menu keeps its layout; the title starts at the same place.
+        #expect(view.frame.height == height)
+        view.layoutSubtreeIfNeeded()
+        #expect(view.label.frame.minX == UpdateRowView.titleX)
+    }
+
+    @Test func updateStatesUpdateTitleAndProgressInPlace() {
+        let ver = Self.version
+        let view = Self.makeView()
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        item.view = view
+        let height = view.frame.height
+
+        view.state = Self.state(.update(.available(ver)))
+        #expect(view.label.stringValue == "Update Available: trrek 0.4.0")
+        #expect(view.accessibilityLabel() == "Update Available: trrek 0.4.0")
+        #expect(view.toolTip == nil)
+        #expect(!view.icon.isHidden)
+        #expect(view.bar.isHidden)
+        #expect(item.isEnabled)
+
+        view.state = Self.state(.update(.downloading(ver, progress: nil)))
         #expect(view.label.stringValue == "Downloading trrek 0.4.0…")
         #expect(!view.bar.isHidden && view.bar.isIndeterminate)
         #expect(!item.isEnabled)
 
-        view.state = .downloading(ver, progress: 0.42)
+        view.state = Self.state(.update(.downloading(ver, progress: 0.42)))
         #expect(!view.bar.isIndeterminate)
         #expect(view.bar.doubleValue == 0.42)
         #expect(view.accessibilityValue() as? String == 0.42.formatted(.percent.precision(.fractionLength(0))))
         view.layoutSubtreeIfNeeded()
         #expect(view.label.frame.maxX <= view.bar.frame.minX)
 
-        view.state = .installing(ver)
+        view.state = Self.state(.update(.installing(ver)))
         #expect(view.label.stringValue == "Installing trrek 0.4.0…")
         #expect(!view.bar.isHidden && view.bar.isIndeterminate)
 
-        view.state = .failed(ver)
+        // The row stays short; the reason is in the tooltip and read out after the title.
+        view.state = Self.state(.update(.failed(ver, reason: .serverUnavailable)))
         #expect(view.label.stringValue == "Update Failed — Try Again")
         #expect(view.bar.isHidden)
-        #expect(item.isEnabled)
-        #expect(view.toolTip == nil)
-
-        // The row stays short; the reason is in the tooltip and read out after the title.
-        view.state = .failed(ver, reason: .serverUnavailable)
-        #expect(view.label.stringValue == "Update Failed — Try Again")
         #expect(view.toolTip == "GitHub isn’t responding. Try again in a few minutes.")
         #expect(view.accessibilityLabel()
             == "Update Failed — Try Again. GitHub isn’t responding. Try again in a few minutes.")
 
-        // One height in every state, so the open menu keeps its layout.
+        // One height in every state, so the open menu keeps its layout; the title starts at the same place.
         #expect(view.frame.height == height)
         #expect(height == UpdateRowView.height)
+        view.layoutSubtreeIfNeeded()
+        #expect(view.label.frame.minX == UpdateRowView.titleX)
     }
 
-    @Test func theRowIsWideEnoughForEveryTitle() {
-        let view = UpdateRowView(state: .available(Self.version))
-        let font = view.label.font ?? NSFont.menuFont(ofSize: 0)
-        for state in [UpdateRowState.relaunch(Self.version), .downloading(Self.version, progress: nil)] {
-            let width = (state.title as NSString).size(withAttributes: [.font: font]).width
-            #expect(view.frame.width > width + 72)
+    /// The row is as wide as its widest state, with the bar after the titles that show it, for the known update and
+    /// for one found while the menu is open.
+    @Test func theRowIsWideEnoughForEveryState() {
+        let known = SemanticVersion(major: 123, minor: 0, patch: 0)
+        let samples = MenuUpdateRowState.widthSamples(known: known)
+        let width = UpdateRowView.width(for: samples)
+        let found = SemanticVersion(major: 10, minor: 12, patch: 14)
+        var states = samples
+        for row in [UpdateRowState.downloading(found, progress: nil), .relaunch(found), .available(found)] {
+            var state = MenuUpdateRowState()
+            state.show(update: row, isCheckRunning: false)
+            states.append(state)
         }
+        for state in states {
+            let title = (state.title as NSString).size(withAttributes: [.font: UpdateRowView.font(for: state)]).width
+            let needed = UpdateRowView.titleX + title + (state.showsProgressBar ? UpdateRowView.barWidth : 0)
+            #expect(width > needed, "\(state.title)")
+        }
+        let view = UpdateRowView(state: MenuUpdateRowState(), width: width)
+        #expect(view.frame.width == width)
         #expect(view.autoresizingMask.contains(.width))
     }
 
-    /// A click acts in the view and does not send the item's action (which would close the menu); while busy it does
-    /// nothing.
+    /// A click acts in the view and does not send the item's action (which would close the menu); while the row is
+    /// not clickable it does nothing.
     @Test func aClickActsWithoutChoosingTheItem() throws {
-        let view = UpdateRowView(state: .available(Self.version))
+        let view = Self.makeView()
         let target = Target()
         let item = NSMenuItem(title: "", action: #selector(Target.chosen), keyEquivalent: "")
         item.target = target
@@ -100,11 +174,19 @@ struct UpdateRowViewTests {
         #expect(clicks == 1)
         #expect(target.sent == 0)
 
-        view.state = .downloading(Self.version, progress: 0.1)
+        view.state = Self.state(.checking)
         view.mouseUp(with: event)
         #expect(clicks == 1)
 
-        view.state = .failed(Self.version)
+        view.state = Self.state(.upToDate)
+        view.mouseUp(with: event)
+        #expect(clicks == 1)
+
+        view.state = Self.state(.update(.downloading(Self.version, progress: 0.1)))
+        view.mouseUp(with: event)
+        #expect(clicks == 1)
+
+        view.state = Self.state(.update(.failed(Self.version)))
         #expect(view.accessibilityPerformPress())
         #expect(clicks == 2)
     }
@@ -114,19 +196,23 @@ struct UpdateRowViewTests {
         #expect(UpdateRowView.showsHighlight(itemHighlighted: true, clickable: true))
         #expect(!UpdateRowView.showsHighlight(itemHighlighted: true, clickable: false))
         #expect(!UpdateRowView.showsHighlight(itemHighlighted: false, clickable: true))
-        let view = UpdateRowView(state: .available(Self.version))
+        let view = Self.makeView()
         #expect(!view.isHighlighted)
     }
 
     @Test func accessibilityFollowsTheState() {
-        let view = UpdateRowView(state: .available(Self.version))
+        let view = Self.makeView()
         let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         item.view = view
-        view.state = .downloading(Self.version, progress: 0.2)
+        #expect(view.isAccessibilityEnabled())
+        view.state = Self.state(.checking)
         #expect(!view.isAccessibilityEnabled())
         #expect(!view.accessibilityPerformPress())
+        #expect(item.title == "Checking for Updates…")
+        view.state = Self.state(.update(.downloading(Self.version, progress: 0.2)))
+        #expect(!view.isAccessibilityEnabled())
         #expect(item.title == "Downloading trrek 0.4.0…")
-        view.state = .failed(Self.version)
+        view.state = Self.state(.update(.failed(Self.version)))
         #expect(view.isAccessibilityEnabled())
         #expect(item.title == "Update Failed — Try Again")
     }
@@ -141,46 +227,66 @@ struct UpdateMenuItemsTests {
         @objc func chosen() {}
     }
 
-    @Test func theRowUpdatesInPlaceAndOnlyItsAppearanceNeedsARebuild() {
+    /// A manual check, then an update found by an automatic check, both in the same row view: the menu is never
+    /// rebuilt for them.
+    @Test func theRowChangesInPlace() throws {
         let items = UpdateMenuItems()
         let target = Target()
-        #expect(!items.show(row: nil, isBusy: false))
-        #expect(items.show(row: .available(Self.version), isBusy: false))
-
-        let item = items.makeRowItem(.available(Self.version), target: target, action: #selector(Target.chosen)) {}
-        let view = try? #require(item.view as? UpdateRowView)
+        let item = items.makeRowItem(known: nil, target: target, action: #selector(Target.chosen)) {}
+        let view = try #require(item.view as? UpdateRowView)
         #expect(items.row === view)
         #expect(item.target === target)
-        #expect(!items.show(row: .downloading(Self.version, progress: 0.3), isBusy: true))
-        #expect(view?.state == .downloading(Self.version, progress: 0.3))
-        #expect(!item.isEnabled)
-        #expect(items.show(row: nil, isBusy: false))
+        #expect(item.title == "Check for Updates")
 
+        #expect(items.click() == .check)
+        #expect(view.state.phase == .checking)
+        #expect(!item.isEnabled)
+        // The check's own start and end reach the row as controller changes; it stays checking until it finishes.
+        items.show(update: nil, isCheckRunning: true)
+        items.show(update: nil, isCheckRunning: false)
+        #expect(view.state.phase == .checking)
+        items.finishCheck(.upToDate, update: nil)
+        #expect(view.state.phase == .upToDate)
+        #expect(item.title == "trrek Is Up to Date")
+
+        items.menuClosed()
+        #expect(view.state.phase == .idle)
+
+        // An automatic check finds an update while the menu is open.
+        items.show(update: nil, isCheckRunning: true)
+        #expect(!item.isEnabled)
+        #expect(view.state.phase == .idle)
+        items.show(update: .available(Self.version), isCheckRunning: false)
+        #expect(view.state.phase == .update(.available(Self.version)))
+        #expect(item.isEnabled)
+        #expect(items.click() == .update)
+        items.show(update: .downloading(Self.version, progress: 0.3), isCheckRunning: false)
+        #expect(view.state.phase == .update(.downloading(Self.version, progress: 0.3)))
+        #expect(!item.isEnabled)
+
+        // The state outlives the menu's items.
         items.reset()
         #expect(items.row == nil)
+        #expect(items.state.phase == .update(.downloading(Self.version, progress: 0.3)))
     }
 
-    @Test func checkAndQuitFollowTheUpdate() {
+    @Test func quitFollowsTheUpdate() {
         let items = UpdateMenuItems()
-        let check = NSMenuItem(title: "Check", action: nil, keyEquivalent: "")
         let quit = NSMenuItem(title: "Quit", action: nil, keyEquivalent: "q")
-        items.track(check: check, quit: quit, row: .available(Self.version), isBusy: false)
-        #expect(check.isEnabled && quit.isEnabled)
-
-        _ = items.show(row: .downloading(Self.version, progress: nil), isBusy: true)
-        #expect(!check.isEnabled)
+        items.track(quit: quit)
         #expect(quit.isEnabled)
 
-        _ = items.show(row: .installing(Self.version), isBusy: true)
-        #expect(!check.isEnabled)
+        items.show(update: .downloading(Self.version, progress: nil), isCheckRunning: false)
+        #expect(quit.isEnabled)
+
+        items.show(update: .installing(Self.version), isCheckRunning: false)
         #expect(!quit.isEnabled)
 
-        _ = items.show(row: .failed(Self.version), isBusy: false)
-        #expect(check.isEnabled && quit.isEnabled)
+        items.show(update: .failed(Self.version), isCheckRunning: false)
+        #expect(quit.isEnabled)
 
         // A check running with no update known.
-        _ = items.show(row: nil, isBusy: true)
-        #expect(!check.isEnabled)
+        items.show(update: nil, isCheckRunning: true)
         #expect(quit.isEnabled)
     }
 }

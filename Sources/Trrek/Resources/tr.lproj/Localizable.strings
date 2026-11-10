@@ -202,12 +202,13 @@
 "Does nothing." = "Hiçbir şey yapmaz.";
 
 /* Updates */
-"Check for Updates…" = "Güncellemeleri Denetle…";
+"Check for Updates" = "Güncellemeleri Denetle";
+"Checking for Updates…" = "Güncellemeler Denetleniyor…";
+"trrek Is Up to Date" = "trrek Güncel";
+"Couldn’t Check — Try Again" = "Denetlenemedi — Yeniden Dene";
 "Downloading trrek %@…" = "trrek %@ İndiriliyor…";
 "trrek %@ is available" = "trrek %@ kullanılabilir";
 "trrek is up to date" = "trrek güncel";
-"trrek %@ is the latest version." = "trrek %@ en son sürüm.";
-"Couldn’t check for updates" = "Güncellemeler denetlenemedi";
 "The update information could not be read." = "Güncelleme bilgileri okunamadı.";
 "The latest release could not be found." = "En son sürüm bulunamadı.";
 "The server answered with status %lld." = "Sunucu %lld durum koduyla yanıt verdi.";

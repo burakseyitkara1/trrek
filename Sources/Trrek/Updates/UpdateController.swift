@@ -2,25 +2,11 @@ import AppKit
 import TrrekAppCore
 import TrrekPlatform
 
-/// An alert a manual check shows: only its outcome when there is nothing to update, since a found update shows in
-/// the menu bar icon, the menu and General instead.
-enum UpdateAlert: Equatable {
-    case upToDate(current: SemanticVersion)
-    case checkFailed(message: String)
-}
-
-/// Shows update alerts; replaced by a fake in tests.
-@MainActor
-protocol UpdateAlertPresenting {
-    /// Shows `alert`, as a sheet on `window` when there is one, and returns once it is dismissed.
-    func present(_ alert: UpdateAlert, window: NSWindow?) async
-}
-
 /// Runs the update checks and the update itself, and tells the menu and the settings window when its state changes.
 ///
 /// Checks run shortly after launch and after wake (one-shot delays, no repeating timer), when the menu opens and on
 /// request; `UpdateChecker` decides whether an automatic one is due. A known update shows as a badge on the menu bar
-/// icon and a row at the top of the menu (`row`); choosing the row downloads the disk image into the app's caches,
+/// icon and in the menu's update row (`row`); choosing the row downloads the disk image into the app's caches,
 /// verifies and installs it, and relaunches, with no further question.
 @MainActor
 final class UpdateController {
@@ -34,7 +20,6 @@ final class UpdateController {
     private let runningVersion: SemanticVersion
     /// Quits and opens the (replaced) app bundle again; returns `false` when it could not.
     private let relaunch: () -> Bool
-    private let alerts: any UpdateAlertPresenting
     /// Where the disk image is downloaded; emptied at launch.
     private let cacheFolder: URL
     /// Opens the release page in the browser.
@@ -57,7 +42,6 @@ final class UpdateController {
         installer: any UpdateInstalling,
         runningVersion: SemanticVersion = UpdateInstaller.runningVersion,
         relaunch: @escaping () -> Bool = { Relauncher.relaunch(reason: "update") },
-        alerts: any UpdateAlertPresenting,
         cacheFolder: URL = UpdateController.defaultCacheFolder,
         open: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
         automatic: @escaping () -> Bool
@@ -67,7 +51,6 @@ final class UpdateController {
         self.installer = installer
         self.runningVersion = runningVersion
         self.relaunch = relaunch
-        self.alerts = alerts
         self.cacheFolder = cacheFolder
         self.open = open
         self.automatic = automatic
@@ -108,7 +91,7 @@ final class UpdateController {
         checker.isChecking
     }
 
-    /// Whether a check or an update runs; Check for Updates… and Check Now are disabled meanwhile.
+    /// Whether a check or an update runs; Check Now is disabled meanwhile.
     var isBusy: Bool {
         isChecking || isUpdating
     }
@@ -139,30 +122,14 @@ final class UpdateController {
         Task { _ = await checker.check(trigger, automatic: automatic()) }
     }
 
-    /// Check for Updates… in the menu: checks, and shows an alert (as a sheet on the window `window` returns when it
-    /// is still open) only when trrek is up to date or the check failed; a found update shows as the badge, the menu
-    /// row and the line in General. Does nothing while a check or an update runs.
-    func checkManually(window: @escaping () -> NSWindow? = { nil }) async {
-        guard !isBusy else { return }
-        let result = await checker.check(.manual, automatic: automatic())
-        switch result {
-        case .upToDate:
-            await alerts.present(.upToDate(current: checker.currentVersion), window: window())
-        case let .failed(message):
-            await alerts.present(.checkFailed(message: message), window: window())
-        case .available, .skipped:
-            break
-        }
-    }
-
-    /// Check Now in General: the same check as `checkManually`, but the outcome is returned for the settings window to
-    /// show on its update line instead of in an alert. `nil` when a release was found (the line shows it) or nothing
-    /// was checked because a check or an update was already running.
-    func checkForSettings() async -> UpdateAlert? {
+    /// Check for Updates in the menu and Check Now in General: checks, and returns the outcome for the menu row or
+    /// General's update line to show (there is no alert). `nil` when a release was found (the badge, the menu row and
+    /// General's line show it) or nothing was checked because a check or an update was already running.
+    func checkManually() async -> UpdateCheckOutcome? {
         guard !isBusy else { return nil }
         switch await checker.check(.manual, automatic: automatic()) {
         case .upToDate:
-            return .upToDate(current: checker.currentVersion)
+            return .upToDate
         case let .failed(message):
             return .checkFailed(message: message)
         case .available, .skipped:

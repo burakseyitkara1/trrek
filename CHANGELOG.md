@@ -6,6 +6,8 @@ Each release lists its changes under its version and date; changes not yet relea
 
 ## [Unreleased]
 
+- Check for Updates in the menu works in place: the menu stays open, the row shows "Checking for Updates…" with a spinner, then "trrek Is Up to Date", "Couldn’t Check — Try Again" or the update itself, which downloads and installs from the same row; the separate update row at the top of the menu is gone, and a manual check never shows an alert
+
 ## [0.6.0] - 2026-11-10
 
 - Set edges and corners right on the trackpad diagram: in the Edges tab each edge's label, and in Corners & Taps each corner's badge, opens a menu of its actions with Off first (Same as All Apps above it for an app's edges); the edge and corner pickers below the diagram are gone, and an edge or corner that cannot run its action yet shows a warning badge
