@@ -2,25 +2,11 @@ import AppKit
 import TrrekAppCore
 import TrrekPlatform
 
-/// An alert a manual check shows: only its outcome when there is nothing to update, since a found update shows in
-/// the menu bar icon, the menu and General instead.
-enum UpdateAlert: Equatable {
-    case upToDate(current: SemanticVersion)
-    case checkFailed(message: String)
-}
-
-/// Shows update alerts; replaced by a fake in tests.
-@MainActor
-protocol UpdateAlertPresenting {
-    /// Shows `alert`, as a sheet on `window` when there is one, and returns once it is dismissed.
-    func present(_ alert: UpdateAlert, window: NSWindow?) async
-}
-
 /// Runs the update checks and the update itself, and tells the menu and the settings window when its state changes.
 ///
 /// Checks run shortly after launch and after wake (one-shot delays, no repeating timer), when the menu opens and on
 /// request; `UpdateChecker` decides whether an automatic one is due. A known update shows as a badge on the menu bar
-/// icon and a row at the top of the menu (`row`); choosing the row downloads the disk image into the app's caches,
+/// icon and in the menu's update row (`row`); choosing the row downloads the disk image into the app's caches,
 /// verifies and installs it, and relaunches, with no further question.
 @MainActor
 final class UpdateController {
@@ -34,7 +20,6 @@ final class UpdateController {
     private let runningVersion: SemanticVersion
     /// Quits and opens the (replaced) app bundle again; returns `false` when it could not.
     private let relaunch: () -> Bool
-    private let alerts: any UpdateAlertPresenting
     /// Where the disk image is downloaded; emptied at launch.
     private let cacheFolder: URL
     /// Opens the release page in the browser.
@@ -50,6 +35,10 @@ final class UpdateController {
     /// The update run once the row was chosen: the release it started with, and its progress or how it ended.
     private var flow: (release: ReleaseInfo, state: UpdateRowState)?
     private var pendingCheck: DispatchWorkItem?
+    /// The check that runs now, kept from the moment it is asked for (before its task starts), so a manual check
+    /// asked for meanwhile waits for it and gets its outcome instead of starting a second request.
+    private var runningCheck: (id: Int, task: Task<UpdateCheckResult, Never>)?
+    private var checkCount = 0
 
     init(
         checker: UpdateChecker,
@@ -57,7 +46,6 @@ final class UpdateController {
         installer: any UpdateInstalling,
         runningVersion: SemanticVersion = UpdateInstaller.runningVersion,
         relaunch: @escaping () -> Bool = { Relauncher.relaunch(reason: "update") },
-        alerts: any UpdateAlertPresenting,
         cacheFolder: URL = UpdateController.defaultCacheFolder,
         open: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) },
         automatic: @escaping () -> Bool
@@ -67,7 +55,6 @@ final class UpdateController {
         self.installer = installer
         self.runningVersion = runningVersion
         self.relaunch = relaunch
-        self.alerts = alerts
         self.cacheFolder = cacheFolder
         self.open = open
         self.automatic = automatic
@@ -108,7 +95,7 @@ final class UpdateController {
         checker.isChecking
     }
 
-    /// Whether a check or an update runs; Check for Updates… and Check Now are disabled meanwhile.
+    /// Whether a check or an update runs; Check Now is disabled meanwhile.
     var isBusy: Bool {
         isChecking || isUpdating
     }
@@ -135,39 +122,45 @@ final class UpdateController {
     /// Checks if one is due for `trigger`; a newer release shows as the badge and the menu row. Nothing is checked
     /// while an update runs.
     func checkAutomatically(_ trigger: UpdateCheckTrigger) {
-        guard !isUpdating, checker.isDue(trigger, automatic: automatic()) else { return }
-        Task { _ = await checker.check(trigger, automatic: automatic()) }
+        guard !isUpdating, runningCheck == nil, checker.isDue(trigger, automatic: automatic()) else { return }
+        _ = startCheck(trigger)
     }
 
-    /// Check for Updates… in the menu: checks, and shows an alert (as a sheet on the window `window` returns when it
-    /// is still open) only when trrek is up to date or the check failed; a found update shows as the badge, the menu
-    /// row and the line in General. Does nothing while a check or an update runs.
-    func checkManually(window: @escaping () -> NSWindow? = { nil }) async {
-        guard !isBusy else { return }
-        let result = await checker.check(.manual, automatic: automatic())
+    /// Check for Updates in the menu and Check Now in General: checks, and returns the outcome for the menu row or
+    /// General's update line to show (there is no alert). A check that already runs (the automatic one started by
+    /// opening the menu, or the other manual one) is joined: its outcome is returned and no second request is sent.
+    /// `nil` when a release was found (the badge, the menu row and General's line show it) or an update runs.
+    func checkManually() async -> UpdateCheckOutcome? {
+        guard !isUpdating else { return nil }
+        var result = await (runningCheck?.task ?? startCheck(.manual)).value
+        if result == .skipped {
+            // The joined automatic check was no longer due; this one always runs.
+            result = await (runningCheck?.task ?? startCheck(.manual)).value
+        }
         switch result {
         case .upToDate:
-            await alerts.present(.upToDate(current: checker.currentVersion), window: window())
-        case let .failed(message):
-            await alerts.present(.checkFailed(message: message), window: window())
-        case .available, .skipped:
-            break
-        }
-    }
-
-    /// Check Now in General: the same check as `checkManually`, but the outcome is returned for the settings window to
-    /// show on its update line instead of in an alert. `nil` when a release was found (the line shows it) or nothing
-    /// was checked because a check or an update was already running.
-    func checkForSettings() async -> UpdateAlert? {
-        guard !isBusy else { return nil }
-        switch await checker.check(.manual, automatic: automatic()) {
-        case .upToDate:
-            return .upToDate(current: checker.currentVersion)
+            return .upToDate
         case let .failed(message):
             return .checkFailed(message: message)
         case .available, .skipped:
             return nil
         }
+    }
+
+    /// Starts a check for `trigger` and keeps it as the running one until it ends.
+    private func startCheck(_ trigger: UpdateCheckTrigger) -> Task<UpdateCheckResult, Never> {
+        checkCount += 1
+        let id = checkCount
+        let automatic = automatic()
+        let task = Task { [weak self, checker] in
+            let result = await checker.check(trigger, automatic: automatic)
+            if self?.runningCheck?.id == id {
+                self?.runningCheck = nil
+            }
+            return result
+        }
+        runningCheck = (id, task)
+        return task
     }
 
     func cancelPendingCheck() {

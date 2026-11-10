@@ -21,7 +21,7 @@ final class DownloadAttempts: @unchecked Sendable {
     }
 }
 
-/// The update checks with a fake feed and alerts; nothing touches the network or the screen.
+/// The update checks with a fake feed; nothing touches the network or the screen.
 @MainActor
 @Suite(.serialized)
 struct UpdateControllerTests {
@@ -41,14 +41,6 @@ struct UpdateControllerTests {
             calls += 1
             try await Task.sleep(for: delay)
             return try result.get()
-        }
-    }
-
-    final class Alerts: UpdateAlertPresenting {
-        var shown: [UpdateAlert] = []
-
-        func present(_ alert: UpdateAlert, window _: NSWindow?) async {
-            shown.append(alert)
         }
     }
 
@@ -94,7 +86,6 @@ struct UpdateControllerTests {
     struct Harness {
         let controller: UpdateController
         let feed: Feed
-        let alerts: Alerts
         let installer: Installer
         let folder: URL
         let defaults: UserDefaults
@@ -140,7 +131,6 @@ struct UpdateControllerTests {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("trrek-tests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let fakeFeed = Feed(feed, delay: feedDelay)
-        let alerts = Alerts()
         let installer = Installer()
         var opened: [URL] = []
         var relaunches = 0
@@ -159,7 +149,6 @@ struct UpdateControllerTests {
                 relaunches += 1
                 return relaunchSucceeds
             },
-            alerts: alerts,
             cacheFolder: folder.appendingPathComponent("Caches/Updates"),
             open: { opened.append($0) },
             automatic: { automatic }
@@ -173,7 +162,6 @@ struct UpdateControllerTests {
         return Harness(
             controller: controller,
             feed: fakeFeed,
-            alerts: alerts,
             installer: installer,
             folder: folder,
             defaults: defaults,
@@ -184,7 +172,7 @@ struct UpdateControllerTests {
         )
     }
 
-    @Test func anAutomaticCheckShowsTheRowWithoutAnAlert() async throws {
+    @Test func anAutomaticCheckShowsTheRow() async throws {
         let harness = try Self.harness()
         defer { harness.tearDown() }
         var changes = 0
@@ -198,7 +186,6 @@ struct UpdateControllerTests {
         #expect(harness.rows().last == .some(.available(version)))
         #expect(harness.controller.lastCheck != nil)
         #expect(changes >= 2)
-        #expect(harness.alerts.shown.isEmpty)
 
         // The next automatic triggers within a day send no request.
         harness.controller.checkAutomatically(.menuOpened)
@@ -216,61 +203,68 @@ struct UpdateControllerTests {
         #expect(harness.controller.row == nil)
     }
 
-    @Test func aManualCheckAlertsOnlyWhenThereIsNothingToUpdate() async throws {
+    /// A manual check (Check for Updates in the menu, Check Now in General) returns its outcome for the menu row or
+    /// General's update line; a found release is no outcome, it shows as the row.
+    @Test func aManualCheckReturnsTheOutcome() async throws {
         let upToDate = try Self.harness(current: "0.4.0", automatic: false)
         defer { upToDate.tearDown() }
-        await upToDate.controller.checkManually()
-        #expect(try upToDate.alerts.shown == [.upToDate(current: #require(SemanticVersion("0.4.0")))])
+        #expect(await upToDate.controller.checkManually() == .upToDate)
         #expect(upToDate.controller.row == nil)
 
         let offline = try Self.harness(feed: .failure(URLError(.notConnectedToInternet)))
         defer { offline.tearDown() }
-        await offline.controller.checkManually()
-        guard case let .checkFailed(message) = offline.alerts.shown.first else {
-            Issue.record("expected the failure alert, got \(offline.alerts.shown)")
-            return
-        }
-        #expect(message == "You appear to be offline.")
+        let outcome = await offline.controller.checkManually()
+        #expect(outcome == .checkFailed(message: "You appear to be offline."))
+        #expect(outcome?.note == "You appear to be offline.")
 
         let found = try Self.harness(suite: "trrek.tests.update-controller.found")
         defer { found.tearDown() }
-        await found.controller.checkManually()
-        #expect(found.alerts.shown.isEmpty)
+        #expect(await found.controller.checkManually() == nil)
         #expect(try found.controller.row == .available(#require(SemanticVersion("0.4.0"))))
     }
 
-    /// Check Now in General shows no alert: the outcome comes back for its update line.
-    @Test func checkNowInGeneralReturnsTheOutcomeWithoutAnAlert() async throws {
-        let upToDate = try Self.harness(current: "0.4.0", automatic: false)
-        defer { upToDate.tearDown() }
-        let current = try #require(SemanticVersion("0.4.0"))
-        #expect(await upToDate.controller.checkForSettings() == .upToDate(current: current))
-        #expect(upToDate.alerts.shown.isEmpty)
-        #expect(SystemUpdateAlerts.note(for: .upToDate(current: current)) == "trrek is up to date")
-
-        let offline = try Self.harness(feed: .failure(URLError(.notConnectedToInternet)))
-        defer { offline.tearDown() }
-        let outcome = await offline.controller.checkForSettings()
-        #expect(offline.alerts.shown.isEmpty)
-        #expect(outcome.map { SystemUpdateAlerts.note(for: $0) } == "You appear to be offline.")
-
-        let found = try Self.harness(suite: "trrek.tests.update-controller.found-settings")
-        defer { found.tearDown() }
-        #expect(await found.controller.checkForSettings() == nil)
-        #expect(found.alerts.shown.isEmpty)
-        #expect(try found.controller.row == .available(#require(SemanticVersion("0.4.0"))))
-    }
-
-    /// While a check runs, a manual check does nothing (its menu item and Check Now are disabled).
-    @Test func noManualCheckWhileBusy() async throws {
-        let harness = try Self.harness(feedDelay: .milliseconds(300))
+    /// A manual check asked for while an automatic one runs joins it: one request, and the automatic check's outcome.
+    @Test func aManualCheckJoinsARunningAutomaticCheck() async throws {
+        let harness = try Self.harness(current: "0.4.0", feedDelay: .milliseconds(300))
         defer { harness.tearDown() }
         harness.controller.checkAutomatically(.launch)
-        try await waitUntil { harness.controller.isBusy }
-        await harness.controller.checkManually()
-        #expect(harness.alerts.shown.isEmpty)
-        try await waitUntil { !harness.controller.isBusy }
+        try await waitUntil { harness.controller.isChecking }
+        #expect(await harness.controller.checkManually() == .upToDate)
         #expect(await harness.feed.calls == 1)
+    }
+
+    /// The race: the click lands after the automatic check was asked for but before its task ran. The manual check
+    /// still joins it and gets a real outcome (here the update it found), never silently nothing.
+    @Test func aManualCheckJoinsAnAutomaticCheckThatHasNotStartedYet() async throws {
+        let harness = try Self.harness(feedDelay: .milliseconds(100))
+        defer { harness.tearDown() }
+        harness.controller.checkAutomatically(.menuOpened)
+        #expect(!harness.controller.isChecking)
+        #expect(await harness.controller.checkManually() == nil)
+        #expect(try harness.controller.row == .available(#require(SemanticVersion("0.4.0"))))
+        #expect(await harness.feed.calls == 1)
+
+        let offline = try Self.harness(
+            feed: .failure(URLError(.notConnectedToInternet)),
+            suite: "trrek.tests.update-controller.offline-race"
+        )
+        defer { offline.tearDown() }
+        offline.controller.checkAutomatically(.menuOpened)
+        #expect(await offline.controller.checkManually() == .checkFailed(message: "You appear to be offline."))
+    }
+
+    /// The other order: a manual check runs, and an automatic one asked for meanwhile sends nothing.
+    @Test func anAutomaticCheckDuringAManualOneSendsNothing() async throws {
+        let harness = try Self.harness(current: "0.4.0", feedDelay: .milliseconds(200))
+        defer { harness.tearDown() }
+        let manual = Task { await harness.controller.checkManually() }
+        try await waitUntil { harness.controller.isChecking }
+        harness.controller.checkAutomatically(.menuOpened)
+        #expect(await manual.value == .upToDate)
+        // Once it has ended, the next manual check sends a new request.
+        #expect(await harness.feed.calls == 1)
+        #expect(await harness.controller.checkManually() == .upToDate)
+        #expect(await harness.feed.calls == 2)
     }
 
     @Test func settingsModelShowsTheLastCheckAndStartsTheUpdate() {
@@ -293,21 +287,6 @@ struct UpdateControllerTests {
         #expect(model.updateRow == nil)
         model.updateNow()
         #expect(started == 1)
-    }
-
-    @Test func alertsHaveTheirTexts() throws {
-        let current = try #require(SemanticVersion("0.3.0"))
-        #expect(SystemUpdateAlerts.content(of: .upToDate(current: current)) == .init(
-            title: "trrek is up to date",
-            message: "trrek 0.3.0 is the latest version.",
-            buttons: ["OK"]
-        ))
-        #expect(SystemUpdateAlerts.content(of: .checkFailed(message: "Offline.")) == .init(
-            title: "Couldn’t check for updates",
-            message: "Offline.",
-            buttons: ["OK"],
-            isWarning: true
-        ))
     }
 }
 

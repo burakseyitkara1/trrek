@@ -24,7 +24,7 @@ struct UpdateInstallFlowTests {
             suite: "trrek.tests.update-install",
             retryWait: retryWait
         )
-        await harness.controller.checkManually()
+        _ = await harness.controller.checkManually()
         #expect(harness.controller.row == .available(version))
         return harness
     }
@@ -48,7 +48,6 @@ struct UpdateInstallFlowTests {
         ])
         #expect(harness.installer.calls == ["prepare trrek-v0.4.0.dmg as 0.4.0 over 0.3.0", "install"])
         #expect(harness.opened().isEmpty)
-        #expect(harness.alerts.shown.isEmpty)
         // The disk image is deleted once installed.
         #expect(Self.cachedFiles(harness).isEmpty)
     }
@@ -60,7 +59,6 @@ struct UpdateInstallFlowTests {
         try await waitUntil { harness.controller.row == .failed(Self.version, reason: .serverUnavailable) }
         #expect(!harness.controller.isBusy)
         #expect(harness.installer.calls.isEmpty)
-        #expect(harness.alerts.shown.isEmpty)
 
         // Clicking again starts again.
         harness.controller.startUpdate()
@@ -98,7 +96,6 @@ struct UpdateInstallFlowTests {
             let page = try #require(harness.controller.availableUpdate?.pageURL)
             #expect(harness.opened() == [page])
             #expect(harness.relaunches() == 0)
-            #expect(harness.alerts.shown.isEmpty)
 
             let prepared = harness.installer.calls.count
             harness.controller.startUpdate()
@@ -124,11 +121,10 @@ struct UpdateInstallFlowTests {
         defer { harness.tearDown() }
         harness.controller.startUpdate()
         harness.controller.startUpdate()
-        await harness.controller.checkManually()
+        _ = await harness.controller.checkManually()
         try await waitUntil { harness.relaunches() == 1 }
         #expect(harness.installer.calls.count(where: { $0.hasPrefix("prepare") }) == 1)
         #expect(await harness.feed.calls == 1)
-        #expect(harness.alerts.shown.isEmpty)
     }
 
     /// A harness that knows 0.4.0 from an earlier check (stored), with no check done yet, so automatic checks are
@@ -224,7 +220,7 @@ struct UpdateInstallFlowTests {
     @Test func anOlderReleaseThanTheRunningOneIsNotDownloaded() async throws {
         let harness = try UpdateControllerTests.harness(running: "0.5.0", suite: "trrek.tests.update-install")
         defer { harness.tearDown() }
-        await harness.controller.checkManually()
+        _ = await harness.controller.checkManually()
         #expect(harness.controller.row == .available(Self.version))
         harness.controller.startUpdate()
         try await waitUntil { harness.controller.row == .failed(Self.version, reason: .verification) }
@@ -278,7 +274,6 @@ extension UpdateInstallFlowTests {
                 false
             }
         })
-        #expect(harness.alerts.shown.isEmpty)
     }
 
     /// The final failure's reason reaches the row and the row callback (which the coordinator copies into General's
