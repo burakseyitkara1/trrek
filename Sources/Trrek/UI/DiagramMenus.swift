@@ -2,12 +2,12 @@ import SwiftUI
 import TrrekAppCore
 import TrrekEngine
 
-/// An edge (its strip and label) as a menu of the edge actions, Off first; for an app, Same as All Apps comes before
+/// An edge (its zone and label) as a menu of the edge actions, Off first; for an app, Same as All Apps comes before
 /// Off. A divider follows each of them.
 struct EdgeMenu: View {
     let model: SettingsModel
     let edge: TrrekEngine.Edge
-    let stripLength: CGFloat
+    let zones: DiagramZones
 
     var body: some View {
         let item = model.diagramEdge(edge)
@@ -38,8 +38,8 @@ struct EdgeMenu: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            EdgeUnit(item: item, hovered: model.hoveredDiagramControl == .edge(edge), stripLength: stripLength)
-                .contentShape(.rect)
+            // The zone and the label set their own hit areas (`EdgeUnit`).
+            EdgeUnit(item: item, active: model.hoveredDiagramControl == .edge(edge), zones: zones)
         }
         .diagramMenu(model: model, control: .edge(edge))
         .help(DiagramHelp.text(title: SettingsLabels.title(for: edge), value: item.valueTitle, notes: item.notes))
@@ -87,7 +87,6 @@ struct CornerMenu: View {
                 action: item.action,
                 note: item.note,
                 hovered: model.hoveredDiagramControl == .corner(corner),
-                flat: false,
                 alignment: TrackpadDiagram.alignment(of: corner)
             )
             .padding(Self.hitMargin)

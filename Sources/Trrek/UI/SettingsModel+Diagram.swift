@@ -60,11 +60,6 @@ struct DiagramEdgeItem: Equatable {
     var note: DiagramNote? {
         notes.first
     }
-
-    /// The edge's colour: grey while it waits for Accessibility, since it does not run.
-    var stripAction: EdgeAction {
-        note == .needsAccessibility ? .off : action
-    }
 }
 
 /// What the diagram shows on one corner in the Edges and Corners & Taps tabs.
@@ -136,6 +131,14 @@ extension SettingsModel {
             notes: notes,
             valueTitle: isInherited ? inheritedEdgeTitle(for: edge) : SettingsLabels.title(for: shown)
         )
+    }
+
+    // MARK: - Zones
+
+    /// The trackpad the diagram's edge zones are drawn to scale with: this Mac's, or a typical one while it is not
+    /// known.
+    var diagramTrackpad: TrackpadSize {
+        trackpadSize ?? .typical
     }
 
     // MARK: - Corners

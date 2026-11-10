@@ -1,6 +1,6 @@
 public enum Geometry {
     /// With `bottomQuarterOnly`, vertical-edge slides start only below this normalized height.
-    static let bottomQuarter: Float = 0.25
+    public static let bottomQuarter: Float = 0.25
 
     /// Classifies a touch (normalized, origin bottom-left) into an edge strip, a corner or nothing.
     /// Strips are found by geometry alone, so where two strips meet is always a corner, also when one or both of

@@ -19,6 +19,7 @@ extension Coordinator {
             trackpadIssue = Self.issue(for: error)
             appLogger.error("multitouch start failed", error)
         }
+        noteTrackpadSize(of: pipeline.devices)
         guard let haptics else { return }
         let devices = pipeline.devices
         haptics.install(devices: devices) { ActuatorHaptics(multitouchID: $0) }
@@ -26,6 +27,16 @@ extension Coordinator {
             appLogger
                 .error("\(devices.count - haptics.actuatorCount, privacy: .public) trackpad actuator(s) unavailable")
         }
+    }
+
+    /// Keeps the size of the trackpad the diagram draws, when `devices` has one, for the open and later windows. A
+    /// stream that found no trackpad keeps the last size.
+    private func noteTrackpadSize(of devices: [MultitouchDeviceInfo]) {
+        let geometries = devices.map {
+            DeviceGeometry(widthMM: $0.widthMM, heightMM: $0.heightMM, isBuiltIn: $0.isBuiltIn)
+        }
+        guard let size = TrackpadSize.preferred(among: geometries) else { return }
+        windows.trackpadSize = size
     }
 
     /// Restarts the multitouch stream once the burst of wake and device notifications has settled: each call

@@ -2,9 +2,14 @@ import SwiftUI
 import TrrekAppCore
 import TrrekEngine
 
-/// A glass trackpad silhouette with the four edge strips and the four corner badges.
+/// A glass trackpad silhouette with the four edge zones, to scale, and the four corner badges.
 ///
-/// Read-only by default (the welcome window): the strips and badges show what each edge and corner actually does,
+/// Each edge's touch zone is a neutral band along it, as thick as the edge width on the trackpad (`DiagramZones`), with
+/// its label just inside it; the corners are the slightly stronger squares where two zones meet. With Bottom Quarter
+/// Only the side zones are filled only in their lower quarter. A change of either setting animates. The edge or
+/// corner under the pointer lights up in the accent colour (`DiagramStyle`); the welcome window never does.
+///
+/// Read-only by default (the welcome window): the labels and badges show what each edge and corner actually does,
 /// so without Accessibility the actions that need it show as off. With `editing`, the edges (Edges tab) or the
 /// corner badges (Corners & Taps tab) are menus of their actions instead. Both parts then show the action chosen for
 /// each edge and corner, with a badge on the ones that cannot run as chosen; the part the tab does not edit is faded,
@@ -22,40 +27,56 @@ struct TrackpadDiagram: View {
         }
     }
 
+    /// The largest the diagram gets; its height follows the trackpad's aspect ratio up to this.
     static let size = CGSize(width: 270, height: 180)
-    /// The height in the Edges tab, which also holds Edges For and, for an app, its caption and Remove button.
-    static let compactHeight: CGFloat = 150
+    /// The largest height in the Edges tab, which also holds Edges For and, for an app, its caption and Remove button.
+    static let compactHeight: CGFloat = 138
     /// The opacity of the part of the diagram a tab does not edit.
     static let readOnlyOpacity = 0.45
     private static let cornerRadius: CGFloat = 12
-    static let stripThickness: CGFloat = 5
+    /// How far the corner badges sit from the diagram's edges.
     private static let inset: CGFloat = 8
-    /// The widest a side edge's label gets: half the diagram less the strip, so the left and right labels never
-    /// meet; a longer one wraps onto a second line.
-    static let sideLabelWidth: CGFloat = 108
 
     let settings: AppSettings
     let backlightAvailable: Bool
     let accessibilityGranted: Bool
     var editing: Editing?
-    var height: CGFloat = TrackpadDiagram.size.height
-    /// The app whose edges the strips show; `nil` for the All Apps edges. Corners are the same for every app.
+    var maxHeight: CGFloat = TrackpadDiagram.size.height
+    /// The app whose edges the zones show; `nil` for the All Apps edges. Corners are the same for every app.
     var bundleID: String?
+    /// The trackpad the zones are drawn to scale with.
+    var trackpad: TrackpadSize = .typical
+
+    /// The zones for the settings' edge width and Bottom Quarter Only.
+    var zones: DiagramZones {
+        DiagramZones(
+            trackpad: trackpad,
+            edgeWidthMM: CGFloat(settings.edgeWidth.millimetres),
+            bottomQuarterOnly: settings.bottomQuarterOnly,
+            width: Self.size.width,
+            maxHeight: maxHeight
+        )
+    }
 
     var body: some View {
+        let zones = zones
         GlassEffectContainer {
             ZStack {
+                cornerZones(zones)
                 ForEach(TrrekEngine.Edge.allCases, id: \.self) { edge in
-                    edgeView(edge)
+                    edgeView(edge, zones: zones)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.alignment(of: edge))
                 }
-                ForEach(Corner.allCases, id: \.self) { corner in
-                    badge(for: corner)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.alignment(of: corner))
+                ZStack {
+                    ForEach(Corner.allCases, id: \.self) { corner in
+                        badge(for: corner)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.alignment(of: corner))
+                    }
                 }
+                .padding(Self.inset)
             }
-            .padding(Self.inset)
-            .frame(width: Self.size.width, height: height)
+            .frame(width: zones.size.width, height: zones.size.height)
+            .animation(.smooth, value: zones)
             .glassEffect(.regular, in: .rect(cornerRadius: Self.cornerRadius))
         }
         .accessibilityElement(children: .contain)
@@ -66,21 +87,49 @@ struct TrackpadDiagram: View {
         }
     }
 
-    /// The length of an edge's strip.
-    func stripLength(_ edge: TrrekEngine.Edge) -> CGFloat {
-        edge == .top || edge == .bottom ? Self.size.width * 0.5 : height * 0.45
+    /// The corner zones, a neutral tint a little stronger than the edge zones, in the accent colour under the
+    /// pointer on Corners & Taps; faded in the Edges tab.
+    private func cornerZones(_ zones: DiagramZones) -> some View {
+        ZStack {
+            ForEach(Corner.allCases, id: \.self) { corner in
+                Rectangle()
+                    .fill(isActive(corner) ? DiagramStyle.activeZone : DiagramStyle.corner)
+                    .frame(width: zones.cornerSize.width, height: zones.cornerSize.height)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.alignment(of: corner))
+            }
+        }
+        .clipShape(.rect(cornerRadius: Self.cornerRadius))
+        .opacity(editsEdges ? Self.readOnlyOpacity : 1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func isActive(_ corner: Corner) -> Bool {
+        if case let .corners(model) = editing {
+            model.hoveredDiagramControl == .corner(corner)
+        } else {
+            false
+        }
+    }
+
+    private var editsEdges: Bool {
+        if case .edges = editing {
+            true
+        } else {
+            false
+        }
     }
 
     // MARK: - Edges
 
     @ViewBuilder
-    private func edgeView(_ edge: TrrekEngine.Edge) -> some View {
+    private func edgeView(_ edge: TrrekEngine.Edge, zones: DiagramZones) -> some View {
         switch editing {
         case let .edges(model):
-            EdgeMenu(model: model, edge: edge, stripLength: stripLength(edge))
+            EdgeMenu(model: model, edge: edge, zones: zones)
         case let .corners(model):
             let item = model.diagramEdge(edge)
-            EdgeUnit(item: item, hovered: false, stripLength: stripLength(edge))
+            EdgeUnit(item: item, active: false, zones: zones)
                 .opacity(Self.readOnlyOpacity)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(SettingsLabels.title(for: edge))
@@ -96,12 +145,11 @@ struct TrackpadDiagram: View {
             EdgeUnit(
                 edge: edge,
                 action: action,
-                stripAction: action,
                 dimmed: action == .off,
                 inherited: false,
                 note: nil,
-                hovered: false,
-                stripLength: stripLength(edge)
+                active: false,
+                zones: zones
             )
         }
     }
@@ -149,17 +197,13 @@ struct TrackpadDiagram: View {
         switch editing {
         case let .corners(model):
             CornerMenu(model: model, corner: corner)
-        case let .edges(model):
-            let item = model.diagramCorner(corner)
-            let alignment = Self.alignment(of: corner)
-            CornerBadge(action: item.action, note: item.note, hovered: false, flat: true, alignment: alignment)
-                .opacity(Self.readOnlyOpacity)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(SettingsLabels.title(for: corner))
-                .accessibilityValue(SettingsLabels.title(for: item.action))
+        case .edges:
+            // The Edges tab does not edit corners: only their faded zones show, no labels, which would not fit the
+            // corner squares at Narrow and would cross the edge zones.
+            EmptyView()
         case nil:
             let action = ConfigMapper.gated(settings[corner: corner], accessibilityTrusted: accessibilityGranted)
-            CornerBadge(action: action, note: nil, hovered: false, flat: false, alignment: Self.alignment(of: corner))
+            CornerBadge(action: action, note: nil, hovered: false, alignment: Self.alignment(of: corner))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(SettingsLabels.title(for: corner))
                 .accessibilityValue(SettingsLabels.title(for: action))
@@ -172,217 +216,6 @@ struct TrackpadDiagram: View {
         case .topRight: .topTrailing
         case .bottomLeft: .bottomLeading
         case .bottomRight: .bottomTrailing
-        }
-    }
-}
-
-/// An edge's strip with its label beside it, towards the middle of the trackpad. In the Edges tab the whole of it
-/// opens the edge's menu.
-struct EdgeUnit: View {
-    let edge: TrrekEngine.Edge
-    let action: EdgeAction
-    /// The action whose colour the strip takes (Off, grey, while the edge waits for Accessibility).
-    let stripAction: EdgeAction
-    let dimmed: Bool
-    let inherited: Bool
-    let note: DiagramNote?
-    let hovered: Bool
-    let stripLength: CGFloat
-
-    init(
-        edge: TrrekEngine.Edge,
-        action: EdgeAction,
-        stripAction: EdgeAction,
-        dimmed: Bool,
-        inherited: Bool,
-        note: DiagramNote?,
-        hovered: Bool,
-        stripLength: CGFloat
-    ) {
-        self.edge = edge
-        self.action = action
-        self.stripAction = stripAction
-        self.dimmed = dimmed
-        self.inherited = inherited
-        self.note = note
-        self.hovered = hovered
-        self.stripLength = stripLength
-    }
-
-    /// The edge as the Edges and Corners & Taps tabs show it: the chosen action, grey when it is inherited, off or
-    /// waiting for Accessibility.
-    init(item: DiagramEdgeItem, hovered: Bool, stripLength: CGFloat) {
-        self.init(
-            edge: item.edge,
-            action: item.action,
-            stripAction: item.stripAction,
-            dimmed: item.isInherited || item.action == .off || item.note == .needsAccessibility,
-            inherited: item.isInherited,
-            note: item.note,
-            hovered: hovered,
-            stripLength: stripLength
-        )
-    }
-
-    var body: some View {
-        Group {
-            switch edge {
-            case .top:
-                VStack(spacing: 4) {
-                    strip
-                    label
-                }
-            case .bottom:
-                VStack(spacing: 4) {
-                    label
-                    strip
-                }
-            case .left:
-                HStack(spacing: 4) {
-                    strip
-                    label.frame(maxWidth: TrackpadDiagram.sideLabelWidth, alignment: .leading)
-                }
-            case .right:
-                HStack(spacing: 4) {
-                    label.frame(maxWidth: TrackpadDiagram.sideLabelWidth, alignment: .trailing)
-                    strip
-                }
-            }
-        }
-        .padding(2)
-    }
-
-    private var strip: some View {
-        let horizontal = edge == .top || edge == .bottom
-        return Capsule()
-            .fill(TrackpadDiagram.color(for: stripAction))
-            .frame(
-                width: horizontal ? stripLength : TrackpadDiagram.stripThickness,
-                height: horizontal ? TrackpadDiagram.stripThickness : stripLength
-            )
-    }
-
-    private var label: some View {
-        EdgeLabel(edge: edge, action: action, dimmed: dimmed, inherited: inherited, note: note, hovered: hovered)
-    }
-}
-
-// MARK: - Labels
-
-/// An edge's symbol and name. Grey when the edge is off, uses the All Apps action (also in italics) or waits for
-/// Accessibility; a note adds a warning symbol, and the hover state a chevron and a highlight. A side edge's name may
-/// wrap onto a second line; the padding is always there, so the hover highlight does not move the label.
-struct EdgeLabel: View {
-    let edge: TrrekEngine.Edge
-    let action: EdgeAction
-    let dimmed: Bool
-    /// An app's edge that uses the All Apps action is also set in italics, so it reads differently from Off.
-    let inherited: Bool
-    let note: DiagramNote?
-    let hovered: Bool
-
-    private var wraps: Bool {
-        edge == .left || edge == .right
-    }
-
-    var body: some View {
-        HStack(spacing: 3) {
-            if let symbol = SettingsLabels.symbol(for: action) {
-                Image(systemName: symbol)
-            }
-            Text(SettingsLabels.title(for: action))
-                .lineLimit(wraps ? 2 : 1)
-                .multilineTextAlignment(edge == .right ? .trailing : .leading)
-                .fixedSize(horizontal: !wraps, vertical: true)
-            if let note {
-                NoteSymbol(note: note)
-            }
-            if hovered {
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .font(.caption)
-        .italic(inherited)
-        .foregroundStyle(dimmed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
-        .background {
-            if hovered {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
-            }
-        }
-        .contentShape(.rect(cornerRadius: 6))
-    }
-}
-
-/// A small glass badge with the corner action's symbol, or "Off"; a note adds a warning symbol at its outer corner
-/// and the hover state a chevron on its inner side. Flat (without glass) where corners cannot be changed.
-struct CornerBadge: View {
-    let action: CornerAction
-    let note: DiagramNote?
-    let hovered: Bool
-    /// Drawn without its glass, for a tab where corners cannot be changed, so it does not look like a button.
-    let flat: Bool
-    /// The corner it sits in; the chevron goes on the side towards the middle of the trackpad.
-    let alignment: Alignment
-
-    var body: some View {
-        HStack(spacing: 3) {
-            if hovered, alignment.horizontal == .trailing {
-                chevron
-            }
-            content
-            if hovered, alignment.horizontal == .leading {
-                chevron
-            }
-        }
-        .padding(.horizontal, 6)
-        .frame(minWidth: 34, minHeight: 24)
-        .contentShape(.rect(cornerRadius: 12))
-        .glassEffect(flat ? .identity : .regular.interactive(hovered), in: .rect(cornerRadius: 12))
-        .overlay(alignment: alignment) {
-            if let note {
-                NoteSymbol(note: note)
-                    .font(.system(size: 9))
-                    .offset(x: alignment.horizontal == .leading ? -3 : 3, y: alignment.vertical == .top ? -3 : 3)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if let symbol = SettingsLabels.symbol(for: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(note == nil ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-        } else {
-            Text(SettingsLabels.title(for: action))
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var chevron: some View {
-        Image(systemName: "chevron.up.chevron.down")
-            .font(.system(size: 8, weight: .semibold))
-            .foregroundStyle(.secondary)
-    }
-}
-
-/// The warning symbol of a note: orange for missing Accessibility, grey for the keyboard backlight fallback.
-private struct NoteSymbol: View {
-    let note: DiagramNote
-
-    var body: some View {
-        switch note {
-        case .needsAccessibility:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-        case .backlightUnavailable:
-            Image(systemName: "info.circle")
-                .foregroundStyle(.secondary)
         }
     }
 }

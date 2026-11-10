@@ -13,7 +13,8 @@ struct WelcomeView: View {
                 TrackpadDiagram(
                     settings: model.settings,
                     backlightAvailable: model.backlightAvailable,
-                    accessibilityGranted: model.accessibilityGranted
+                    accessibilityGranted: model.accessibilityGranted,
+                    trackpad: model.trackpadSize ?? .typical
                 )
                 // No glass container here: a container draws its members' glass itself, past their opacity, so the
                 // cards could not fade in.

@@ -200,11 +200,9 @@ struct DiagramMenuTests {
         #expect(bottom.action == .media)
         #expect(bottom.notes == [.needsAccessibility, .backlightUnavailable])
         #expect(bottom.note == .needsAccessibility)
-        #expect(bottom.stripAction == .off)
-        // Only the fallback while Accessibility is granted; the strip shows media control.
+        // Only the fallback while Accessibility is granted.
         model.accessibilityGranted = true
         #expect(model.diagramEdge(.bottom).notes == [.backlightUnavailable])
-        #expect(model.diagramEdge(.bottom).stripAction == .media)
     }
 
     @Test func theAccessibilityNoteFollowsTheShownScope() {

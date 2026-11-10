@@ -40,6 +40,7 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
         window.setContentSize(Self.contentSize)
         window.center()
         window.delegate = self
+        model.trackpadSize = registry.trackpadSize ?? model.trackpadSize
         registry.welcomeWindow = window
         registry.welcomeModel = model
         return window

@@ -33,6 +33,8 @@ final class SettingsModel {
     /// Whether the DDC/CI bridge exists on this Mac; without it the External Monitor Brightness toggle is disabled.
     let externalBrightnessAvailable: Bool
     var accessibilityGranted: Bool
+    /// This Mac's trackpad, which the diagram's edge zones are drawn to scale with; `nil` while trrek knows none.
+    var trackpadSize: TrackpadSize?
     var selectedTab: SettingsTab = .general {
         // A tab switched from the keyboard never sends the diagram's hover end.
         didSet { hoveredDiagramControl = nil }
@@ -91,6 +93,7 @@ final class SettingsModel {
         backlightAvailable: Bool,
         externalBrightnessAvailable: Bool = true,
         accessibilityGranted: Bool = false,
+        trackpadSize: TrackpadSize? = nil,
         launchLocalization: String = "en",
         localization: @escaping (AppLanguage) -> String = { $0 == .turkish ? "tr" : "en" },
         canRelaunch: Bool = false,
@@ -113,6 +116,7 @@ final class SettingsModel {
         self.startUpdate = startUpdate
         self.externalBrightnessAvailable = externalBrightnessAvailable
         self.accessibilityGranted = accessibilityGranted
+        self.trackpadSize = trackpadSize
         self.onChange = onChange
     }
 

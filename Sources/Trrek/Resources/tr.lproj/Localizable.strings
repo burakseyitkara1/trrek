@@ -36,6 +36,7 @@
 "Bottom Edge" = "Alt Kenar";
 "Click an edge in the diagram to change its action." = "Bir kenarın eylemini değiştirmek için diyagramdaki kenarı tıklayın.";
 "Edge Width" = "Kenar Genişliği";
+"How far from the edge a touch starts a slide." = "Kaydırmanın başlayabileceği, kenardan olan uzaklık.";
 "Bottom Quarter Only" = "Yalnızca Alt Çeyrek";
 "The side edges respond only in their lower quarter." = "Yan kenarlar yalnızca alt çeyreklerinde yanıt verir.";
 "External Monitor Brightness" = "Harici Ekran Parlaklığı";

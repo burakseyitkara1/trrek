@@ -36,6 +36,7 @@
 "Bottom Edge" = "Bottom Edge";
 "Click an edge in the diagram to change its action." = "Click an edge in the diagram to change its action.";
 "Edge Width" = "Edge Width";
+"How far from the edge a touch starts a slide." = "How far from the edge a touch starts a slide.";
 "Bottom Quarter Only" = "Bottom Quarter Only";
 "The side edges respond only in their lower quarter." = "The side edges respond only in their lower quarter.";
 "External Monitor Brightness" = "External Monitor Brightness";
