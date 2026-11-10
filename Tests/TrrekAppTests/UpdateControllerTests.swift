@@ -223,15 +223,48 @@ struct UpdateControllerTests {
         #expect(try found.controller.row == .available(#require(SemanticVersion("0.4.0"))))
     }
 
-    /// While a check runs, a manual check does nothing (its menu item and Check Now are disabled).
-    @Test func noManualCheckWhileBusy() async throws {
-        let harness = try Self.harness(feedDelay: .milliseconds(300))
+    /// A manual check asked for while an automatic one runs joins it: one request, and the automatic check's outcome.
+    @Test func aManualCheckJoinsARunningAutomaticCheck() async throws {
+        let harness = try Self.harness(current: "0.4.0", feedDelay: .milliseconds(300))
         defer { harness.tearDown() }
         harness.controller.checkAutomatically(.launch)
-        try await waitUntil { harness.controller.isBusy }
-        #expect(await harness.controller.checkManually() == nil)
-        try await waitUntil { !harness.controller.isBusy }
+        try await waitUntil { harness.controller.isChecking }
+        #expect(await harness.controller.checkManually() == .upToDate)
         #expect(await harness.feed.calls == 1)
+    }
+
+    /// The race: the click lands after the automatic check was asked for but before its task ran. The manual check
+    /// still joins it and gets a real outcome (here the update it found), never silently nothing.
+    @Test func aManualCheckJoinsAnAutomaticCheckThatHasNotStartedYet() async throws {
+        let harness = try Self.harness(feedDelay: .milliseconds(100))
+        defer { harness.tearDown() }
+        harness.controller.checkAutomatically(.menuOpened)
+        #expect(!harness.controller.isChecking)
+        #expect(await harness.controller.checkManually() == nil)
+        #expect(try harness.controller.row == .available(#require(SemanticVersion("0.4.0"))))
+        #expect(await harness.feed.calls == 1)
+
+        let offline = try Self.harness(
+            feed: .failure(URLError(.notConnectedToInternet)),
+            suite: "trrek.tests.update-controller.offline-race"
+        )
+        defer { offline.tearDown() }
+        offline.controller.checkAutomatically(.menuOpened)
+        #expect(await offline.controller.checkManually() == .checkFailed(message: "You appear to be offline."))
+    }
+
+    /// The other order: a manual check runs, and an automatic one asked for meanwhile sends nothing.
+    @Test func anAutomaticCheckDuringAManualOneSendsNothing() async throws {
+        let harness = try Self.harness(current: "0.4.0", feedDelay: .milliseconds(200))
+        defer { harness.tearDown() }
+        let manual = Task { await harness.controller.checkManually() }
+        try await waitUntil { harness.controller.isChecking }
+        harness.controller.checkAutomatically(.menuOpened)
+        #expect(await manual.value == .upToDate)
+        // Once it has ended, the next manual check sends a new request.
+        #expect(await harness.feed.calls == 1)
+        #expect(await harness.controller.checkManually() == .upToDate)
+        #expect(await harness.feed.calls == 2)
     }
 
     @Test func settingsModelShowsTheLastCheckAndStartsTheUpdate() {

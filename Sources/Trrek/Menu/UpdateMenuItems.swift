@@ -18,9 +18,9 @@ final class UpdateMenuItems {
     }
 
     /// The update row's item: `onClick` handles a click in the view; Return on the highlighted row sends `action`.
-    /// Its width fits every state with `known`, the update known now.
+    /// Its width fits every state with `known`, the version the row shows and the update known now.
     func makeRowItem(
-        known: SemanticVersion?,
+        known: [SemanticVersion],
         target: AnyObject,
         action: Selector,
         onClick: @escaping () -> Void
@@ -43,8 +43,8 @@ final class UpdateMenuItems {
     }
 
     /// The update controller's state, shown in place.
-    func show(update: UpdateRowState?, isCheckRunning: Bool) {
-        state.show(update: update, isCheckRunning: isCheckRunning)
+    func show(update: UpdateRowState?) {
+        state.show(update: update)
         apply()
     }
 
@@ -64,6 +64,7 @@ final class UpdateMenuItems {
     func menuClosed() {
         state.menuClosed()
         apply()
+        row?.menuDidClose()
     }
 
     private func apply() {

@@ -54,7 +54,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     func showUpdateState() {
         refreshIcon()
         let updates = coordinator?.updates
-        updateItems.show(update: updates?.row, isCheckRunning: updates?.isChecking ?? false)
+        updateItems.show(update: updates?.row)
     }
 
     func menuNeedsUpdate(_: NSMenu) {
@@ -129,8 +129,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     /// The update row: Check for Updates, its outcome, or the known update.
     private func addUpdateRow(coordinator: Coordinator) {
         let updates = coordinator.updates
-        updateItems.show(update: updates?.row, isCheckRunning: updates?.isChecking ?? false)
-        let known = updates?.availableUpdate?.version
+        updateItems.show(update: updates?.row)
+        let known = [updates?.row?.version, updates?.availableUpdate?.version].compactMap(\.self)
         let action = #selector(chooseUpdateRow)
         let item = updateItems.makeRowItem(known: known, target: self, action: action) { [weak self] in
             self?.chooseUpdateRow()

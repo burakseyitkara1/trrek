@@ -21,8 +21,8 @@ public enum UpdateCheckOutcome: Equatable, Sendable {
 ///
 /// `idle` → (click) `checking` → `upToDate`, `checkFailed` or `update`. A known update (found by this check or an
 /// automatic one) shows as `update`, whose click starts the update and whose states follow `UpdateRowState`. An
-/// automatic check never shows `checking` or its outcome; while one runs the idle row waits (is not clickable). The
-/// outcome of a manual check lasts until the menu that showed it closes.
+/// automatic check never shows `checking` or its outcome; a click while one runs joins it (the caller waits for that
+/// check) and shows its outcome. The outcome of a manual check lasts until the menu that showed it closes.
 public struct MenuUpdateRowState: Equatable, Sendable {
     public enum Phase: Equatable, Sendable {
         case idle
@@ -50,12 +50,9 @@ public struct MenuUpdateRowState: Equatable, Sendable {
     }
 
     public private(set) var phase: Phase
-    /// A check runs that this row did not start (an automatic one, or one from General).
-    public private(set) var isOtherCheckRunning = false
 
-    public init(update: UpdateRowState? = nil, isCheckRunning: Bool = false) {
+    public init(update: UpdateRowState? = nil) {
         phase = update.map(Phase.update) ?? .idle
-        isOtherCheckRunning = isCheckRunning
     }
 
     /// The row's text.
@@ -82,11 +79,11 @@ public struct MenuUpdateRowState: Equatable, Sendable {
         failureReason.map { "\(title). \($0)" } ?? title
     }
 
-    /// Whether a click (or Return on the highlighted row) does something. Not while this row checks, or another check
-    /// runs, or a download or install runs; the outcome "up to date" is a statement, not a command.
+    /// Whether a click (or Return on the highlighted row) does something. Not while this row checks, or a download or
+    /// install runs; the outcome "up to date" is a statement, not a command.
     public var isClickable: Bool {
         switch phase {
-        case .idle, .checkFailed: !isOtherCheckRunning
+        case .idle, .checkFailed: true
         case .checking, .upToDate: false
         case let .update(row): row.isClickable
         }
@@ -126,6 +123,16 @@ public struct MenuUpdateRowState: Equatable, Sendable {
         return nil
     }
 
+    /// What VoiceOver announces when the row changes from `old` to this state: the outcome of a manual check (up to
+    /// date, why it failed, or the update it found), since the row changes in place without an alert.
+    public func announcement(after old: MenuUpdateRowState) -> String? {
+        guard case .checking = old.phase else { return nil }
+        switch phase {
+        case .upToDate, .checkFailed, .update(.available): return accessibilityLabel
+        case .idle, .checking, .update: return nil
+        }
+    }
+
     // MARK: - Transitions
 
     /// A click: from `idle` or `checkFailed` this row starts checking; on an update the caller starts (or continues)
@@ -145,8 +152,7 @@ public struct MenuUpdateRowState: Equatable, Sendable {
 
     /// The update controller's state changed (a check started or ended, the update moved on): a known update takes
     /// the row over at once, whoever checked. A check this row started keeps `checking` until `finishCheck`.
-    public mutating func show(update: UpdateRowState?, isCheckRunning: Bool) {
-        isOtherCheckRunning = isCheckRunning
+    public mutating func show(update: UpdateRowState?) {
         if let update {
             phase = .update(update)
         } else if case .update = phase {
@@ -183,11 +189,12 @@ public struct MenuUpdateRowState: Equatable, Sendable {
     /// A version as wide as any release is likely to be, so the row fits an update found while the menu is open.
     public static let widestVersion = SemanticVersion(major: 88, minor: 88, patch: 88)
 
-    /// Every state the row can show while the menu is open, with `known` (the known update, if any) and
-    /// `widestVersion`; the row is as wide as the widest of them, so it never changes its width in place.
-    public static func widthSamples(known: SemanticVersion?) -> [MenuUpdateRowState] {
+    /// Every state the row can show while the menu is open, with each of `known` (the version the row shows and the
+    /// known update) and `widestVersion`; the row is as wide as the widest of them, so it never changes its width in
+    /// place.
+    public static func widthSamples(known: [SemanticVersion]) -> [MenuUpdateRowState] {
         var phases: [Phase] = [.idle, .checking, .upToDate, .checkFailed(reason: "")]
-        for version in Set([known, widestVersion].compactMap(\.self)).sorted() {
+        for version in Set(known + [widestVersion]).sorted() {
             let updates: [UpdateRowState] = [
                 .available(version), .downloading(version, progress: nil), .installing(version), .failed(version),
                 .browser(version), .relaunch(version)

@@ -28,9 +28,8 @@ struct MenuUpdateRowStateTests {
         // A second click (or Return) while checking does nothing.
         #expect(row.click() == .nothing)
 
-        // The controller reports its own check starting and ending; the row keeps checking until the outcome.
-        row.show(update: nil, isCheckRunning: true)
-        row.show(update: nil, isCheckRunning: false)
+        // The controller reports its check starting and ending; the row keeps checking until the outcome.
+        row.show(update: nil)
         #expect(row.phase == .checking)
 
         row.finishCheck(.upToDate, update: nil)
@@ -68,7 +67,7 @@ struct MenuUpdateRowStateTests {
         var row = MenuUpdateRowState()
         _ = row.click()
         // The found release reaches the row as soon as the controller knows it.
-        row.show(update: .available(Self.version), isCheckRunning: false)
+        row.show(update: .available(Self.version))
         #expect(row.phase == .update(.available(Self.version)))
         row.finishCheck(nil, update: .available(Self.version))
         #expect(row.phase == .update(.available(Self.version)))
@@ -82,30 +81,75 @@ struct MenuUpdateRowStateTests {
         #expect(row.phase == .update(.available(Self.version)))
     }
 
-    /// An automatic check never shows the spinner or its outcome; meanwhile the idle row waits, and a found update
-    /// takes it over in place.
+    /// An automatic check never shows the spinner or its outcome, and the idle row stays clickable meanwhile; a found
+    /// update takes it over in place.
     @Test func automaticChecks() {
         var row = MenuUpdateRowState()
-        row.show(update: nil, isCheckRunning: true)
+        row.show(update: nil)
         #expect(row.phase == .idle)
         #expect(row.icon == .none)
-        #expect(!row.isClickable)
-        #expect(row.click() == .nothing)
-        row.show(update: nil, isCheckRunning: false)
-        #expect(row.phase == .idle)
         #expect(row.isClickable)
 
-        row.show(update: nil, isCheckRunning: true)
-        row.show(update: .available(Self.version), isCheckRunning: false)
+        row.show(update: .available(Self.version))
         #expect(row.phase == .update(.available(Self.version)))
-
-        // A check that runs while the update is known does not hold up its click.
-        row.show(update: .available(Self.version), isCheckRunning: true)
         #expect(row.click() == .update)
 
         // The update went away (a later check no longer offers it): back to checking for one.
-        row.show(update: nil, isCheckRunning: false)
+        row.show(update: nil)
         #expect(row.phase == .idle)
+    }
+
+    /// A click while an automatic check runs joins it (the caller waits for that check), so it shows the spinner and
+    /// then that check's outcome, whether the automatic check ends up to date, fails or finds the update.
+    @Test func aClickDuringAnAutomaticCheckShowsItsOutcome() {
+        var upToDate = MenuUpdateRowState()
+        #expect(upToDate.click() == .check)
+        #expect(upToDate.icon == .spinner)
+        upToDate.show(update: nil)
+        upToDate.finishCheck(.upToDate, update: nil)
+        #expect(upToDate.phase == .upToDate)
+
+        var failed = MenuUpdateRowState()
+        _ = failed.click()
+        failed.finishCheck(.checkFailed(message: "You appear to be offline."), update: nil)
+        #expect(failed.phase == .checkFailed(reason: "You appear to be offline."))
+
+        var found = MenuUpdateRowState()
+        _ = found.click()
+        found.show(update: .available(Self.version))
+        found.finishCheck(nil, update: .available(Self.version))
+        #expect(found.phase == .update(.available(Self.version)))
+    }
+
+    /// VoiceOver hears the outcome of a manual check, since the row changes without an alert; nothing else is
+    /// announced.
+    @Test func theOutcomeOfAManualCheckIsAnnounced() {
+        var row = MenuUpdateRowState()
+        let idle = row
+        _ = row.click()
+        let checking = row
+        #expect(checking.announcement(after: idle) == nil)
+
+        var upToDate = checking
+        upToDate.finishCheck(.upToDate, update: nil)
+        #expect(upToDate.announcement(after: checking) == "trrek Is Up to Date")
+
+        var failed = checking
+        failed.finishCheck(.checkFailed(message: "You appear to be offline."), update: nil)
+        #expect(failed.announcement(after: checking) == "Couldn’t Check — Try Again. You appear to be offline.")
+
+        var found = checking
+        found.show(update: .available(Self.version))
+        #expect(found.announcement(after: checking) == "Update Available: trrek 0.4.0")
+
+        // An update found by an automatic check, and the download's steps, are not announced.
+        #expect(found.announcement(after: idle) == nil)
+        var downloading = found
+        downloading.show(update: .downloading(Self.version, progress: 0.2))
+        #expect(downloading.announcement(after: found) == nil)
+        var notRun = checking
+        notRun.finishCheck(nil, update: nil)
+        #expect(notRun.announcement(after: checking) == nil)
     }
 
     /// A check's outcome that arrives after its menu closed (Return closes the menu) waits for the next menu.
@@ -134,12 +178,12 @@ struct MenuUpdateRowStateTests {
         #expect(row.showsProgressBar && row.progress == nil)
         #expect(!row.isClickable)
         #expect(row.click() == .nothing)
-        row.show(update: .downloading(Self.version, progress: 0.5), isCheckRunning: false)
+        row.show(update: .downloading(Self.version, progress: 0.5))
         #expect(row.showsProgressBar && row.progress == 0.5)
-        row.show(update: .installing(Self.version), isCheckRunning: false)
+        row.show(update: .installing(Self.version))
         #expect(row.showsProgressBar && row.progress == nil)
         #expect(row.title == "Installing trrek 0.4.0…")
-        row.show(update: .failed(Self.version, reason: .offline), isCheckRunning: false)
+        row.show(update: .failed(Self.version, reason: .offline))
         #expect(!row.showsProgressBar)
         #expect(row.failureReason == "You appear to be offline.")
         #expect(row.click() == .update)
@@ -149,7 +193,8 @@ struct MenuUpdateRowStateTests {
     /// and for the widest likely version.
     @Test func widthSamplesCoverEveryState() {
         let known = SemanticVersion(major: 1, minor: 2, patch: 3)
-        let titles = Set(MenuUpdateRowState.widthSamples(known: known).map(\.title))
+        let shown = SemanticVersion(major: 100, minor: 0, patch: 0)
+        let titles = Set(MenuUpdateRowState.widthSamples(known: [known, shown]).map(\.title))
         let rows: [UpdateRowState] = [
             .available(known), .downloading(known, progress: nil), .installing(known), .failed(known),
             .browser(known), .relaunch(known)
@@ -157,13 +202,15 @@ struct MenuUpdateRowStateTests {
         let wide = MenuUpdateRowState.widestVersion
         for title in [
             "Check for Updates", "Checking for Updates…", "trrek Is Up to Date", "Couldn’t Check — Try Again",
-            "Update Available: trrek \(wide)", "Downloading trrek \(wide)…", "Installing trrek \(wide)…"
+            "Update Available: trrek \(wide)", "Downloading trrek \(wide)…", "Installing trrek \(wide)…",
+            "Downloading trrek \(shown)…"
         ] + rows.map(\.title) {
             #expect(titles.contains(title), "\(title)")
         }
-        #expect(MenuUpdateRowState.widthSamples(known: nil).count == 10)
-        #expect(MenuUpdateRowState.widthSamples(known: wide).count == 10)
-        #expect(MenuUpdateRowState.widthSamples(known: known).count == 16)
+        #expect(MenuUpdateRowState.widthSamples(known: []).count == 10)
+        #expect(MenuUpdateRowState.widthSamples(known: [wide]).count == 10)
+        #expect(MenuUpdateRowState.widthSamples(known: [known, known]).count == 16)
+        #expect(MenuUpdateRowState.widthSamples(known: [known, shown]).count == 22)
     }
 
     @Test func outcomeNotes() {

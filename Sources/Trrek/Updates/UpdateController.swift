@@ -35,6 +35,10 @@ final class UpdateController {
     /// The update run once the row was chosen: the release it started with, and its progress or how it ended.
     private var flow: (release: ReleaseInfo, state: UpdateRowState)?
     private var pendingCheck: DispatchWorkItem?
+    /// The check that runs now, kept from the moment it is asked for (before its task starts), so a manual check
+    /// asked for meanwhile waits for it and gets its outcome instead of starting a second request.
+    private var runningCheck: (id: Int, task: Task<UpdateCheckResult, Never>)?
+    private var checkCount = 0
 
     init(
         checker: UpdateChecker,
@@ -118,16 +122,22 @@ final class UpdateController {
     /// Checks if one is due for `trigger`; a newer release shows as the badge and the menu row. Nothing is checked
     /// while an update runs.
     func checkAutomatically(_ trigger: UpdateCheckTrigger) {
-        guard !isUpdating, checker.isDue(trigger, automatic: automatic()) else { return }
-        Task { _ = await checker.check(trigger, automatic: automatic()) }
+        guard !isUpdating, runningCheck == nil, checker.isDue(trigger, automatic: automatic()) else { return }
+        _ = startCheck(trigger)
     }
 
     /// Check for Updates in the menu and Check Now in General: checks, and returns the outcome for the menu row or
-    /// General's update line to show (there is no alert). `nil` when a release was found (the badge, the menu row and
-    /// General's line show it) or nothing was checked because a check or an update was already running.
+    /// General's update line to show (there is no alert). A check that already runs (the automatic one started by
+    /// opening the menu, or the other manual one) is joined: its outcome is returned and no second request is sent.
+    /// `nil` when a release was found (the badge, the menu row and General's line show it) or an update runs.
     func checkManually() async -> UpdateCheckOutcome? {
-        guard !isBusy else { return nil }
-        switch await checker.check(.manual, automatic: automatic()) {
+        guard !isUpdating else { return nil }
+        var result = await (runningCheck?.task ?? startCheck(.manual)).value
+        if result == .skipped {
+            // The joined automatic check was no longer due; this one always runs.
+            result = await (runningCheck?.task ?? startCheck(.manual)).value
+        }
+        switch result {
         case .upToDate:
             return .upToDate
         case let .failed(message):
@@ -135,6 +145,22 @@ final class UpdateController {
         case .available, .skipped:
             return nil
         }
+    }
+
+    /// Starts a check for `trigger` and keeps it as the running one until it ends.
+    private func startCheck(_ trigger: UpdateCheckTrigger) -> Task<UpdateCheckResult, Never> {
+        checkCount += 1
+        let id = checkCount
+        let automatic = automatic()
+        let task = Task { [weak self, checker] in
+            let result = await checker.check(trigger, automatic: automatic)
+            if self?.runningCheck?.id == id {
+                self?.runningCheck = nil
+            }
+            return result
+        }
+        runningCheck = (id, task)
+        return task
     }
 
     func cancelPendingCheck() {

@@ -26,8 +26,12 @@ final class UpdateRowView: NSView {
         didSet {
             guard state != oldValue else { return }
             apply()
+            announceChange(from: oldValue)
         }
     }
+
+    /// Whether the spinner or the indeterminate bar animates; only while they show in an open menu.
+    private(set) var isAnimating = false
 
     /// Called when the row is clicked while it is clickable.
     var onClick: (() -> Void)?
@@ -66,16 +70,45 @@ final class UpdateRowView: NSView {
     }
 
     static func font(for state: MenuUpdateRowState) -> NSFont {
+        font(isProminent: state.isProminent)
+    }
+
+    static func font(isProminent: Bool) -> NSFont {
         let size = NSFont.menuFont(ofSize: 0).pointSize
-        return NSFont.systemFont(ofSize: size, weight: state.isProminent ? .semibold : .regular)
+        return NSFont.systemFont(ofSize: size, weight: isProminent ? .semibold : .regular)
+    }
+
+    /// A title the row may show, for measuring: its text, whether it is semibold and whether the bar follows it.
+    struct Title {
+        var text: String
+        var isProminent: Bool
+        var showsProgressBar: Bool
+
+        init(_ state: MenuUpdateRowState) {
+            self.init(text: state.title, isProminent: state.isProminent, showsProgressBar: state.showsProgressBar)
+        }
+
+        init(text: String, isProminent: Bool, showsProgressBar: Bool) {
+            self.text = text
+            self.isProminent = isProminent
+            self.showsProgressBar = showsProgressBar
+        }
     }
 
     /// Wide enough for every title of `samples` (`MenuUpdateRowState.widthSamples`), with the progress bar after the
     /// titles that show it.
     static func width(for samples: [MenuUpdateRowState]) -> CGFloat {
-        let widest = samples.map { state in
-            let title = (state.title as NSString).size(withAttributes: [.font: font(for: state)]).width
-            return title + (state.showsProgressBar ? spacing + barWidth : 0)
+        width(for: samples.map(Title.init))
+    }
+
+    /// Wide enough for every title, measured as the label draws it (with the text field cell's padding).
+    static func width(for titles: [Title]) -> CGFloat {
+        let measure = NSTextField(labelWithString: "")
+        let widest = titles.map { title in
+            measure.font = font(isProminent: title.isProminent)
+            measure.stringValue = title.text
+            let label = ceil(measure.cell?.cellSize.width ?? 0)
+            return label + (title.showsProgressBar ? spacing + barWidth : 0)
         }.max() ?? 0
         return ceil(titleX + widest + trailing)
     }
@@ -118,23 +151,47 @@ final class UpdateRowView: NSView {
     }
 
     /// The spinner and the indeterminate bar animate only while they show in an open menu.
-    private func updateAnimation() {
-        let visible = window != nil
-        if visible, state.icon == .spinner {
+    private func updateAnimation(menuOpen: Bool = true) {
+        let visible = menuOpen && window != nil
+        let spins = visible && state.icon == .spinner
+        let fills = visible && state.showsProgressBar && state.progress == nil
+        if spins {
             spinner.startAnimation(nil)
         } else {
             spinner.stopAnimation(nil)
         }
-        if visible, state.showsProgressBar, state.progress == nil {
+        if fills {
             bar.startAnimation(nil)
         } else {
             bar.stopAnimation(nil)
         }
+        isAnimating = spins || fills
+    }
+
+    /// The menu closed: stops the animations at once, whether or not the menu keeps the view in its window.
+    func menuDidClose() {
+        updateAnimation(menuOpen: false)
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         updateAnimation()
+    }
+
+    /// The row changes in place, so VoiceOver is told: the new title while it shows, and the outcome of a manual
+    /// check as an announcement (also when the menu closed before it arrived).
+    private func announceChange(from old: MenuUpdateRowState) {
+        if old.title != state.title, window != nil {
+            NSAccessibility.post(element: self, notification: .titleChanged)
+        }
+        if let announcement = state.announcement(after: old) {
+            // A view outside a window reaches no one; the app then makes the announcement.
+            let element: Any = window != nil ? self : NSApplication.shared
+            NSAccessibility.post(element: element, notification: .announcementRequested, userInfo: [
+                .announcement: announcement,
+                .priority: NSAccessibilityPriorityLevel.high.rawValue
+            ])
+        }
     }
 
     override func layout() {
