@@ -20,6 +20,8 @@ Signed with Developer ID and notarized by Apple · Free and open source
 
 Requires macOS 26 or later on a Mac with Apple silicon
 
+[See trrek in motion on the website](https://burakseyitkara1.github.io/trrek/)
+
 </div>
 
 <br>
