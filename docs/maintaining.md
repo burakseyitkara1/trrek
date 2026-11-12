@@ -12,6 +12,8 @@ Releases are built, signed with Developer ID and the hardened runtime, notarized
 
 Publishing requires a successful run of the `ci` workflow for the exact commit being released. Pull request runs test a merge of the branch, not the squashed commit on `main`, so start one on `main` and wait for it to pass before releasing: `gh workflow run ci --ref main`. When GitHub Actions cannot run at all, `scripts/release.sh --version X.Y.Z --allow-missing-ci` publishes without that check and prints a warning; run `ci` for the released commit as soon as it can run again.
 
+After a release, update the Homebrew cask in the [tap](https://github.com/burakseyitkara1/homebrew-trrek): set `version` and the `sha256` of the new DMG in `Casks/trrek.rb` (the release page shows the digest), then check it with `brew audit --cask --strict --online burakseyitkara1/trrek/trrek`. Installed copies update themselves, so the cask only decides what a new install gets.
+
 The executable in `dist/trrek.app` is stripped: its debug map and symbol table go to `dist/trrek.app.dSYM`, which stays on the build Mac (a release keeps a copy as `dist/release/trrek-vX.Y.Z.dSYM`) and symbolicates crash reports of that build.
 
 ## The disk image window
