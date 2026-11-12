@@ -18,6 +18,8 @@ Slide a finger along an edge to change the volume, the brightness or the keyboar
 
 Signed with Developer ID and notarized by Apple · Free and open source
 
+Requires macOS 26 or later on a Mac with Apple silicon
+
 </div>
 
 <br>
@@ -132,6 +134,15 @@ If trrek can't replace itself (it runs from a disk image, a read-only volume or 
 ## FAQ
 
 <details>
+<summary><b>Is trrek safe to install?</b></summary>
+
+<br>
+
+Every release is signed with trrek's Developer ID and notarized by Apple, so macOS opens it without a warning, and the source of every release is in this repository. trrek has no analytics and no accounts; its only network request is the update check described above. It asks for one permission, Accessibility, which the next answer explains.
+
+</details>
+
+<details>
 <summary><b>Why does trrek need the Accessibility permission?</b></summary>
 
 <br>
@@ -196,6 +207,10 @@ make install
 ```
 
 This builds the app, signs it and copies it to `~/Applications/trrek.app`. Run the tests with `make test`. Signing, releasing and the full list of make targets are in [docs/maintaining.md](docs/maintaining.md); the design is in [docs/superpowers/specs](docs/superpowers/specs/2026-11-03-trrek-design.md).
+
+## Feedback
+
+Does an edge fire when you didn't mean it to, or miss a slide you did? [Open an issue](https://github.com/burakseyitkara1/trrek/issues/new/choose) with your Mac model and macOS version; reports like these are what make the edges feel right on more trackpads.
 
 ## Contributing
 

@@ -18,6 +18,10 @@ The executable in `dist/trrek.app` is stripped: its debug map and symbol table g
 
 A release's disk image opens as a styled Finder window: the app and an Applications shortcut side by side on a light background with a chevron and "Drag trrek to Applications". `scripts/make-dmg.sh` builds it (`release.sh` calls it; `make dmg` builds an unsigned preview) from three committed files: `Resources/dmg/background.tiff` (1x and 2x, drawn by `scripts/render-dmg-background.swift`), `Resources/dmg/DS_Store` (Finder's view settings: icon view, no toolbar, 640×400, 128-point icons, the background, the icon positions) and the volume name `trrek`, which the view settings use to find the background. The image is HFS+, like the volume the view settings were recorded on. After changing the layout or the background, run `scripts/make-dmg-layout.sh` on a Mac (it mounts a writable image and lets Finder record the settings; macOS asks once to let the terminal control Finder) and commit the new `Resources/dmg/DS_Store`.
 
+## Keeping a record of traffic and downloads
+
+trrek has no analytics, so the only numbers about its reach are GitHub's: stars, the repository's traffic and each release asset's download count. GitHub keeps traffic for 14 days and download counts carry no history, so `scripts/traffic-snapshot.sh` appends the day's numbers to CSV files in `~/Library/Application Support/trrek-metrics` (or `--dir PATH`, or `$TRREK_METRICS_DIR`), outside the repository. Run it once a day, by hand or from a scheduler of your choice; a second run on the same day replaces that day's rows. It needs `gh` signed in with push access. Download counts include the app's own updates, so compare days rather than reading a total as a number of people, and expect a jump on a release day.
+
 ## Make targets
 
 | Target | Description |
