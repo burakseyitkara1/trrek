@@ -94,6 +94,8 @@ By default the right edge is Volume, the left edge Brightness, the top edge Swit
 
 That's it. Put a finger on the right edge of the trackpad and slide up.
 
+Prefer Homebrew? `brew install --cask burakseyitkara1/trrek/trrek` installs the same notarized app from trrek's own [tap](https://github.com/burakseyitkara1/homebrew-trrek). If Homebrew says the tap is not trusted, run `brew trust burakseyitkara1/trrek` and install again.
+
 <a name="requirements"></a>**Requirements:** macOS 26 or later on a Mac with Apple silicon and a trackpad (built-in or external).
 
 > [!NOTE]
