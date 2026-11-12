@@ -138,7 +138,7 @@ If trrek can't replace itself (it runs from a disk image, a read-only volume or 
 
 <br>
 
-Every release is signed with trrek's Developer ID and notarized by Apple, so macOS opens it without a warning, and the source of every release is in this repository. trrek has no analytics and no accounts; its only network request is the update check described above. It asks for one permission, Accessibility, which the next answer explains.
+Every release is signed with trrek's Developer ID and notarized by Apple, which macOS verifies before the first launch, and the source of every release is in this repository. trrek has no analytics and no accounts; its only network request is the update check described above. It asks for one permission, Accessibility, which the next answer explains.
 
 </details>
 
