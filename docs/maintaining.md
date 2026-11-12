@@ -22,6 +22,10 @@ A release's disk image opens as a styled Finder window: the app and an Applicati
 
 trrek has no analytics, so the only numbers about its reach are GitHub's: stars, the repository's traffic and each release asset's download count. GitHub keeps traffic for 14 days and download counts carry no history, so `scripts/traffic-snapshot.sh` appends the day's numbers to CSV files in `~/Library/Application Support/trrek-metrics` (or `--dir PATH`, or `$TRREK_METRICS_DIR`), outside the repository. Run it once a day, by hand or from a scheduler of your choice; a second run on the same day replaces that day's rows. It needs `gh` signed in with push access. Download counts include the app's own updates, so compare days rather than reading a total as a number of people, and expect a jump on a release day.
 
+## The website
+
+`site/` holds trrek's website: one self-contained `index.html` and the app icon, with no build step, no external scripts or fonts and no analytics. The `pages` workflow publishes the folder to GitHub Pages whenever it changes on `main` (the repository's Pages source must be set to GitHub Actions). To preview a change, run `python3 -m http.server --directory site` and open the address it prints. The page pins a 3D trackpad while scrolling steps through the edges; check both a wide window and a phone-sized one, and Reduce Motion, after changing it.
+
 ## Make targets
 
 | Target | Description |
