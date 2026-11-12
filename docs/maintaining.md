@@ -26,7 +26,7 @@ trrek has no analytics, so the only numbers about its reach are GitHub's: stars,
 
 ## The website
 
-`site/` holds trrek's website: one self-contained `index.html` and the app icon, with no build step, no external scripts or fonts and no analytics. The `pages` workflow publishes the folder to GitHub Pages whenever it changes on `main` (the repository's Pages source must be set to GitHub Actions). To preview a change, run `python3 -m http.server --directory site` and open the address it prints. The page pins a 3D trackpad while scrolling steps through the edges; check both a wide window and a phone-sized one, and Reduce Motion, after changing it.
+`site/` holds trrek's website: one self-contained `index.html` and the app icon, with no build step, no external scripts or fonts and no analytics. The `pages` workflow publishes the folder to GitHub Pages whenever it changes on `main` (the repository's Pages source must be set to GitHub Actions). `social-preview.png` (1280×640) is the picture shown when a link to the site is shared; the same file is the repository's social preview, which is uploaded by hand under Settings › General. To preview a change, run `python3 -m http.server --directory site` and open the address it prints. The page pins a 3D trackpad while scrolling steps through the edges; check both a wide window and a phone-sized one, and Reduce Motion, after changing it.
 
 ## Make targets
 
