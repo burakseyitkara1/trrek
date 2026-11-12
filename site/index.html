@@ -12,7 +12,7 @@
 <link rel="icon" href="icon.png">
 <style>
 :root {
-  --bg: #05060a; --ink: #f4f5f8; --muted: #9a9eab; --faint: #5d6170; --line: rgba(255,255,255,.09);
+  --bg: #05060a; --ink: #f4f5f8; --muted: #9a9eab; --faint: #8a8fa0; --line: rgba(255,255,255,.09);
   --blue: #1a85ff; --blue-soft: #6db3ff; --orange: #ff9f0a; --card: rgba(255,255,255,.035);
   --ease: cubic-bezier(.2,.7,.1,1);
 }
@@ -52,7 +52,7 @@ h1, h2, h3, p { margin: 0; }
 .nav .link:hover { color: var(--ink); }
 .pill {
   display: inline-flex; align-items: center; gap: 8px; font-weight: 620; border-radius: 999px; color: #fff;
-  background: linear-gradient(180deg, #3a9bff, #0f73ee); padding: 9px 18px; font-size: 15px;
+  background: linear-gradient(180deg, #1a6fe0, #0b56c4); padding: 9px 18px; font-size: 15px;
   box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 8px 26px rgba(26,133,255,.36);
   transition: transform .25s var(--ease), box-shadow .25s var(--ease);
 }
@@ -74,11 +74,11 @@ h1, h2, h3, p { margin: 0; }
 .panels { position: relative; height: 100%; }
 .panel {
   position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-46%); opacity: 0; pointer-events: none;
-  transition: opacity .55s var(--ease), transform .7s var(--ease), filter .55s;
-  filter: blur(6px);
+  transition: opacity .55s var(--ease), transform .7s var(--ease), filter .55s, visibility 0s .55s;
+  filter: blur(6px); visibility: hidden;
 }
 .panel.before { transform: translateY(-58%); }
-.panel.active { opacity: 1; transform: translateY(-50%); pointer-events: auto; filter: none; }
+.panel.active { opacity: 1; transform: translateY(-50%); pointer-events: auto; filter: none; visibility: visible; transition-delay: 0s; }
 .eyebrow {
   display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   color: var(--blue-soft); margin-bottom: 18px;
@@ -104,7 +104,7 @@ h1 {
   --rx: 58deg; --rz: -24deg;
   position: relative; width: min(470px, 74vw); aspect-ratio: 470 / 306;
   transform: rotateX(var(--rx)) rotateZ(var(--rz)); transform-style: preserve-3d; will-change: transform;
-  touch-action: none; user-select: none; -webkit-user-select: none;
+  user-select: none; -webkit-user-select: none;
 }
 .slab { position: absolute; inset: 0; border-radius: 9%/13.8%; background: #0a0b10; transform: translateZ(calc(var(--i) * -1.7px)); }
 .slab.rim { background: linear-gradient(120deg, #2a2d39, #0c0d12 55%, #1c1f2a); }
@@ -126,7 +126,7 @@ h1 {
 }
 .edge, .corner { position: absolute; transform: translateZ(1.5px); }
 .edge {
-  --p: .5; border-radius: 10px; cursor: grab; background: rgba(26,133,255,.22);
+  --p: .5; border-radius: 10px; cursor: grab; touch-action: none; background: rgba(26,133,255,.22);
   box-shadow: 0 0 0 1px rgba(26,133,255,.28) inset; transition: box-shadow .4s, background-color .4s;
 }
 .edge:active { cursor: grabbing; }
@@ -140,6 +140,7 @@ h1 {
 .corner.tl { left: 3.2%; top: 4.9%; } .corner.tr { right: 3.2%; top: 4.9%; }
 .corner.bl { left: 3.2%; bottom: 4.9%; } .corner.br { right: 3.2%; bottom: 4.9%; }
 .corner.tap { animation: tap .9s var(--ease); }
+.corner.lit { background: #ffab2e; box-shadow: 0 0 36px rgba(255,159,10,.9), 0 0 90px rgba(255,159,10,.4); }
 @keyframes tap {
   0%, 26%, 52% { background: rgba(255,159,10,.3); box-shadow: 0 0 0 1px rgba(255,159,10,.35) inset; transform: translateZ(1.5px) scale(1); }
   10%, 38% { background: #ffab2e; box-shadow: 0 0 36px rgba(255,159,10,.9), 0 0 90px rgba(255,159,10,.4); transform: translateZ(1.5px) scale(.9); }
@@ -214,14 +215,16 @@ section.block { max-width: 1120px; margin: 0 auto; padding: 120px 28px 0; }
   --mx: 50%; --my: 50%; --tx: 0deg; --ty: 0deg;
   position: relative; grid-column: span 2; border-radius: 26px; padding: 28px 26px 30px; overflow: hidden; min-height: 190px;
   border: 1px solid var(--line); background: var(--card);
-  transform: rotateX(var(--tx)) rotateY(var(--ty)); transition: transform .5s var(--ease), border-color .3s; transform-style: preserve-3d;
+  transform: rotateX(var(--tx)) rotateY(var(--ty)); transform-style: preserve-3d;
+  transition: opacity .9s var(--ease) calc(var(--d, 0) * 80ms), transform .5s var(--ease), border-color .3s;
 }
+.tile.reveal.in { transform: rotateX(var(--tx)) rotateY(var(--ty)); }
 .tile.wide { grid-column: span 3; }
 .tile::before {
   content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .4s; pointer-events: none;
   background: radial-gradient(420px circle at var(--mx) var(--my), rgba(26,133,255,.2), transparent 60%);
 }
-.tile:hover { border-color: rgba(120,185,255,.35); transition: transform .12s linear, border-color .3s; }
+.tile:hover { border-color: rgba(120,185,255,.35); transition: opacity .9s var(--ease), transform .12s linear, border-color .3s; }
 .tile:hover::before { opacity: 1; }
 .tile h3 { font-size: 22px; letter-spacing: -.02em; font-weight: 660; position: relative; }
 .tile p { color: var(--muted); margin-top: 9px; font-size: 16px; position: relative; max-width: 30em; }
@@ -246,10 +249,14 @@ section.block { max-width: 1120px; margin: 0 auto; padding: 120px 28px 0; }
 footer { border-top: 1px solid var(--line); color: var(--faint); font-size: 14px; text-align: center; padding: 24px 20px 36px; }
 footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
 
-:focus-visible { outline: 2px solid var(--blue-soft); outline-offset: 3px; border-radius: 8px; }
+:focus-visible { outline: 2px solid var(--blue-soft); outline-offset: 3px; }
 
 @media (max-width: 860px) {
-  .stage { grid-template-columns: 1fr; grid-template-rows: 42% 58%; padding: 0 20px; }
+  .stage { grid-template-columns: 1fr; grid-template-rows: 37% 63%; padding: 0 20px; }
+  h1 { font-size: 36px; }
+  .panel .ghost { display: none; }
+  .panel .lead { font-size: 16px; }
+  .panel .fine { margin-top: 14px; }
   .scene { grid-row: 1; padding-top: 56px; perspective: 1000px; }
   .panels { grid-row: 2; }
   .panel, .panel.before { top: 0; transform: translateY(26px); }
@@ -270,11 +277,15 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .orb, .shine, .closing img, .scroll-cue::after, .touch::after { animation: none; }
-  .marquee { overflow-x: auto; } .marquee .track { animation: none; } .marquee .track[aria-hidden] { display: none; }
+  .marquees { -webkit-mask-image: none; mask-image: none; }
+  .marquee .track { animation: none; flex: 1; flex-wrap: wrap; } .marquee .track[aria-hidden] { display: none; }
   .reveal { opacity: 1; transform: none; transition: none; }
   .panel { transition: opacity .2s; filter: none; }
-  .tile { transform: none; }
+  .tile, .tile.reveal.in { transform: none; }
 }
+</style>
+<noscript><style>.reveal { opacity: 1; transform: none; }</style></noscript>
+<style>
 </style>
 </head>
 <body>
@@ -310,7 +321,7 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
         <div class="panel">
           <div class="eyebrow"><i></i>Left edge</div>
           <h2>Brightness, without the function keys.</h2>
-          <p class="lead">It follows the screen your pointer is on, including external displays that support DDC/CI.</p>
+          <p class="lead">It follows the screen your pointer is on. Turn on External Monitor Brightness to include external displays that support DDC/CI.</p>
         </div>
         <div class="panel">
           <div class="eyebrow"><i></i>Top edge</div>
@@ -325,7 +336,7 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
         <div class="panel">
           <div class="eyebrow orange"><i></i>Corners</div>
           <h2>Double tap a corner.</h2>
-          <p class="lead">Mute, take a screenshot, open Mission Control or lock the Mac. Nine actions to choose from, one for each corner.</p>
+          <p class="lead">Corners are off until you give them an action: mute, a screenshot, Mission Control, Lock Screen or one of five more.</p>
         </div>
         <div class="panel">
           <div class="eyebrow plain"><i></i>The middle</div>
@@ -417,8 +428,8 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
     <div class="trust">
       <div>
         <div class="eyebrow reveal"><i></i>Safe to install</div>
-        <h2 class="reveal">Nothing leaves your Mac.</h2>
-        <p class="lead reveal">trrek has no analytics, no accounts and no identifiers. Your settings stay on your Mac.</p>
+        <h2 class="reveal">No analytics. No accounts.</h2>
+        <p class="lead reveal">trrek has no identifiers either, and your settings stay on your Mac.</p>
       </div>
       <ul>
         <li class="reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><b>Signed and notarized</b><span>Every release is signed with a Developer ID and notarized by Apple.</span></li>
@@ -527,22 +538,23 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
 
   function frame(time) {
     var conf = STEPS[step];
+    if (conf.mode !== 'corners') for (var c in corners) corners[c].classList.remove('lit');
     var tone = conf.mode === 'corners' ? 'orange' : conf.mode === 'middle' ? 'none' : 'blue';
     if (pad.dataset.tone !== tone) pad.dataset.tone = tone;
 
     if (drag || time < dragUntil) {
       touch.classList.add('on'); hud.classList.add('on');
     } else if (conf.mode === 'tour' || conf.mode === 'edge') {
-      var edge = conf.mode === 'edge' ? conf.edge : TOUR[Math.floor(time / PERIOD) % TOUR.length];
+      var edge = conf.mode === 'edge' ? conf.edge : calm ? 'right' : TOUR[Math.floor(time / PERIOD) % TOUR.length];
       slide(edge, calm ? 0.62 : wave(time));
       touch.classList.add('on'); hud.classList.add('on');
     } else if (conf.mode === 'corners') {
       setEdge(null);
-      var turn = Math.floor(time / TAP_EVERY), name = CORNER_ORDER[turn % 4];
+      var turn = calm ? 0 : Math.floor(time / TAP_EVERY), name = CORNER_ORDER[turn % 4];
       if (turn !== lastCorner) {
         lastCorner = turn;
         var el = corners[name];
-        el.classList.remove('tap'); void el.offsetWidth; if (!calm) el.classList.add('tap');
+        el.classList.remove('tap'); void el.offsetWidth; el.classList.add(calm ? 'lit' : 'tap');
         var left = name.charAt(1) === 'l', up = name.charAt(0) === 't';
         touch.style.left = (left ? 7 : 93) + '%'; touch.style.top = (up ? 10.7 : 89.3) + '%';
         setHud('text', CORNER_NAMES[name]);
@@ -550,7 +562,7 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
       touch.classList.add('on'); hud.classList.add('on');
     } else {
       setEdge(null);
-      var angle = time / 900;
+      var angle = calm ? 0 : time / 900;
       touch.style.left = (50 + 17 * Math.cos(angle)) + '%'; touch.style.top = (50 + 20 * Math.sin(angle * 1.3)) + '%';
       touch.classList.add('on'); hud.classList.remove('on');
     }
@@ -559,17 +571,18 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
     rx += (targetX - rx) * ease; rz += (targetZ - rz) * ease;
     pad.style.setProperty('--rx', rx.toFixed(2) + 'deg');
     pad.style.setProperty('--rz', rz.toFixed(2) + 'deg');
-    sheen += ((-30 + tiltX * 26 + step * 6) - sheen) * 0.06;
+    sheen += ((-30 + tiltX * 26 + step * 6) - sheen) * (calm ? 1 : 0.06);
     pad.style.setProperty('--sheen', sheen.toFixed(1) + '%');
   }
 
   // Runs only while the pinned stage is on screen and the tab is visible.
-  var running = false, visible = true;
-  function loop(time) { if (!running) return; frame(time); requestAnimationFrame(loop); }
+  // With Reduce Motion there is no loop: a frame is drawn once for each step.
+  var running = false, visible = true, request = 0;
+  function loop(time) { frame(time); request = requestAnimationFrame(loop); }
   function setRunning(next) {
-    if (next === running) return;
+    if (calm || next === running) return;
     running = next;
-    if (running) requestAnimationFrame(loop);
+    if (running) request = requestAnimationFrame(loop); else cancelAnimationFrame(request);
   }
   new IntersectionObserver(function (entries) {
     visible = entries[0].isIntersecting; setRunning(visible && !document.hidden);
@@ -584,16 +597,18 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
     var next = Math.floor(progress * STEPS.length);
     cue.style.opacity = progress < 0.02 ? 1 : 0;
     if (next === step) return;
-    step = next; lastCorner = -1;
+    step = next; lastCorner = -1; dragUntil = 0;
     for (var k = 0; k < panels.length; k++) {
       panels[k].classList.toggle('active', k === step);
       panels[k].classList.toggle('before', k < step);
       rail[k].classList.toggle('on', k === step);
     }
+    if (calm) frame(0);
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
   onScroll();
+  if (calm) frame(0);
 
   // ----- the pointer tilts the trackpad a little
   window.addEventListener('pointermove', function (event) {
@@ -612,7 +627,7 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   }
   pad.addEventListener('pointerdown', function (event) {
     var edge = event.target.dataset && event.target.dataset.edge;
-    if (!edge) return;
+    if (!edge || event.button !== 0) return;
     drag = { edge: edge, el: event.target };
     event.target.setPointerCapture(event.pointerId);
     fromPointer(event);
@@ -621,6 +636,7 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   function release() { if (drag) { drag = null; dragUntil = performance.now() + 2200; } }
   pad.addEventListener('pointerup', release);
   pad.addEventListener('pointercancel', release);
+  pad.addEventListener('lostpointercapture', release);
 
   // ----- reveals, counters, tiles
   var seen = new IntersectionObserver(function (entries) {
