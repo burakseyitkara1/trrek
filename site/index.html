@@ -609,7 +609,8 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
     var progress = Math.max(0, Math.min(0.9999, -rect.top / span));
     var next = Math.floor(progress * STEPS.length);
     cue.style.opacity = progress < 0.02 ? 1 : 0;
-    nav.classList.toggle('at-start', next === 0);
+    // the bar's links swap on phones; not while one of them has the keyboard focus
+    if (!nav.contains(document.activeElement)) nav.classList.toggle('at-start', next === 0);
     if (next === step) return;
     step = next; lastCorner = -1; dragUntil = 0;
     for (var k = 0; k < panels.length; k++) {
