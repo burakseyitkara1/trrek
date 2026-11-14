@@ -274,6 +274,17 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   .nav[data-cta="none"] .pill { opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 0s, 0s, 0s, 0s, .3s; }
   .nav[data-cta="dock"] .pill .more { display: inline; }
 }
+/* wide upright screens, such as an unfolded phone or a small tablet: the same stack, a size up */
+@media (min-width: 600px) and (max-width: 860px) and (orientation: portrait) {
+  .stage { padding: 0 40px; grid-template-rows: 42% 58%; }
+  h1 { font-size: 52px; }
+  .panel h2 { font-size: 44px; }
+  .panel .lead { font-size: 19px; }
+  .scene { padding-top: 96px; }
+  .pad { width: min(380px, 42vh); }
+  .hud { transform: translate(-50%, -50%) translateZ(96px) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) scale(.9); }
+  .nav[data-cta="dock"] .pill, .nav[data-cta="none"] .pill { width: 380px; right: calc(50% - 190px); }
+}
 @media (max-width: 860px) and (orientation: portrait) and (max-height: 640px), (max-width: 560px) and (max-height: 640px) {
   h1 { font-size: 32px; }
   .panel .fine { display: none; }
