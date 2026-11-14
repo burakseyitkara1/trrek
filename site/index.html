@@ -32,17 +32,10 @@ body {
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin: 0; }
 
-/* ---------- backdrop ---------- */
-.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.orb { position: absolute; border-radius: 50%; filter: blur(90px); will-change: transform; }
-.orb.a { width: 56vmax; height: 56vmax; left: 46%; top: -22%; background: radial-gradient(circle, rgba(26,133,255,.42), transparent 62%); animation: drift-a 26s ease-in-out infinite alternate; }
-.orb.b { width: 44vmax; height: 44vmax; left: -16%; top: 44%; background: radial-gradient(circle, rgba(255,159,10,.17), transparent 62%); animation: drift-b 32s ease-in-out infinite alternate; }
-.orb.c { width: 38vmax; height: 38vmax; left: 58%; top: 62%; background: radial-gradient(circle, rgba(110,80,255,.20), transparent 62%); animation: drift-a 38s ease-in-out infinite alternate-reverse; }
-@keyframes drift-a { to { transform: translate3d(-9vmax, 7vmax, 0) scale(1.12); } }
-@keyframes drift-b { to { transform: translate3d(11vmax, -8vmax, 0) scale(.9); } }
-.grain {
-  position: absolute; inset: 0; opacity: .16; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+/* ---------- backdrop: one still light behind the trackpad ---------- */
+.backdrop {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(62vmax 62vmax at 76% 6%, rgba(26,133,255,.24), transparent 64%);
 }
 
 /* ---------- nav ---------- */
@@ -56,13 +49,16 @@ h1, h2, h3, p { margin: 0; }
 .nav .brand img { width: 26px; height: 26px; }
 .nav .link { color: var(--muted); font-size: 15px; padding: 6px 8px; transition: color .2s; }
 .nav .link:hover { color: var(--ink); }
+.nav .link.source { display: inline-flex; align-items: center; gap: 7px; }
+.nav .link.source svg { width: 18px; height: 18px; fill: currentColor; }
+.pill .more { display: none; }
 .pill {
   display: inline-flex; align-items: center; gap: 8px; font-weight: 620; border-radius: 999px; color: #fff;
   background: linear-gradient(180deg, #1a6fe0, #0b56c4); padding: 9px 18px; font-size: 15px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 8px 26px rgba(26,133,255,.36);
-  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.16) inset, 0 1px 0 rgba(255,255,255,.22) inset;
+  transition: background .2s;
 }
-.pill:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(255,255,255,.22) inset, 0 12px 36px rgba(26,133,255,.55); }
+.pill:hover { background: linear-gradient(180deg, #2b7fea, #1262d2); }
 .pill.big { padding: 15px 30px; font-size: 18px; }
 .ghost {
   display: inline-flex; align-items: center; padding: 15px 24px; border-radius: 999px; font-weight: 600; font-size: 17px;
@@ -85,21 +81,20 @@ h1, h2, h3, p { margin: 0; }
 }
 .panel.before { transform: translateY(-58%); }
 .panel.active { opacity: 1; transform: translateY(-50%); pointer-events: auto; filter: none; visibility: visible; transition-delay: 0s; }
-.eyebrow {
-  display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--blue-soft); margin-bottom: 18px;
-}
-.eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
-.eyebrow.orange { color: var(--orange); }
-.eyebrow.plain { color: var(--muted); }
+.where { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--muted); margin-bottom: 18px; }
+/* a small trackpad that shows which part the step is about */
+.where i { position: relative; flex: none; width: 26px; height: 18px; border-radius: 5px; box-shadow: 0 0 0 1.5px rgba(255,255,255,.3) inset; }
+.where i::after { content: ""; position: absolute; border-radius: 2px; background: var(--blue-soft); }
+.where[data-at="right"] i::after { right: 3.5px; top: 4.5px; bottom: 4.5px; width: 3px; }
+.where[data-at="left"] i::after { left: 3.5px; top: 4.5px; bottom: 4.5px; width: 3px; }
+.where[data-at="top"] i::after { top: 3.5px; left: 6px; right: 6px; height: 3px; }
+.where[data-at="bottom"] i::after { bottom: 3.5px; left: 6px; right: 6px; height: 3px; }
+.where[data-at="corners"] i::after { left: 3.5px; top: 3.5px; width: 3px; height: 3px; border-radius: 1px; background: var(--orange); box-shadow: 16px 0 var(--orange), 0 8px var(--orange), 16px 8px var(--orange); }
+.where[data-at="middle"] i::after { left: 11px; top: 7px; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }
 h1 {
   font-size: clamp(42px, 5.6vw, 78px); line-height: 1.0; letter-spacing: -.035em; font-weight: 720; text-wrap: balance;
 }
-.shine {
-  background: linear-gradient(100deg, #fff 0%, #9fd0ff 30%, #1a85ff 52%, #9fd0ff 74%, #fff 100%); background-size: 220% 100%;
-  -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 7s linear infinite;
-}
-@keyframes shine { to { background-position: -220% 0; } }
+.accent { color: #7fbcff; }
 .panel h2 { font-size: clamp(34px, 4.3vw, 60px); line-height: 1.03; letter-spacing: -.03em; font-weight: 700; text-wrap: balance; }
 .lead { color: var(--muted); font-size: clamp(17px, 1.55vw, 20px); margin-top: 20px; max-width: 30em; text-wrap: pretty; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
@@ -108,7 +103,7 @@ h1 {
 .scene { position: relative; height: 100%; display: grid; place-items: center; perspective: 1500px; perspective-origin: 50% 42%; }
 .pad {
   --rx: 58deg; --rz: -24deg;
-  position: relative; width: min(470px, 74vw); aspect-ratio: 470 / 306;
+  position: relative; width: min(470px, 40vw); aspect-ratio: 470 / 306;
   transform: rotateX(var(--rx)) rotateZ(var(--rz)); transform-style: preserve-3d; will-change: transform;
   user-select: none; -webkit-user-select: none;
 }
@@ -193,63 +188,40 @@ h1 {
 @keyframes cue { 0% { transform: scaleY(0); } 60% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
 
 /* ---------- sections ---------- */
-section.block { max-width: 1120px; margin: 0 auto; padding: 120px 28px 0; }
-.block h2 { font-size: clamp(34px, 4.6vw, 62px); line-height: 1.04; letter-spacing: -.03em; font-weight: 700; text-wrap: balance; max-width: 15em; }
+section.block { max-width: 1120px; margin: 0 auto; padding: 132px 28px 0; }
+.block h2 { font-size: clamp(32px, 4.2vw, 56px); line-height: 1.05; letter-spacing: -.03em; font-weight: 700; text-wrap: balance; max-width: 16em; }
 .block .lead { max-width: 36em; }
-.reveal { opacity: 0; transform: translateY(26px); transition: opacity .9s var(--ease), transform .9s var(--ease); transition-delay: calc(var(--d, 0) * 80ms); }
+.reveal { opacity: 0; transform: translateY(12px); transition: opacity .6s var(--ease), transform .6s var(--ease); transition-delay: calc(var(--d, 0) * 60ms); }
 .reveal.in { opacity: 1; transform: none; }
 
-.marquees { margin-top: 54px; display: grid; gap: 14px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
-.marquee { display: flex; overflow: hidden; }
-.marquee .track { display: flex; gap: 14px; padding-right: 14px; flex: none; animation: slide 46s linear infinite; }
-.marquee.rev .track { animation-direction: reverse; animation-duration: 54s; }
-@keyframes slide { to { transform: translateX(-100%); } }
-.chip {
-  flex: none; padding: 13px 22px; border-radius: 999px; font-size: 18px; font-weight: 560; letter-spacing: -.01em;
-  border: 1px solid rgba(26,133,255,.32); background: rgba(26,133,255,.09); color: #cfe5ff;
-}
-.marquee.rev .chip { border-color: rgba(255,159,10,.32); background: rgba(255,159,10,.08); color: #ffe2b3; }
+/* every action by name, under the mark it has on the trackpad */
+.legend { margin-top: 56px; display: grid; gap: 44px; }
+.legend h3 { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 15px; font-weight: 600; color: var(--muted); }
+.legend h3 i { flex: none; width: 34px; height: 9px; border-radius: 5px; background: var(--blue); }
+.legend .taps h3 i { width: 11px; height: 11px; border-radius: 3.5px; background: var(--orange); }
+.legend ul { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; font-size: clamp(22px, 2.8vw, 36px); font-weight: 620; letter-spacing: -.022em; line-height: 1.3; }
+.legend li:not(:last-child)::after { content: "/"; content: "/" / ""; margin: 0 .48em; color: rgba(255,255,255,.2); font-weight: 400; }
 
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 56px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); background: var(--line); }
-.stat { background: #07080d; padding: 38px 30px 34px; }
-.stat .num { font-size: clamp(54px, 8vw, 104px); line-height: 1; font-weight: 720; letter-spacing: -.045em; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #fff, #8b93a8); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.stat .num small { font-size: .38em; letter-spacing: -.01em; margin-left: .12em; }
-.stat p { color: var(--muted); margin-top: 12px; font-size: 16px; }
+.figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 40px; margin-top: 56px; }
+.figure { border-top: 1px solid var(--line); padding-top: 22px; }
+.figure .num { font-size: clamp(52px, 7vw, 92px); line-height: 1; font-weight: 700; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.figure .num small { font-size: .36em; letter-spacing: -.01em; margin-left: .14em; font-weight: 600; color: var(--muted); }
+.figure p { color: var(--muted); margin-top: 12px; font-size: 16px; }
 
-.bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-top: 56px; perspective: 1200px; }
-.tile {
-  --mx: 50%; --my: 50%; --tx: 0deg; --ty: 0deg;
-  position: relative; grid-column: span 2; border-radius: 26px; padding: 28px 26px 30px; overflow: hidden; min-height: 190px;
-  border: 1px solid var(--line); background: var(--card);
-  transform: rotateX(var(--tx)) rotateY(var(--ty)); transform-style: preserve-3d;
-  transition: opacity .9s var(--ease) calc(var(--d, 0) * 80ms), transform .5s var(--ease), border-color .3s;
-}
-.tile.reveal.in { transform: rotateX(var(--tx)) rotateY(var(--ty)); }
-.tile.wide { grid-column: span 3; }
-.tile::before {
-  content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .4s; pointer-events: none;
-  background: radial-gradient(420px circle at var(--mx) var(--my), rgba(26,133,255,.2), transparent 60%);
-}
-.tile:hover { border-color: rgba(120,185,255,.35); transition: opacity .9s var(--ease), transform .12s linear, border-color .3s; }
-.tile:hover::before { opacity: 1; }
-.tile h3 { font-size: 22px; letter-spacing: -.02em; font-weight: 660; position: relative; }
-.tile p { color: var(--muted); margin-top: 9px; font-size: 16px; position: relative; max-width: 30em; }
-.tile .glyph { display: block; width: 44px; height: 44px; margin-bottom: 22px; position: relative; color: var(--blue-soft); }
-
+.rows { list-style: none; margin: 52px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.rows li { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 6px 40px; padding: 22px 2px; border-bottom: 1px solid var(--line); }
+.rows b { font-weight: 640; font-size: 19px; letter-spacing: -.01em; }
+.rows span { color: var(--muted); }
 .trust { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 56px; align-items: start; }
-.trust ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.trust li { padding: 22px 2px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 34px 1fr; gap: 6px 10px; }
-.trust li svg { width: 22px; height: 22px; color: var(--blue-soft); margin-top: 3px; }
-.trust li b { font-weight: 640; font-size: 19px; letter-spacing: -.01em; }
-.trust li span { grid-column: 2; color: var(--muted); }
+.trust .rows { margin-top: 0; }
+.trust .rows li { grid-template-columns: 1fr; }
 
 .closing { position: relative; text-align: center; padding: 170px 28px 150px; overflow: hidden; }
 .closing::before {
-  content: ""; position: absolute; left: 50%; bottom: -46%; width: 120vmin; height: 120vmin; transform: translateX(-50%); border-radius: 50%; z-index: -1;
-  background: radial-gradient(closest-side, rgba(26,133,255,.5), rgba(26,133,255,.08) 62%, transparent); filter: blur(30px);
+  content: ""; position: absolute; left: 50%; bottom: -52%; width: 120vmin; height: 120vmin; transform: translateX(-50%); border-radius: 50%; z-index: -1;
+  background: radial-gradient(closest-side, rgba(26,133,255,.4), rgba(26,133,255,.06) 62%, transparent);
 }
-.closing img { width: 104px; height: 104px; filter: drop-shadow(0 22px 50px rgba(26,133,255,.55)); animation: float 6s ease-in-out infinite; }
-@keyframes float { 50% { transform: translateY(-12px); } }
+.closing img { width: 96px; height: 96px; }
 .closing h2 { font-size: clamp(40px, 6.6vw, 92px); line-height: 1; letter-spacing: -.04em; font-weight: 720; margin: 28px auto 0; max-width: 11em; text-wrap: balance; }
 .closing .actions { justify-content: center; margin-top: 38px; }
 footer { border-top: 1px solid var(--line); color: var(--faint); font-size: 14px; text-align: center; padding: 24px 20px 36px; }
@@ -257,11 +229,29 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
 
 :focus-visible { outline: 2px solid var(--blue-soft); outline-offset: 3px; }
 
+/* ---------- small windows ---------- */
 @media (max-width: 860px) {
+  section.block { padding: 92px 20px 0; }
+  .figures { grid-template-columns: 1fr; gap: 28px; }
+  .rows li { grid-template-columns: 1fr; }
+  .trust { grid-template-columns: 1fr; gap: 30px; }
+  .closing { padding: 120px 20px 110px; }
+  .rail, .scroll-cue { display: none; }
+  .pill.big, .ghost { padding: 13px 22px; font-size: 16px; }
+  .nav .link { display: none; }
+  .nav .link.source {
+    display: inline-flex; justify-content: center; width: 42px; height: 42px; padding: 0; border-radius: 50%;
+    color: var(--ink); background: rgba(255,255,255,.07);
+  }
+  .nav .link.source span { display: none; }
+  .nav .link.source svg { width: 21px; height: 21px; }
+}
+/* upright phones: the trackpad above the text, and the download button docked at the bottom during the story */
+@media (max-width: 860px) and (orientation: portrait), (max-width: 560px) {
   .stage { grid-template-columns: 1fr; grid-template-rows: 38% 62%; padding: 0 20px; }
   h1 { font-size: 36px; }
   .panel .ghost { display: none; }
-  .panel .lead { font-size: 16px; }
+  .panel .lead { font-size: 16px; margin-top: 14px; }
   .panel .fine { margin-top: 14px; }
   .scene { grid-row: 1; padding-top: 84px; perspective: 1000px; }
   .panels { grid-row: 2; }
@@ -269,47 +259,70 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   .panel.active { transform: translateY(8px); }
   .pad { width: min(280px, 68vw); }
   .hud { transform: translate(-50%, -50%) translateZ(62px) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) scale(.8); }
-  .rail, .scroll-cue { display: none; }
-  .lead { margin-top: 14px; }
   .actions { margin-top: 20px; }
-  .pill.big, .ghost { padding: 13px 22px; font-size: 16px; }
-  .nav .link { display: none; }
-  /* the first screen has its own download button, so the bar shows the source link there instead */
-  .nav.at-start .link.source { display: inline; padding: 9px 14px; }
-  .nav.at-start .pill { display: none; }
-  section.block { padding: 88px 20px 0; }
-  .stats { grid-template-columns: 1fr; }
-  .tile, .tile.wide { grid-column: span 6; min-height: 0; }
-  .trust { grid-template-columns: 1fr; gap: 30px; }
-  .closing { padding: 120px 20px 110px; }
+
+  .nav { padding-right: 124px; transition: padding .5s var(--ease); }
+  .nav .pill {
+    position: absolute; top: 7px; right: 7px; width: 108px; height: 42px; padding: 0; justify-content: center; gap: .28em;
+    transition: top .55s var(--ease), right .55s var(--ease), width .55s var(--ease), height .55s var(--ease), font-size .55s var(--ease), opacity .3s, visibility 0s;
+  }
+  .nav[data-cta="dock"], .nav[data-cta="none"] { padding-right: 8px; }
+  .nav[data-cta="dock"] .pill, .nav[data-cta="none"] .pill {
+    top: calc(100vh - 97px); top: calc(100svh - 97px - env(safe-area-inset-bottom, 0px));
+    right: -1px; width: calc(100% + 2px); height: 54px; font-size: 17px;
+  }
+  .nav[data-cta="none"] .pill { opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 0s, 0s, 0s, 0s, .3s; }
+  .nav[data-cta="dock"] .pill .more { display: inline; }
 }
-@media (max-width: 860px) and (max-height: 640px) {
+@media (max-width: 860px) and (orientation: portrait) and (max-height: 640px), (max-width: 560px) and (max-height: 640px) {
   h1 { font-size: 32px; }
   .panel .fine { display: none; }
 }
+@media (max-width: 340px), (max-width: 560px) and (max-height: 520px) {
+  h1 { font-size: 28px; }
+  .panel h2 { font-size: 28px; }
+  .panel .lead { font-size: 15px; }
+  .stage { grid-template-rows: 36% 64%; }
+  .scene { padding-top: 78px; }
+  .pad { width: min(220px, 60vw); }
+  .hud { transform: translate(-50%, -50%) translateZ(40px) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) scale(.72); }
+}
+/* a phone on its side, or a small wide window: text and trackpad side by side, everything a size down */
+@media (max-width: 860px) and (orientation: landscape) and (min-width: 561px) {
+  .stage { padding: 0 24px; }
+  h1 { font-size: clamp(28px, 4.6vw, 38px); }
+  .panel h2 { font-size: clamp(26px, 4vw, 34px); }
+  .panel .lead { font-size: 15px; margin-top: 12px; }
+  .where { margin-bottom: 12px; }
+  .actions { margin-top: 18px; }
+  .panel .ghost { display: none; }
+  .scene { padding-top: 60px; perspective: 1100px; }
+  .hud { transform: translate(-50%, -50%) translateZ(64px) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) scale(.78); }
+}
+@media (max-width: 860px) and (orientation: landscape) and (min-width: 561px) and (max-height: 480px) {
+  .panel .fine, .panel .where:not([data-at]) { display: none; }
+  .panel, .panel.before { top: 88px; transform: translateY(12px); }
+  .panel.active { transform: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .orb, .shine, .closing img, .scroll-cue::after, .touch::after { animation: none; }
-  .marquees { -webkit-mask-image: none; mask-image: none; }
-  .marquee .track { animation: none; flex: 1; flex-wrap: wrap; } .marquee .track[aria-hidden] { display: none; }
+  .scroll-cue::after, .touch::after { animation: none; }
   .reveal { opacity: 1; transform: none; transition: none; }
   .panel { transition: opacity .2s; filter: none; }
-  .tile, .tile.reveal.in { transform: none; }
+  .nav, .nav .pill { transition: none; }
 }
 </style>
 <noscript><style>.reveal { opacity: 1; transform: none; }</style></noscript>
-<style>
-</style>
 </head>
 <body>
-<div class="backdrop" aria-hidden="true"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div><div class="grain"></div></div>
+<div class="backdrop" aria-hidden="true"></div>
 
 <header class="nav">
   <a class="brand" href="#top"><img src="icon.png" alt="">trrek</a>
   <a class="link" href="#actions">Actions</a>
   <a class="link" href="#safe">Safety</a>
-  <a class="link source" href="https://github.com/burakseyitkara1/trrek">GitHub</a>
-  <a class="pill" data-download href="https://github.com/burakseyitkara1/trrek/releases/latest">Download</a>
+  <a class="link source" href="https://github.com/burakseyitkara1/trrek" aria-label="trrek on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+  <a class="pill" id="get" data-download href="https://github.com/burakseyitkara1/trrek/releases/latest">Download<span class="more">trrek</span></a>
 </header>
 
 <main id="top">
@@ -317,8 +330,8 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
     <div class="stage">
       <div class="panels" id="panels">
         <div class="panel active">
-          <div class="eyebrow"><i></i>Free and open source for Mac</div>
-          <h1>Your trackpad's edges, <span class="shine">turned into controls.</span></h1>
+          <div class="where">Free and open source for Mac</div>
+          <h1>Your trackpad's edges, <span class="accent">turned into controls.</span></h1>
           <p class="lead">Slide a finger along an edge to change the volume or the brightness or to switch apps. Double tap a corner to mute or take a screenshot.</p>
           <div class="actions">
             <a class="pill big" data-download href="https://github.com/burakseyitkara1/trrek/releases/latest">Download trrek</a>
@@ -327,32 +340,32 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
           <p class="fine">macOS 26 or later · Apple silicon · Signed and notarized</p>
         </div>
         <div class="panel">
-          <div class="eyebrow"><i></i>Right edge</div>
+          <div class="where" data-at="right"><i></i>Right edge</div>
           <h2>Volume, under your finger.</h2>
           <p class="lead">Slide up or down the right edge. Every step gives a light haptic click, and the system's own indicator follows.</p>
         </div>
         <div class="panel">
-          <div class="eyebrow"><i></i>Left edge</div>
+          <div class="where" data-at="left"><i></i>Left edge</div>
           <h2>Brightness, without the function keys.</h2>
           <p class="lead">It follows the screen your pointer is on. Turn on External Monitor Brightness to include external displays that support DDC/CI.</p>
         </div>
         <div class="panel">
-          <div class="eyebrow"><i></i>Top edge</div>
+          <div class="where" data-at="top"><i></i>Top edge</div>
           <h2>Switch apps with one slide.</h2>
           <p class="lead">The app switcher opens and moves with your finger. Lift to switch.</p>
         </div>
         <div class="panel">
-          <div class="eyebrow"><i></i>Bottom edge</div>
+          <div class="where" data-at="bottom"><i></i>Bottom edge</div>
           <h2>Keyboard backlight, by feel.</h2>
           <p class="lead">Slide along the bottom edge to set the backlight, with a level overlay to show where you are.</p>
         </div>
         <div class="panel">
-          <div class="eyebrow orange"><i></i>Corners</div>
+          <div class="where" data-at="corners"><i></i>Corners</div>
           <h2>Double tap a corner.</h2>
           <p class="lead">Corners are off until you give them an action: mute, a screenshot, Mission Control, Lock Screen or one of five more.</p>
         </div>
         <div class="panel">
-          <div class="eyebrow plain"><i></i>The middle</div>
+          <div class="where" data-at="middle"><i></i>The middle</div>
           <h2>Everything else works as before.</h2>
           <p class="lead">Pointing, scrolling and gestures are untouched. Palms and typing never trigger a slide.</p>
         </div>
@@ -386,69 +399,51 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   </div>
 
   <section class="block" id="actions">
-    <div class="eyebrow reveal"><i></i>Yours to arrange</div>
     <h2 class="reveal">Every edge and every corner does what you choose.</h2>
     <p class="lead reveal">Eleven slide actions and nine corner actions. Set them per edge and per corner, and per app when you want: tabs in a browser, scrubbing in a video player.</p>
-    <div class="marquees reveal">
-      <div class="marquee" id="edge-actions"></div>
-      <div class="marquee rev" id="corner-actions"></div>
+    <div class="legend">
+      <div class="reveal">
+        <h3><i></i>Slide along an edge</h3>
+        <ul><li>Volume</li><li>Brightness</li><li>Keyboard Backlight</li><li>Switch Apps</li><li>Switch Tabs</li><li>Switch Desktops</li><li>Scrub Video</li><li>Media</li><li>Zoom</li><li>Undo &amp; Redo</li><li>Off</li></ul>
+      </div>
+      <div class="taps reveal" style="--d:1">
+        <h3><i></i>Double tap a corner</h3>
+        <ul><li>Mute</li><li>Screenshot</li><li>Screenshot Area</li><li>Play/Pause</li><li>Mission Control</li><li>App Windows</li><li>Show Desktop</li><li>Spotlight</li><li>Lock Screen</li></ul>
+      </div>
     </div>
   </section>
 
   <section class="block">
-    <div class="eyebrow reveal"><i></i>Light</div>
     <h2 class="reveal">It works only while a finger is on the trackpad.</h2>
-    <div class="stats reveal">
-      <div class="stat"><div class="num"><span data-count="0">0</span><small>%</small></div><p>CPU when idle</p></div>
-      <div class="stat"><div class="num"><span data-count="13">13</span><small>MB</small></div><p>of memory, about</p></div>
-      <div class="stat"><div class="num"><span data-count="0">0</span></div><p>timers and no background polling</p></div>
+    <div class="figures">
+      <div class="figure reveal"><div class="num">0<small>%</small></div><p>CPU when idle</p></div>
+      <div class="figure reveal" style="--d:1"><div class="num">13<small>MB</small></div><p>of memory, about</p></div>
+      <div class="figure reveal" style="--d:2"><div class="num">0</div><p>timers and no background polling</p></div>
     </div>
   </section>
 
   <section class="block">
-    <div class="eyebrow reveal"><i></i>Details</div>
     <h2 class="reveal">Made to feel like part of the Mac.</h2>
-    <div class="bento">
-      <div class="tile wide reveal">
-        <svg class="glyph" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="9" width="34" height="26" rx="6"/><path d="M12 9v26M32 9v26" opacity=".5"/><circle cx="22" cy="22" r="3.5" fill="currentColor" stroke="none"/></svg>
-        <h3>Edges per app</h3>
-        <p>Give an app its own edge actions. They apply while that app is in front; every other edge stays the same as everywhere else.</p>
-      </div>
-      <div class="tile wide reveal" style="--d:1">
-        <svg class="glyph" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 22h5l3-9 5 18 5-14 3 8 3-3h8"/></svg>
-        <h3>A haptic click for every step</h3>
-        <p>You feel each step of a slide, on the trackpad you are sliding on, so you never have to look.</p>
-      </div>
-      <div class="tile reveal">
-        <svg class="glyph" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8l18 14-8 2 5 10-4 2-5-10-6 5z"/></svg>
-        <h3>Freeze Cursor</h3>
-        <p>The pointer stays still and scrolling pauses while you slide.</p>
-      </div>
-      <div class="tile reveal" style="--d:1">
-        <svg class="glyph" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="12" width="32" height="20" rx="5"/><path d="M12 19h2M18 19h2M24 19h2M30 19h2M15 26h14"/></svg>
-        <h3>Hold-to-Slide key</h3>
-        <p>Slide only while a modifier key is held, or use it to switch the edges on and off.</p>
-      </div>
-      <div class="tile reveal" style="--d:2">
-        <svg class="glyph" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7v20M14 20l8 8 8-8M9 35h26"/></svg>
-        <h3>Keeps itself up to date</h3>
-        <p>One click downloads, verifies and installs a new version in place.</p>
-      </div>
-    </div>
+    <ul class="rows">
+      <li class="reveal"><b>Edges per app</b><span>Give an app its own edge actions. They apply while that app is in front; every other edge stays the same as everywhere else.</span></li>
+      <li class="reveal"><b>A haptic click for every step</b><span>You feel each step of a slide, on the trackpad you are sliding on, so you never have to look.</span></li>
+      <li class="reveal"><b>Freeze Cursor</b><span>The pointer stays still and scrolling pauses while you slide.</span></li>
+      <li class="reveal"><b>Hold-to-Slide key</b><span>Slide only while a modifier key is held, or use it to switch the edges on and off.</span></li>
+      <li class="reveal"><b>Keeps itself up to date</b><span>One click downloads, verifies and installs a new version in place.</span></li>
+    </ul>
   </section>
 
   <section class="block" id="safe">
     <div class="trust">
       <div>
-        <div class="eyebrow reveal"><i></i>Safe to install</div>
         <h2 class="reveal">No analytics. No accounts.</h2>
         <p class="lead reveal">trrek has no identifiers either, and your settings stay on your Mac.</p>
       </div>
-      <ul>
-        <li class="reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><b>Signed and notarized</b><span>Every release is signed with a Developer ID and notarized by Apple.</span></li>
-        <li class="reveal" style="--d:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></svg><b>Open source</b><span>MIT licensed; the code of every release is on GitHub.</span></li>
-        <li class="reveal" style="--d:2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.5 5.5l13 13"/></svg><b>One network request</b><span>A daily check for a new version, which sends trrek's version and nothing else. You can turn it off.</span></li>
-        <li class="reveal" style="--d:3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14" r="4"/><path d="M11 11l9-8M16 6.5l2.5 2.5"/></svg><b>One permission</b><span>Accessibility, because trrek sends the same key and media events your keyboard would. It reads no window contents and logs no keystrokes.</span></li>
+      <ul class="rows">
+        <li class="reveal"><b>Signed and notarized</b><span>Every release is signed with a Developer ID and notarized by Apple.</span></li>
+        <li class="reveal"><b>Open source</b><span>MIT licensed; the code of every release is on GitHub.</span></li>
+        <li class="reveal"><b>One network request</b><span>A daily check for a new version, which sends trrek's version and nothing else. You can turn it off.</span></li>
+        <li class="reveal"><b>One permission</b><span>Accessibility, because trrek sends the same key and media events your keyboard would. It reads no window contents and logs no keystrokes.</span></li>
       </ul>
     </div>
   </section>
@@ -472,28 +467,11 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   var $ = function (id) { return document.getElementById(id); };
   var story = $('story'), pad = $('pad'), touch = $('touch'), hud = $('hud');
   var hudName = $('hud-name'), hudValue = $('hud-value'), bar = $('bar'), apps = $('apps').children;
-  var panels = $('panels').children, rail = $('rail').children, cue = $('cue'), nav = document.querySelector('.nav');
+  var panels = $('panels').children, rail = $('rail').children, cue = $('cue'), nav = document.querySelector('.nav'), get = $('get');
   var edges = {}, corners = {};
   pad.querySelectorAll('.edge').forEach(function (el) { edges[el.dataset.edge] = el; });
   pad.querySelectorAll('.corner').forEach(function (el) { corners[el.dataset.corner] = el; });
   for (var i = 0; i < 16; i++) bar.appendChild(document.createElement('i'));
-
-  // ----- marquees
-  function fill(id, names) {
-    var host = $(id);
-    for (var copy = 0; copy < 2; copy++) {
-      var track = document.createElement('div');
-      track.className = 'track';
-      if (copy) track.setAttribute('aria-hidden', 'true');
-      names.forEach(function (name) {
-        var chip = document.createElement('span');
-        chip.className = 'chip'; chip.textContent = name; track.appendChild(chip);
-      });
-      host.appendChild(track);
-    }
-  }
-  fill('edge-actions', ['Volume', 'Brightness', 'Keyboard Backlight', 'Switch Apps', 'Switch Tabs', 'Switch Desktops', 'Scrub Video', 'Media', 'Zoom', 'Undo & Redo', 'Off']);
-  fill('corner-actions', ['Mute', 'Screenshot', 'Screenshot Area', 'Play/Pause', 'Mission Control', 'App Windows', 'Show Desktop', 'Spotlight', 'Lock Screen']);
 
   // ----- the trackpad
   var NAMES = { right: 'Volume', left: 'Brightness', top: 'Switch Apps', bottom: 'Keyboard Backlight' };
@@ -606,11 +584,13 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   function onScroll() {
     var rect = story.getBoundingClientRect(), span = rect.height - window.innerHeight;
     if (!(span > 0)) return; // not laid out yet, for example in a background tab
-    var progress = Math.max(0, Math.min(0.9999, -rect.top / span));
+    var raw = -rect.top / span, progress = Math.max(0, Math.min(0.9999, raw));
     var next = Math.floor(progress * STEPS.length);
     cue.style.opacity = progress < 0.02 ? 1 : 0;
-    // the bar's links swap on phones; not while one of them has the keyboard focus
-    if (!nav.contains(document.activeElement)) nav.classList.toggle('at-start', next === 0);
+    // On an upright phone the bar's download button is hidden on the first screen, which has its own,
+    // docks at the bottom for the rest of the story and returns to the bar after it.
+    var cta = raw >= 1 ? 'bar' : next === 0 ? 'none' : 'dock';
+    if (cta !== nav.dataset.cta && !(cta === 'none' && document.activeElement === get)) nav.dataset.cta = cta;
     if (next === step) return;
     step = next; lastCorner = -1; dragUntil = 0;
     for (var k = 0; k < panels.length; k++) {
@@ -653,34 +633,14 @@ footer a { color: var(--muted); } footer a:hover { color: var(--ink); }
   pad.addEventListener('pointercancel', release);
   pad.addEventListener('lostpointercapture', release);
 
-  // ----- reveals, counters, tiles
+  // ----- sections fade in once
   var seen = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
       if (!entry.isIntersecting) return;
       entry.target.classList.add('in'); seen.unobserve(entry.target);
-      entry.target.querySelectorAll('[data-count]').forEach(count);
     });
   }, { threshold: 0.18 });
   document.querySelectorAll('.reveal').forEach(function (el) { seen.observe(el); });
-  function count(el) {
-    var goal = +el.dataset.count;
-    if (calm || goal === 0) return;
-    var start = performance.now();
-    (function tick(now) {
-      var t = Math.min(1, (now - start) / 1100);
-      el.textContent = Math.round(goal * (1 - Math.pow(1 - t, 3)));
-      if (t < 1) requestAnimationFrame(tick);
-    })(start);
-  }
-  document.querySelectorAll('.tile').forEach(function (tile) {
-    tile.addEventListener('pointermove', function (event) {
-      var rect = tile.getBoundingClientRect(), x = (event.clientX - rect.left) / rect.width, y = (event.clientY - rect.top) / rect.height;
-      tile.style.setProperty('--mx', (x * 100) + '%'); tile.style.setProperty('--my', (y * 100) + '%');
-      if (calm || event.pointerType === 'touch') return;
-      tile.style.setProperty('--ty', ((x - 0.5) * 7).toFixed(2) + 'deg'); tile.style.setProperty('--tx', ((0.5 - y) * 7).toFixed(2) + 'deg');
-    });
-    tile.addEventListener('pointerleave', function () { tile.style.setProperty('--tx', '0deg'); tile.style.setProperty('--ty', '0deg'); });
-  });
 })();
 </script>
 </body>
